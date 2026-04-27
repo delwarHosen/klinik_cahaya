@@ -1,28 +1,28 @@
 import { fp } from '@/utils/responsiveDevice';
 import React from 'react';
 import { Text, TextProps } from 'react-native';
-
+ 
 const fontFamily = {
     regular: "Poppins_400Regular",
     regularItalic: "Poppins_400Regular_Italic",
     medium: "Poppins_500Medium",
-    mediumItalic: "Poppins_500Medium_Italic", 
+    mediumItalic: "Poppins_500Medium_Italic",
     semiBold: "Poppins_600SemiBold",
     semiBoldItalic: "Poppins_600SemiBold_Italic",
     bold: "Poppins_700Bold",
     boldItalic: "Poppins_700Bold_Italic",
     extraBold: "Poppins_800ExtraBold",
 };
-
+ 
 export type TypographyVariant =
     | "h1" | "h2" | "h3" | "h4" | "h5" | "h6"
     | "body1" | "body2" | "body3"| "body4"
     | "caption1" | "caption2" | "caption3"|"caption4"
-    | "button"
-
+    | "button"| "specialText"
+ 
 export type TypographyWeight =
     | 'regular' | 'medium' | 'semiBold' | 'bold' | "extraBold"
-
+ 
 interface TypographyProps extends TextProps {
     variant?: TypographyVariant;
     weight?: TypographyWeight;
@@ -31,7 +31,7 @@ interface TypographyProps extends TextProps {
     children: React.ReactNode;
     italic?: boolean;
 }
-
+ 
 const Typography: React.FC<TypographyProps> = ({
     variant = "body1",
     color = "#333333",
@@ -42,7 +42,7 @@ const Typography: React.FC<TypographyProps> = ({
     italic = false,
     ...props
 }) => {
-
+ 
     const getFontSize = () => {
         switch (variant) {
             case "h1": return fp(32);
@@ -60,29 +60,27 @@ const Typography: React.FC<TypographyProps> = ({
             case "caption4": return fp(12);
             case 'button': return fp(16);
             case "body4": return fp(15);
+            case "specialText": return fp(20);
             default: return fp(16);
         }
     }
-
+ 
     const getFontFamily = () => {
-        
         if (italic) {
             switch (weight) {
-                case "medium": 
-                    
-                    return fontFamily.semiBoldItalic; 
-                case "semiBold": 
+                case "medium":
                     return fontFamily.semiBoldItalic;
-                case "bold": 
+                case "semiBold":
+                    return fontFamily.semiBoldItalic;
+                case "bold":
                     return fontFamily.boldItalic;
-                case "extraBold": 
+                case "extraBold":
                     return fontFamily.boldItalic;
-                default: 
+                default:
                     return fontFamily.regularItalic;
             }
         }
-
-        // সাধারণ ফন্ট (যখন italic=false)
+ 
         switch (weight) {
             case "regular": return fontFamily.regular;
             case "medium": return fontFamily.medium;
@@ -92,7 +90,7 @@ const Typography: React.FC<TypographyProps> = ({
             default: return fontFamily.regular;
         }
     };
-
+ 
     const getLineHeight = () => {
         switch (variant) {
             case "h1": return 52;
@@ -101,7 +99,7 @@ const Typography: React.FC<TypographyProps> = ({
             case "h4": return 32;
             case "h5": return 28;
             case "h6": return 24;
-            case "body1": return 30;
+            case "body1": return 22;
             case "body2": return 22;
             case "body3": return 20;
             case "body4": return 20;
@@ -110,10 +108,11 @@ const Typography: React.FC<TypographyProps> = ({
             case "caption3": return 14;
             case "caption4": return 16;
             case 'button': return 24;
+            case "specialText": return 20;
             default: return 24;
         }
     }
-
+ 
     return (
         <Text
             style={[
@@ -132,8 +131,8 @@ const Typography: React.FC<TypographyProps> = ({
         </Text>
     )
 }
-
-
+ 
+ 
 export const H1: React.FC<Omit<TypographyProps, 'variant'>> = (props) => (
     <Typography variant="h1" weight="medium" {...props} />
 );
@@ -179,5 +178,9 @@ export const Caption4: React.FC<Omit<TypographyProps, 'variant'>> = (props) => (
 export const ButtonText: React.FC<Omit<TypographyProps, 'variant'>> = (props) => (
     <Typography variant="button" weight="semiBold" {...props} />
 );
-
+ 
+export const SpecialText: React.FC<Omit<TypographyProps, 'variant'>> = (props) => (
+    <Typography variant="specialText" weight="extraBold" {...props} />
+);
+ 
 export default Typography;

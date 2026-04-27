@@ -17,7 +17,7 @@ const TabIcon = ({ focused, children }: { focused: boolean; children: React.Reac
         borderRadius: 22,
         width: 44,
         height: 44,
-        elevation: focused ? 0 : 0, 
+        elevation: focused ? 0 : 0,
     }}>
         {children}
     </View>
@@ -32,12 +32,12 @@ export default function PatientTabsLayout() {
                 headerShown: false,
                 tabBarShowLabel: false,
                 tabBarActiveTintColor: "#2596BE",
-                tabBarInactiveTintColor: "#13193A", 
+                tabBarInactiveTintColor: "#13193A",
                 tabBarStyle: {
-                    backgroundColor: "#F8F8F8", 
-                    height: hp(70),
+                    backgroundColor: "#F8F8F8",
+                    height: hp(100),
                     position: 'absolute',
-                    bottom: hp(30), 
+                    // bottom: hp(20),
                     left: wp(20),
                     right: wp(20),
                     borderTopWidth: 0,
@@ -45,7 +45,6 @@ export default function PatientTabsLayout() {
                     shadowOpacity: 0,
                     paddingBottom: 0,
                     paddingTop: 8,
-                   
                 },
             }}
         >
@@ -65,7 +64,7 @@ export default function PatientTabsLayout() {
                 options={{
                     tabBarIcon: ({ focused, color }) => (
                         <TabIcon focused={focused}>
-                            <SearchIcon color={color} size={24}/>
+                            <SearchIcon color={color} size={24} />
                         </TabIcon>
                     ),
                 }}
@@ -87,7 +86,7 @@ export default function PatientTabsLayout() {
                 options={{
                     tabBarIcon: ({ focused, color }) => (
                         <TabIcon focused={focused}>
-                          <ProfileIcon color={color} size={24}/>
+                            <ProfileIcon color={color} size={24} />
                         </TabIcon>
                     ),
                 }}

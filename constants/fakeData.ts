@@ -1,0 +1,288 @@
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+export type TierType = 'Tier 1' | 'Tier 2';
+
+export interface Doctor {
+  id: string;
+  name: string;
+  specialty: string;
+  fullSpecialty: string;
+  tier: TierType;
+  time: string;
+  image: string;
+  consultationDays: string;
+  consultationTime: string;
+  about: string;
+  services: string[];
+  route: string;
+}
+
+export interface QuickAction {
+  id: string;
+  title: string;
+  // route: string;
+}
+
+export interface Service {
+  id: string;
+  name: string;
+  // route: string;
+}
+
+export interface Vaccine {
+  id: string;
+  name: string;
+  price: string;
+  stock: number;
+  expireDate: string;
+}
+
+export interface MedicalRecord {
+  id: string;
+  doctorName: string;
+  specialty: string;
+  patient: string;
+  dateTime: string;
+}
+
+export interface QueueItem {
+  id: string;
+  doctorName: string;
+  waiting: number;
+  served: number;
+  estimatedWait: string;
+}
+
+// ─── Doctors ─────────────────────────────────────────────────────────────────
+
+export const DOCTORS: Doctor[] = [
+  {
+    id: '1',
+    name: 'Dr. Anis Effendi',
+    specialty: 'General Practice',
+    fullSpecialty: 'General Practice, Adults & Children, Wellness & Chronic Disease',
+    tier: 'Tier 1',
+    time: '8:00AM - 1:00PM',
+    image: 'https://i.pravatar.cc/150?u=anis',
+    consultationDays: 'Sunday - Friday',
+    consultationTime: '8:00 AM - 1:00 PM',
+    about:
+      'As a former Head of House Officer in General Internal Medicine, he has demonstrated exceptional leadership and decision-making skills. Dr. Anis has also played a key role in COVID-19 management and completed a nephrology attachment at Hospital Serdang. His approach to healthcare emphasizes critical thinking, patient care, and community health improvement.',
+    services: ['Bridge', 'Dental Cleaning', 'Pediatric Dentist Consultation', 'Dental Consultation', 'Root Canal'],
+    route: '/patient/doctors_info/doctor_details',
+  },
+  {
+    id: '2',
+    name: 'Dr. Liyana Binti Radzi',
+    specialty: 'General Practice',
+    fullSpecialty: "General Practice, Adults & Children, Women's Health",
+    tier: 'Tier 1',
+    time: '8:00AM - 1:00PM',
+    image: 'https://i.pravatar.cc/150?u=liyana',
+    consultationDays: 'Sunday - Friday',
+    consultationTime: '8:00 AM - 1:00 PM',
+    about:
+      'Dr. Liyana is a dedicated general practitioner with a special interest in women\'s health and pediatric care. She has over 8 years of experience in primary healthcare and is known for her compassionate approach to patient management.',
+    services: ['General Consultation', 'Women\'s Health Screening', 'Antenatal Care', 'Pediatric Consultation'],
+    route: '/patient/doctors_info/doctor_details',
+  },
+  {
+    id: '3',
+    name: 'Dr. Muhammad Faiz',
+    specialty: 'General Practice',
+    fullSpecialty: 'General Practice, Emergency & Minor Surgery, Pediatric Interest',
+    tier: 'Tier 2',
+    time: '8:00AM - 1:00PM',
+    image: 'https://i.pravatar.cc/150?u=faiz',
+    consultationDays: 'Monday - Saturday',
+    consultationTime: '8:00 AM - 1:00 PM',
+    about:
+      'Dr. Muhammad Faiz specializes in emergency medicine and minor surgical procedures. With a strong background in pediatric care, he handles both adult and pediatric emergencies with skill and efficiency.',
+    services: ['Emergency Consultation', 'Minor Surgery', 'Wound Dressing', 'Pediatric Care', 'General Consultation'],
+    route: '/patient/doctors_info/doctor_details',
+  },
+  {
+    id: '4',
+    name: 'Dr. Noormimi Khadijah',
+    specialty: 'Pediatrics',
+    fullSpecialty: 'Pediatrics, Baby & Immunization (KNC Junior)',
+    tier: 'Tier 2',
+    time: '8:00AM - 1:00PM',
+    image: 'https://i.pravatar.cc/150?u=noormimi',
+    consultationDays: 'Sunday - Thursday',
+    consultationTime: '8:00 AM - 1:00 PM',
+    about:
+      'Dr. Noormimi is a specialist in pediatric medicine with a focus on baby care and immunization programs under KNC Junior. She is passionate about child health and development.',
+    services: ['Pediatric Consultation', 'Baby Immunization', 'Child Development Assessment', 'Nutritional Guidance'],
+    route: '/patient/doctors_info/doctor_details',
+  },
+  {
+    id: '5',
+    name: 'Dr. Noor Liyana Binti',
+    specialty: 'Antenatal Care',
+    fullSpecialty: 'General Practice, O&G, Antenatal & Ultrasound',
+    tier: 'Tier 2',
+    time: '8:00AM - 1:00PM',
+    image: 'https://i.pravatar.cc/150?u=noorliyana',
+    consultationDays: 'Sunday - Friday',
+    consultationTime: '8:00 AM - 5:00 PM',
+    about:
+      'Dr. Noor Liyana is an experienced OB-GYN specialist providing comprehensive antenatal care and ultrasound services. She is committed to ensuring the health and well-being of both mother and child throughout pregnancy.',
+    services: ['Antenatal Checkup', 'Ultrasound Scan', 'O&G Consultation', 'Family Planning', 'Postnatal Care'],
+    route: '/patient/doctors_info/doctor_details',
+  },
+  {
+    id: '6',
+    name: 'Dr. Noor Liyana Binti',
+    specialty: 'Antenatal Care',
+    fullSpecialty: 'General Practice, O&G, Antenatal & Ultrasound',
+    tier: 'Tier 2',
+    time: '8:00AM - 1:00PM',
+    image: 'https://i.pravatar.cc/150?u=noorliyana',
+    consultationDays: 'Sunday - Friday',
+    consultationTime: '8:00 AM - 5:00 PM',
+    about:
+      'Dr. Noor Liyana is an experienced OB-GYN specialist providing comprehensive antenatal care and ultrasound services. She is committed to ensuring the health and well-being of both mother and child throughout pregnancy.',
+    services: ['Antenatal Checkup', 'Ultrasound Scan', 'O&G Consultation', 'Family Planning', 'Postnatal Care'],
+    route: '/patient/doctors_info/doctor_details',
+  },
+  {
+    id: '7',
+    name: 'Dr. Noormimi Khadijah',
+    specialty: 'Pediatrics',
+    fullSpecialty: 'Pediatrics, Baby & Immunization (KNC Junior)',
+    tier: 'Tier 2',
+    time: '8:00AM - 1:00PM',
+    image: 'https://i.pravatar.cc/150?u=noormimi',
+    consultationDays: 'Sunday - Thursday',
+    consultationTime: '8:00 AM - 1:00 PM',
+    about:
+      'Dr. Noormimi is a specialist in pediatric medicine with a focus on baby care and immunization programs under KNC Junior. She is passionate about child health and development.',
+    services: ['Pediatric Consultation', 'Baby Immunization', 'Child Development Assessment', 'Nutritional Guidance'],
+    route: '/patient/doctors_info/doctor_details',
+  },
+];
+
+// ─── Quick Actions ────────────────────────────────────────────────────────────
+
+export const QUICK_ACTIONS: QuickAction[] = [
+  { id: '1', title: 'Book Appointment' },
+  { id: '2', title: 'Queue Status' },
+  { id: '3', title: 'Vaccine Stock' },
+  { id: '4', title: 'Medical Record' },
+];
+
+// ─── Services ─────────────────────────────────────────────────────────────────
+
+
+export const SERVICE_NAMES: Service[] = [
+  { id: '1', name: 'General' },
+  { id: '2', name: 'Pediatric' },
+  { id: '3', name: 'Antenatal' },
+  { id: '4', name: 'Vaccination' },
+  { id: '5', name: 'Dental' },
+  { id: '6', name: 'Eye Care' },
+];
+
+// ─── Vaccines ─────────────────────────────────────────────────────────────────
+
+export const VACCINES: Vaccine[] = [
+  { id: '1', name: 'BCG (Bacillus Calmette–Guérin)', price: 'RM 1200', stock: 56, expireDate: 'October 30, 2027' },
+  { id: '2', name: 'Japanese Encephalitis (JE) Vaccine', price: 'RM 1200', stock: 56, expireDate: 'October 30, 2027' },
+  { id: '3', name: '6-in-1 Vaccine (Hexaxim)', price: 'RM 1200', stock: 0, expireDate: 'October 30, 2027' },
+];
+
+// ─── Medical Records ──────────────────────────────────────────────────────────
+
+export const PERSONAL_RECORDS: MedicalRecord[] = [
+  { id: '1', doctorName: 'Dr. Anis Effendi', specialty: 'GENERAL PRACTITIONER Primary Care for Adults & C...', patient: 'My Self', dateTime: '08:00 | March 13, 2014 (Sunday)' },
+  { id: '2', doctorName: 'Dr. Anis Effendi', specialty: 'GENERAL PRACTITIONER Primary Care for Adults & C...', patient: 'My Self', dateTime: '08:00 | March 13, 2014 (Sunday)' },
+  { id: '3', doctorName: 'Dr. Anis Effendi', specialty: 'GENERAL PRACTITIONER Primary Care for Adults & C...', patient: 'My Self', dateTime: '08:00 | March 13, 2014 (Sunday)' },
+];
+
+export const FAMILY_RECORDS: MedicalRecord[] = [
+  { id: '1', doctorName: 'Dr. Anis Effendi', specialty: 'GENERAL PRACTITIONER Primary Care for Adults & C...', patient: 'Hakim', dateTime: '08:00 | March 13, 2014 (Sunday)' },
+  { id: '2', doctorName: 'Dr. Anis Effendi', specialty: 'GENERAL PRACTITIONER Primary Care for Adults & C...', patient: 'Hakim', dateTime: '08:00 | March 13, 2014 (Sunday)' },
+  { id: '3', doctorName: 'Dr. Anis Effendi', specialty: 'GENERAL PRACTITIONER Primary Care for Adults & C...', patient: 'Hakim', dateTime: '08:00 | March 13, 2014 (Sunday)' },
+];
+
+// ─── Queue ────────────────────────────────────────────────────────────────────
+
+export const QUEUE_DATA: QueueItem[] = [
+  { id: '1', doctorName: 'Dr. Anis Effendi', waiting: 1, served: 4, estimatedWait: '30 minutes' },
+];
+
+
+export const APPOINTMENTS_DATA = [
+  {
+    id: '1',
+    doctorName: 'Dr. Anis Effendi',
+    specialty: 'GENERAL PRACTITIONER Primary Care for Adults & Children',
+    tier: 'Tier 1',
+    patientName: 'Hakim',
+    patientType: '(Own Self)',
+    date: 'March 13, 2026 (Sunday)',
+    time: '08:00 AM',
+    status: 'Accepted',
+    reason: 'Checkup',
+    details: "Regular health checkup for blood pressure and general wellness monitoring. The patient has requested a full body screening and consultation regarding chronic fatigue.",
+    image: 'https://i.pravatar.cc/150?u=anis'
+  },
+  {
+    id: '2',
+    doctorName: 'Dr. Noormimi Khadijah',
+    specialty: 'PEDIATRICS Baby & Immunization (KNC Junior)',
+    tier: 'Tier 2',
+    patientName: 'Zayan',
+    patientType: '(Family Member)',
+    date: 'April 05, 2026 (Monday)',
+    time: '10:30 AM',
+    status: 'Pending',
+    reason: 'Vaccination',
+    details: "Scheduled 6-in-1 vaccine (Hexaxim) for the baby. This is the second dose of the mandatory immunization program to ensure full protection.",
+    image: 'https://i.pravatar.cc/150?u=noormimi'
+  },
+  {
+    id: '3',
+    doctorName: 'Dr. Liyana Binti Radzi',
+    specialty: "GENERAL PRACTICE Adults & Children, Women's Health",
+    tier: 'Tier 1',
+    patientName: 'Sara Khan',
+    patientType: '(Family Member)',
+    date: 'February 20, 2026 (Friday)',
+    time: '02:00 PM',
+    status: 'Completed',
+    reason: 'Consultation',
+    details: "Post-consultation summary: Discussion regarding persistent migraine and nutritional guidance. Patient was advised to maintain a strict sleep schedule.",
+    image: 'https://i.pravatar.cc/150?u=liyana'
+  },
+  {
+    id: '4',
+    doctorName: 'Dr. Muhammad Faiz',
+    specialty: 'GENERAL PRACTICE Emergency & Minor Surgery',
+    tier: 'Tier 2',
+    patientName: 'Hakim',
+    patientType: '(Own Self)',
+    date: 'January 15, 2026 (Thursday)',
+    time: '11:00 AM',
+    status: 'Canceled',
+    reason: 'Minor Surgery',
+    details: "Request for wound dressing and follow-up after a minor surgical procedure. The session was canceled due to patient unavailability.",
+    image: 'https://i.pravatar.cc/150?u=faiz'
+  },
+  {
+    id: '5',
+    doctorName: 'Dr. Noor Liyana Binti',
+    specialty: 'ANTENATAL CARE O&G, Antenatal & Ultrasound',
+    tier: 'Tier 2',
+    patientName: 'Mrs. Hakim',
+    patientType: '(Family Member)',
+    date: 'May 10, 2026 (Sunday)',
+    time: '09:15 AM',
+    status: 'Accepted',
+    reason: 'Ultrasound Scan',
+    details: "Routine antenatal checkup including a 4D ultrasound scan for pregnancy monitoring. Both mother and baby are reported to be in stable condition.",
+    image: 'https://i.pravatar.cc/150?u=noorliyana'
+  }
+];

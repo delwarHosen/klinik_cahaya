@@ -36,20 +36,18 @@ export default function AdminTabsLayout() {
                 tabBarShowLabel: false,
                 tabBarActiveTintColor: "#2596BE",
                 tabBarInactiveTintColor: "#13193A",
-
                 tabBarStyle: {
-                    backgroundColor: "#F8F8F8", 
-                    height: hp(70),
+                    backgroundColor: "#F8F8F8",
+                    height: hp(100),
                     position: 'absolute',
-                    bottom: hp(30),
+                    // bottom: hp(20),
                     left: wp(20),
                     right: wp(20),
-                    // borderRadius: 30, 
                     borderTopWidth: 0,
                     elevation: 0,
                     shadowOpacity: 0,
                     paddingBottom: 0,
-                    paddingTop:8
+                    paddingTop: 8,
                 },
             }}
         >

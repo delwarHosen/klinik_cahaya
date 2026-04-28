@@ -1,4 +1,5 @@
 import { LeftAngleIcon } from '@/assets/icons/common_icon/LeftAngleIcon';
+import { CalenderIcon } from '@/assets/icons/patient_icon/CalenderIcon'; // ১. আইকন ইম্পোর্ট
 import { DownArrowIcon } from '@/assets/icons/patient_icon/DownArrowIcon';
 import { UpArrowIcon } from '@/assets/icons/patient_icon/UpArrowIcon';
 import { AuthHeading } from '@/components/auth/AuthHeading';
@@ -20,7 +21,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const GENDER_OPTIONS = ['Male', 'Female', 'Other', 'Prefer not to say'];
+const GENDER_OPTIONS = ['Male', 'Female', 'Other'];
 
 export default function PersonalInformationScreen() {
   const router = useRouter();
@@ -28,6 +29,11 @@ export default function PersonalInformationScreen() {
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [address, setAddress] = useState('');
   const [showGenderModal, setShowGenderModal] = useState(false);
+
+  
+  const handleOpenCalendar = () => {
+    // console.log('Open Calendar');
+  };
 
   const handleContinue = () => {
     router.push('/(auth)/medical_information');
@@ -69,7 +75,7 @@ export default function PersonalInformationScreen() {
 
             {/* Gender Dropdown trigger */}
             <TouchableOpacity
-              style={styles.dropdownInput}
+              style={styles.inputWrapper} 
               onPress={() => setShowGenderModal(true)}
               activeOpacity={0.7}
             >
@@ -79,12 +85,17 @@ export default function PersonalInformationScreen() {
               <DownArrowIcon />
             </TouchableOpacity>
 
-            {/* Date Of Birth */}
-            <FormInput
-              value={dateOfBirth}
-              onChangeText={setDateOfBirth}
-              placeholder="Date Of Birth"
-            />
+           
+            <TouchableOpacity
+              style={styles.inputWrapper}
+              onPress={handleOpenCalendar}
+              activeOpacity={0.7}
+            >
+              <Body3 color={dateOfBirth ? Colors.TEXT_COLOR : '#8C88A3'} style={{ flex: 1 }}>
+                {dateOfBirth || 'Date Of Birth'}
+              </Body3>
+              <CalenderIcon />
+            </TouchableOpacity>
 
             {/* Address */}
             <FormInput
@@ -105,64 +116,56 @@ export default function PersonalInformationScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Gender Modal — bottom sheet, keyboard aware */}
+   
       <Modal
         visible={showGenderModal}
         transparent
-        animationType="slide"
+        animationType="fade" 
         onRequestClose={() => setShowGenderModal(false)}
       >
         <View style={styles.modalOverlay}>
 
-          {/* Backdrop: zIndex 1 — click করলে modal বন্ধ */}
+         
           <TouchableOpacity
-            style={[StyleSheet.absoluteFill, { zIndex: 1 }]}
+            style={[StyleSheet.absoluteFill, { zIndex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }]}
             onPress={() => setShowGenderModal(false)}
             activeOpacity={1}
           />
 
-          {/* Sheet: zIndex 2 — keyboard এর সাথে উঠবে */}
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={{ width: '100%', zIndex: 2 }}
-          >
-            <View style={styles.genderSheet}>
-              {/* Handle */}
-              <View style={styles.sheetHandle} />
-
-              {/* Header */}
-              <View style={styles.genderModalHeader}>
-                <Body2 color={Colors.TEXT_COLOR}>Choose Gender</Body2>
-                <TouchableOpacity onPress={() => setShowGenderModal(false)}>
-                  <UpArrowIcon />
-                </TouchableOpacity>
-              </View>
-
-              {/* Options */}
-              {GENDER_OPTIONS.map((option) => (
-                <TouchableOpacity
-                  key={option}
-                  style={[
-                    styles.genderOption,
-                    gender === option && styles.genderOptionSelected,
-                  ]}
-                  onPress={() => {
-                    setGender(option);
-                    setShowGenderModal(false);
-                  }}
-                >
-                  <Body3 color={Colors.TEXT_COLOR}>{option}</Body3>
-                  {gender === option ? (
-                    <View style={styles.checkboxSelected}>
-                      <Body3 color={Colors.BRAND_PRIMARY} style={{ fontSize: 12 }}>✓</Body3>
-                    </View>
-                  ) : (
-                    <View style={styles.checkboxEmpty} />
-                  )}
-                </TouchableOpacity>
-              ))}
+         
+          <View style={styles.genderModalContainer}>
+            {/* Header */}
+            <View style={styles.genderModalHeader}>
+              <Body2 color={Colors.TEXT_COLOR}>Choose Gender</Body2>
+              <TouchableOpacity onPress={() => setShowGenderModal(false)} style={styles.closeIcon}>
+                <UpArrowIcon />
+              </TouchableOpacity>
             </View>
-          </KeyboardAvoidingView>
+
+            {/* Options */}
+            {GENDER_OPTIONS.map((option) => (
+              <TouchableOpacity
+                key={option}
+                style={[
+                  styles.genderOption,
+                  gender === option && styles.genderOptionSelected,
+                ]}
+                onPress={() => {
+                  setGender(option);
+                  setShowGenderModal(false);
+                }}
+              >
+                <Body3 color={Colors.TEXT_COLOR}>{option}</Body3>
+                {gender === option ? (
+                  <View style={styles.checkboxSelected}>
+                    <Body3 color={Colors.BRAND_PRIMARY} style={{ fontSize: 12 }}>✓</Body3>
+                  </View>
+                ) : (
+                  <View style={styles.checkboxEmpty} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
 
         </View>
       </Modal>
@@ -202,7 +205,7 @@ const styles = StyleSheet.create({
   titleBlock: {
     marginBottom: hp(30),
   },
-  dropdownInput: {
+  inputWrapper: { 
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 16,
@@ -213,22 +216,32 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     marginBottom: hp(12),
   },
-  // Modal
+  
+  
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'flex-end',
+    // backgroundColor: 'rgba(0,0,0,0.3)', /
+    justifyContent: 'center', // Vertical Center
+    alignItems: 'center',     // Horizontal Center
+    paddingHorizontal: wp(20), 
   },
-  genderSheet: {
+  genderModalContainer: {
+    width: '100%',
+    zIndex: 2,
     backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderRadius: 24, 
     paddingHorizontal: wp(20),
     paddingTop: hp(16),
     paddingBottom: Platform.OS === 'ios' ? hp(40) : hp(30),
     gap: hp(8),
+    
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
-  sheetHandle: {
+  sheetHandle: { 
     width: 40,
     height: 4,
     backgroundColor: '#E0E0E0',
@@ -240,7 +253,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: hp(8),
+    marginBottom: hp(16), 
+  },
+  closeIcon: { 
+    padding: 5,
   },
   genderOption: {
     flexDirection: 'row',

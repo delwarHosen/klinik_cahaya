@@ -61,16 +61,35 @@ export function PatientCard({
 }
 
 const styles = StyleSheet.create({
-    card: { borderWidth: 1, borderColor: '#E0E0E0', borderRadius: 12, overflow: 'hidden', marginTop: hp(12) },
-    patientName: { paddingHorizontal: wp(16), paddingTop: hp(14), paddingBottom: hp(6), color: '#1A1A1A' },
+    card: {
+        borderWidth: 1,
+        borderColor: '#E0E0E0',
+        borderRadius: 12,
+        overflow: 'hidden',
+        marginTop: hp(12)
+    },
+    patientName: {
+        paddingHorizontal: wp(16),
+        paddingTop: hp(14),
+        paddingBottom: hp(6),
+        color: '#1A1A1A'
+    },
     row: {
-        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-        paddingHorizontal: wp(16), paddingVertical: hp(14),
-        borderTopWidth: 1, borderTopColor: '#F0F0F0',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: wp(16),
+        paddingVertical: hp(14),
+        borderTopWidth: 1,
+        borderTopColor: '#F0F0F0',
     },
     textInput: {
-        borderTopWidth: 1, borderTopColor: '#F0F0F0',
-        paddingHorizontal: wp(16), paddingVertical: hp(12),
-        color: '#1A1A1A', fontSize: 13, minHeight: hp(60),
+        borderTopWidth: 1,
+        borderTopColor: '#F0F0F0',
+        paddingHorizontal: wp(16),
+        paddingVertical: hp(12),
+        color: '#1A1A1A',
+        fontSize: 13,
+        minHeight: hp(60),
     },
 });

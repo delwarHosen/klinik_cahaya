@@ -54,7 +54,7 @@ export const ADMIN_APPOINTMENTS: AdminAppointment[] = [
     patientIC: '****5678',
     patientDOB: '10-Aug-1986',
     patientAge: 40,
-    patientPhone: '+60 12 2345678',
+    patientPhone: '+60 12 2345678', 
     patientImage: 'https://i.pravatar.cc/150?u=ahmad1',
     patientType: 'Own Self',
     date: 'March 13, 2014 (Sunday)',

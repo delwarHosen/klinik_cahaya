@@ -1,6 +1,7 @@
 // app/admin/(tabs)/home.tsx
 import { NotificationIcon } from '@/assets/icons/common_icon/Notification'
-import { Caption1, Caption4, H3, H6 } from '@/components/typo/Typography'
+import { CustomButton } from '@/components/shared/CustomButton'
+import { Body1, Caption1, Caption2, Caption4, H3, H6 } from '@/components/typo/Typography'
 import { ADMIN_APPOINTMENTS, BOOKING_STATS } from '@/constants/adminData'
 import { IMAGE_COMPONENTS } from '@/constants/image.index'
 import { Colors } from '@/constants/theme'
@@ -18,80 +19,123 @@ export default function AdminHomeScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
+
+      {/* ── Header ── */}
       <View style={styles.header}>
         <Image source={IMAGE_COMPONENTS.logo} style={styles.logo} />
-        <TouchableOpacity style={styles.notifBtn} onPress={() => router.push('/admin/notification' as any)}>
+        <TouchableOpacity
+          style={styles.notifBtn}
+          onPress={() => router.push('/admin/notification' as any)}
+        >
           <NotificationIcon />
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
 
-        {/* Upcoming Appointment Card */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <H6 style={styles.cardTitle}>Upcoming Appointment</H6>
-            <TouchableOpacity onPress={() => router.push('/admin/appointments/appointments' as any)}>
-              <Caption1 style={styles.viewAll}>View All</Caption1>
+        {/* ── Upcoming Appointment Card ── */}
+        <View style={styles.upcomingCard}>
+          <View style={styles.upcomingCardHeader}>
+            <Body1>Upcoming Appointment</Body1>
+            <TouchableOpacity
+              onPress={() => router.push('/admin/(tabs)/apointment' as any)}
+            >
+              <Caption4 color='#666666'>View All</Caption4>
             </TouchableOpacity>
           </View>
 
-          {upcomingList.slice(0, 5).map((item, index) => (
-            <TouchableOpacity
-              key={item.id}
-              style={[styles.appointmentRow, index < upcomingList.slice(0, 5).length - 1 && styles.appointmentRowBorder]}
-              activeOpacity={0.75}
-              onPress={() => router.push({ pathname: '/admin/appointments/appointment_details' as any, params: { id: item.id } })}
-            >
-              <View style={styles.apptLeft}>
-                <Caption1 style={styles.apptDoctor}>{item.doctorName}</Caption1>
-                <Caption4 style={styles.apptMeta}>{item.time} | {item.displayDate}</Caption4>
-              </View>
-              <View style={styles.apptRight}>
-                <Caption4 style={styles.patientLabel}>Patient</Caption4>
-                <Caption1 style={styles.apptPatient} numberOfLines={1}>{item.patientName}</Caption1>
-              </View>
-            </TouchableOpacity>
-          ))}
+          <View style={styles.apptListInner}>
+            {upcomingList.slice(0, 5).map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.apptInnerCard}
+                activeOpacity={0.75}
+                onPress={() =>
+                  router.push({
+                    pathname: '/admin/appointments/appointment_details' as any,
+                    params: { id: item.id },
+                  })
+                }
+              >
+                <View style={styles.apptLeft}>
+                  <Caption1 weight='semiBold' style={styles.apptDoctor} numberOfLines={1}>
+                    {item.doctorName}
+                  </Caption1>
+                  <Caption4 style={styles.apptMeta}>
+                    {item.time} | {item.displayDate}
+                  </Caption4>
+                </View>
+
+                <View style={styles.apptVerticalDivider} />
+
+                <View style={styles.apptRight}>
+                  <Caption4 style={styles.patientLabel}>Patient</Caption4>
+                  <Caption2 style={styles.apptPatient} numberOfLines={1}>
+                    {item.patientName}
+                  </Caption2>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
-        {/* Stats Row */}
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Caption1 style={styles.statLabel}>Booking Request</Caption1>
+        {/* ── Stats Row ── */}
+        <View style={styles.statsCard}>
+          <View style={styles.statItem}>
+            <Caption4 style={styles.statLabel}>Booking Request</Caption4>
             <H3 style={styles.statNumber}>{BOOKING_STATS.bookingRequest}</H3>
           </View>
-          <View style={[styles.statCard, styles.statCardBorder]}>
-            <Caption1 style={[styles.statLabel, { textAlign: 'right' }]}>Accepted</Caption1>
-            <H3 style={[styles.statNumber, { textAlign: 'right' }]}>{BOOKING_STATS.accepted}</H3>
+          <View style={styles.statDivider} />
+          <View style={[styles.statItem, { alignItems: 'flex-end' }]}>
+            <Caption4 style={styles.statLabel}>Accepted</Caption4>
+            <H3 style={styles.statNumber}>{BOOKING_STATS.accepted}</H3>
           </View>
         </View>
 
-        {/* Recent Request */}
-        <View style={styles.sectionHeader}>
-          <H6 style={styles.sectionTitle}>Recents Request</H6>
-          <TouchableOpacity onPress={() => router.push('/admin/appointments/pending_request' as any)}>
-            <Caption1 style={styles.viewAll}>View All</Caption1>
-          </TouchableOpacity>
-        </View>
-
-        {pendingList.slice(0, 3).map((item) => (
-          <View key={item.id} style={styles.requestCard}>
-            <View style={styles.requestLeft}>
-              <Caption1 style={styles.apptDoctor}>{item.doctorName}</Caption1>
-              <Caption4 style={styles.apptMeta}>{item.time}</Caption4>
-              <Caption4 style={styles.apptMeta}>{item.displayDate}</Caption4>
-            </View>
+        {/* ── Recent Request ── */}
+        <View style={styles.recentSection}>
+          <View style={styles.sectionHeader}>
+            <H6 style={styles.sectionTitle}>Recent Request</H6>
             <TouchableOpacity
-              style={styles.viewBtn}
-              activeOpacity={0.85}
-              onPress={() => router.push({ pathname: '/admin/appointments/appointment_details' as any, params: { id: item.id } })}
+              onPress={() => router.push('/admin/(tabs)/details' as any)}
             >
-              <Caption1 style={styles.viewBtnText}>View</Caption1>
+              <Caption4 color='#666666'>View All</Caption4>
             </TouchableOpacity>
           </View>
-        ))}
+
+          {pendingList.slice(0, 3).map((item, index) => (
+            <View
+              key={item.id}
+              style={[
+                styles.recentCard,
+                index < Math.min(pendingList.length, 3) - 1 && { marginBottom: hp(12) },
+              ]}
+            >
+              <View style={styles.recentLeft}>
+                <Caption1 weight='semiBold' style={styles.apptDoctor} numberOfLines={1}>
+                  {item.doctorName}
+                </Caption1>
+                <Caption4 style={styles.apptMeta}>{item.time}</Caption4>
+                <Caption4 style={styles.apptMeta}>{item.displayDate}</Caption4>
+              </View>
+
+              <CustomButton
+                title='View'
+                borderRadius={14}
+                onPress={() =>
+                  router.push({
+                    pathname: '/admin/appointments/appointment_details' as any,
+                    params: { id: item.id },
+                  })
+                }
+                width={"25%"}
+              />
+            </View>
+          ))}
+        </View>
 
       </ScrollView>
     </SafeAreaView>
@@ -99,82 +143,139 @@ export default function AdminHomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: wp(20),
-    paddingVertical: hp(20),
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#EEEEEE',
+    paddingVertical: hp(16),
   },
-  logo: {
-    height: hp(54),
-    width: wp(138),
-    resizeMode: 'contain'
-  },
+  logo: { height: hp(54), width: wp(138), resizeMode: 'contain' },
   notifBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 44, height: 44, borderRadius: 22,
     backgroundColor: '#F8F8F8',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center', alignItems: 'center',
   },
+
   scrollContent: {
     paddingHorizontal: wp(20),
-    paddingTop: hp(16),
+    paddingTop: hp(8),
     paddingBottom: hp(150),
-    gap: 16
+    gap: hp(20),
   },
 
-  // Upcoming card
-  card: { borderRadius: 16, borderWidth: 1, borderColor: '#EEEEEE', overflow: 'hidden' },
-  cardHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: wp(16), paddingVertical: hp(14),
-    borderBottomWidth: 1, borderBottomColor: '#F4F4F4',
+  // ── Upcoming card ──────────────────────────────
+  upcomingCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.BORDER_COLOR,
+    backgroundColor: '#F8F8F8',
+    overflow: 'hidden',
   },
-  cardTitle: { fontWeight: '700', color: '#1A1A1A' },
-  viewAll: { color: '#AAAAAA', fontSize: 12 },
-  appointmentRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: wp(16), paddingVertical: hp(12),
+  upcomingCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: wp(16),
+    paddingVertical: hp(14),
   },
-  appointmentRowBorder: { borderBottomWidth: 1, borderBottomColor: '#F4F4F4' },
-  apptLeft: { flex: 1 },
-  apptRight: { alignItems: 'flex-end' },
-  apptDoctor: { color: Colors.BRAND_PRIMARY, fontWeight: '600', fontSize: 13 },
-  apptMeta: { color: '#888888', fontSize: 11, marginTop: 2 },
-  patientLabel: { color: '#AAAAAA', fontSize: 10 },
-  apptPatient: { color: '#1A1A1A', fontWeight: '600', fontSize: 13 },
 
-  // Stats
-  statsRow: {
-    flexDirection: 'row', borderRadius: 16,
-    borderWidth: 1, borderColor: '#EEEEEE', overflow: 'hidden',
+  apptListInner: {
+    paddingHorizontal: wp(12),
+    paddingBottom: hp(12),
+    gap: hp(8),
   },
-  statCard: { flex: 1, paddingHorizontal: wp(20), paddingVertical: hp(16) },
-  statCardBorder: { borderLeftWidth: 1, borderLeftColor: '#EEEEEE' },
-  statLabel: { color: '#888888', fontSize: 12 },
-  statNumber: { color: '#1A1A1A', fontWeight: '700', marginTop: hp(4) },
 
-  // Recent Request
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  apptInnerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.BORDER_COLOR,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: Colors.APP_BACKGROUND,
+    paddingVertical: hp(15),
+  },
+  apptLeft: {
+    flex: 1,
+    paddingHorizontal: wp(14),
+    paddingVertical: hp(12),
+  },
+  apptVerticalDivider: {
+    width: 1,
+    alignSelf: 'stretch',
+    backgroundColor: Colors.BORDER_COLOR,
+  },
+  apptRight: {
+    width: wp(130),
+    paddingHorizontal: wp(14),
+    paddingVertical: hp(12),
+    alignItems: 'flex-end',
+  },
+  apptDoctor: {
+    color: Colors.BRAND_PRIMARY,
+    fontWeight: '600',
+    marginBottom: hp(5),
+  },
+  apptMeta: {
+    color: '#666666',
+    marginBottom: 3,
+  },
+  patientLabel: {
+    color: '#666666',
+    marginBottom: hp(8),
+  },
+  apptPatient: {
+    color: Colors.TEXT_COLOR,
+    fontWeight: '600',
+    textAlign: 'right',
+  },
+
+  // ── Stats ──────────────────────────────────────
+  statsCard: {
+    flexDirection: 'row',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.BORDER_COLOR,
+    overflow: 'hidden',
+    backgroundColor: Colors.APP_BACKGROUND,
+  },
+  statItem: {
+    flex: 1,
+    paddingHorizontal: wp(20),
+    paddingVertical: hp(16),
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: '#EEEEEE',
+    marginVertical: hp(12),
+  },
+  statLabel: { color: '#666666' },
+  statNumber: { color: Colors.TEXT_COLOR, fontWeight: '700', marginTop: hp(4) },
+
+  // ── Section header ─────────────────────────────
+  recentSection: {},
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: hp(12),
+  },
   sectionTitle: { fontWeight: '700', color: '#1A1A1A' },
-  requestCard: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: hp(14), paddingHorizontal: wp(4),
-    borderBottomWidth: 1, borderBottomColor: '#F4F4F4',
+
+  // ── Recent Request ─────────────────────────────
+  recentCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: wp(16),
+    paddingVertical: hp(16),
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.BORDER_COLOR,
+    backgroundColor: Colors.APP_BACKGROUND,
   },
-  requestLeft: { flex: 1 },
-  viewBtn: {
-    backgroundColor: Colors.BRAND_PRIMARY, borderRadius: 10,
-    paddingHorizontal: wp(20), paddingVertical: hp(12),
-  },
-  viewBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
+  recentLeft: { flex: 1 },
 })

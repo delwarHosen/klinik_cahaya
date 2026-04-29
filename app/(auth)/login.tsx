@@ -86,7 +86,7 @@ export default function LoginScreen() {
               <CustomButton
                 title={"Log in"}
                 // onPress={handleSubmit}
-                onPress={()=>router.push("/patient/home")}
+                onPress={()=>router.push("/admin/home")}
                 width="100%"
                 height={hp(70)}
                 borderRadius={16}

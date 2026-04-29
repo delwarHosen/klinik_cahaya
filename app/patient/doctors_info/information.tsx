@@ -141,10 +141,9 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         paddingHorizontal: wp(20),
         paddingTop: hp(12),
-        paddingBottom: hp(12), // এখানে প্যাডিং কমিয়ে বা ফিক্সড ভ্যালু দিন
+        paddingBottom: hp(12), 
         borderTopWidth: 1,
         borderTopColor: '#F0F0F0',
-        // নিশ্চিত করুন এটি যেন স্ক্রিনের একদম নিচে থাকে
         width: '100%',
     },
 });

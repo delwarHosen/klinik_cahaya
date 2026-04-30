@@ -1,12 +1,14 @@
 import { AuthHeading } from '@/components/auth/AuthHeading';
 import { FormInput } from '@/components/inputForm/inputForm';
 import { CustomButton } from '@/components/shared/CustomButton';
+import CustomLoader from '@/components/shared/CustomLoader';
 import { showToast } from '@/components/shared/Toast';
 import { Caption2 } from '@/components/typo/Typography';
 import { FORM_FIELDS } from '@/components/ui/form';
 import { IMAGE_COMPONENTS } from '@/constants/image.index';
 import { Colors } from '@/constants/theme';
 import { useForm } from '@/hooks/useForm';
+import { useSignupMutation } from '@/redux/services/authApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { validateEmail, validateName, validatePassword, validatePhoneNumber } from '@/utils/validation';
 import { useRouter } from 'expo-router';
@@ -15,6 +17,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacit
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const [signup, { isLoading }] = useSignupMutation();
 
   const { values, errors, touched, handleChange, handleSubmit } = useForm({
     initialValues: {
@@ -33,10 +36,20 @@ export default function RegisterScreen() {
     },
     onSubmit: async (values) => {
       try {
-        console.log("Registration Data:", values);
-        router.push("/(auth)/personal_information");
-      } catch (error: any) {
-        showToast(error?.message || "Registration failed", 'error');
+        await signup({
+          name: values[FORM_FIELDS.FULL_NAME],
+          email: values[FORM_FIELDS.EMAIL].trim().toLowerCase(),
+          ic_number: values[FORM_FIELDS.CONTACT_NO],
+          password: values[FORM_FIELDS.PASSWORD],
+          confirm_password: values[FORM_FIELDS.CONFIRM_PASSWORD],
+        }).unwrap();
+
+        showToast('Check your email to verify your account.', 'success');
+        router.push('/(auth)/personal_information');
+
+      } catch (err: any) {
+         console.log('Login error:', JSON.stringify(err));
+        showToast(err?.data?.message || 'Registration failed.', 'error');
       }
     },
   });
@@ -106,14 +119,20 @@ export default function RegisterScreen() {
                 touched={touched[FORM_FIELDS.CONFIRM_PASSWORD]}
               />
 
-              <CustomButton
-                title={"Sign Up"}
-                onPress={() => router.push("/(auth)/personal_information")}
-                width="100%"
-                height={hp(70)}
-                borderRadius={16}
-                style={{ marginTop: hp(12) }}
-              />
+              {isLoading ? (
+                <View style={{ alignItems: 'center', marginTop: hp(12) }}>
+                  <CustomLoader size={50} strokeWidth={1} />
+                </View>
+              ) : (
+                <CustomButton
+                  title="Sign Up"
+                  onPress={handleSubmit}
+                  width="100%"
+                  height={hp(70)}
+                  borderRadius={16}
+                  style={{ marginTop: hp(12) }}
+                />
+              )}
             </View>
 
             <View style={styles.footer}>

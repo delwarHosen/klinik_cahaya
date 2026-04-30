@@ -4,8 +4,11 @@ import { UpArrowIcon } from '@/assets/icons/patient_icon/UpArrowIcon';
 import { AuthHeading } from '@/components/auth/AuthHeading';
 import { FormInput } from '@/components/inputForm/inputForm';
 import { CustomButton } from '@/components/shared/CustomButton';
+import CustomLoader from '@/components/shared/CustomLoader';
+import { showToast } from '@/components/shared/Toast';
 import { Body2, Body3 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
+import { useUpdateMedicalMutation } from '@/redux/services/authApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -30,6 +33,7 @@ const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 export default function MedicalInformationScreen() {
   const router = useRouter();
+   const [updateMedical, { isLoading }] = useUpdateMedicalMutation();
   
   // States
   const [bloodGroup, setBloodGroup] = useState('');
@@ -41,9 +45,9 @@ export default function MedicalInformationScreen() {
   const [medicalCondition, setMedicalCondition] = useState('');
   const [medication, setMedication] = useState('');
 
-  const handleContinue = () => {
-    router.push('/(auth)/insurance_information');
-  };
+  // const handleContinue = () => {
+  //   router.push('/(auth)/insurance_information');
+  // };
 
   const handleSkip = () => {
     router.push('/(auth)/insurance_information');
@@ -54,6 +58,34 @@ export default function MedicalInformationScreen() {
       prev.includes(allergy) ? prev.filter((a) => a !== allergy) : [...prev, allergy]
     );
   };
+
+
+ 
+
+const handleContinue = async () => {
+  try {
+    await updateMedical({
+      blood_group: bloodGroup,
+      allergies: selectedAllergies.map((name) => ({ name, type: null, severity: null })),
+      medical_condition: medicalCondition ? [medicalCondition] : [],
+      medication: medication ? [medication] : [],
+    }).unwrap();
+
+    showToast('Medical info saved!', 'success');
+    router.push('/(auth)/insurance_information');
+  } catch (err: any) {
+    showToast(err?.data?.message || 'Failed to save medical info.', 'error');
+  }
+};
+
+// Button replace:
+{isLoading ? (
+  <View style={{ alignItems: 'center', marginTop: hp(12) }}>
+    <CustomLoader size={50} strokeWidth={3} />
+  </View>
+) : (
+  <CustomButton title="Continue" onPress={handleContinue} width="100%" height={hp(70)} borderRadius={16} style={{ marginTop: hp(12) }} />
+)}
 
   const allergyDisplayText =
     selectedAllergies.length > 0 ? selectedAllergies.join(', ') : '';

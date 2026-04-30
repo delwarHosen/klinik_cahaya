@@ -1,8 +1,11 @@
 import { LeftAngleIcon } from '@/assets/icons/common_icon/LeftAngleIcon';
 import { ImageIcon } from '@/assets/icons/patient_icon/ImageIcon';
 import { CustomButton } from '@/components/shared/CustomButton';
+import CustomLoader from '@/components/shared/CustomLoader';
+import { showToast } from '@/components/shared/Toast';
 import { Body3, H1 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
+import { useUploadPhotoMutation } from '@/redux/services/authApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -18,6 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function WelcomeProfileScreen() {
     const router = useRouter();
     const [photo, setPhoto] = useState<string | null>(null);
+    const [uploadPhoto, { isLoading }] = useUploadPhotoMutation();
 
     const handlePickImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -36,9 +40,42 @@ export default function WelcomeProfileScreen() {
         }
     };
 
-    const handleGetStarted = () => {
-        router.replace('/patient/(tabs)/home');
+    // const handleGetStarted = () => {
+    //     router.replace('/patient/(tabs)/home');
+    // };
+
+
+
+    const handleGetStarted = async () => {
+        try {
+            if (photo) {
+                const formData = new FormData();
+                formData.append('file', {
+                    uri: photo,
+                    name: 'photo.jpg',
+                    type: 'image/jpeg',
+                } as any);
+
+                await uploadPhoto(formData).unwrap();
+                showToast('Photo uploaded!', 'success');
+            }
+
+            router.replace('/patient/(tabs)/home');
+        } catch (err: any) {
+            showToast(err?.data?.message || 'Failed to upload photo.', 'error');
+        }
     };
+
+    // Button replace:
+    {
+        isLoading ? (
+            <View style={{ alignItems: 'center', marginTop: hp(40) }}>
+                <CustomLoader size={50} strokeWidth={3} />
+            </View>
+        ) : (
+            <CustomButton title="Get Started" onPress={handleGetStarted} width="100%" height={hp(70)} borderRadius={16} style={{ marginTop: hp(40) }} />
+        )
+    }
 
     return (
         <SafeAreaView style={styles.safeArea}>

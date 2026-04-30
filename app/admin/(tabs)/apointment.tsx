@@ -1,4 +1,3 @@
-// app/admin/(tabs)/apointment.tsx
 import SectionTitle from '@/components/shared/SectionTitle'
 import { Caption1, Caption2, Caption4 } from '@/components/typo/Typography'
 import { ADMIN_APPOINTMENTS } from '@/constants/adminData'

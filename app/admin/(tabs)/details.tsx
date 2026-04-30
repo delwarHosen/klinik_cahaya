@@ -1,4 +1,3 @@
-// app/admin/(tabs)/details.tsx
 import { CustomButton } from '@/components/shared/CustomButton'
 import SectionTitle from '@/components/shared/SectionTitle'
 import { Caption1, Caption4 } from '@/components/typo/Typography'

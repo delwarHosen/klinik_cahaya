@@ -1,25 +1,28 @@
 import { AuthHeading } from '@/components/auth/AuthHeading';
 import { FormInput } from '@/components/inputForm/inputForm';
 import { CustomButton } from '@/components/shared/CustomButton';
+import CustomLoader from '@/components/shared/CustomLoader';
 import { showToast } from '@/components/shared/Toast';
 import { Caption2 } from '@/components/typo/Typography';
 import { FORM_FIELDS, FORM_PLACEHOLDERS } from '@/components/ui/form';
 import { IMAGE_COMPONENTS } from '@/constants/image.index';
 import { Colors } from '@/constants/theme';
 import { useForm } from '@/hooks/useForm';
+import { setCredentials } from '@/redux/authSlice';
+import { useLoginMutation } from '@/redux/services/authApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { validateEmail, validatePassword } from '@/utils/validation';
 import { Link, useRouter } from 'expo-router';
 import React from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useDispatch } from 'react-redux';
 
-const ROLE_ROUTES: Record<string, string> = {
-  'admin123@gmail.com':   '/admin/home',
-  'patient123@gmail.com': '/patient/(tabs)/home',
-};
+
 
 export default function LoginScreen() {
   const router = useRouter();
+  const dispatch = useDispatch();
+  const [login, { isLoading }] = useLoginMutation();
 
   const { values, errors, touched, handleChange, handleSubmit } = useForm({
     initialValues: {
@@ -32,22 +35,31 @@ export default function LoginScreen() {
     },
     onSubmit: async (values) => {
       try {
-        const email = values[FORM_FIELDS.EMAIL].trim().toLowerCase();
-        const route = ROLE_ROUTES[email];
+        const res = await login({
+          email: values[FORM_FIELDS.EMAIL].trim().toLocaleLowerCase(),
+          password: values[FORM_FIELDS.PASSWORD],
+        }).unwrap();
 
-        if (!route) {
-          showToast('Invalid email or password.', 'error');
-          return;
+        const role = res.user?.app_metadata?.role ?? 'patient';
+
+        dispatch(setCredentials({
+          access_token: res.access_token,
+          refresh_token: res.refresh_token,
+          role,
+          user: res.user,
+        }));
+
+        showToast('Login successful!', 'success');
+
+        if (role === 'admin') {
+          router.replace('/admin/home');
+        } else {
+          router.replace('/patient/(tabs)/home');
         }
 
-        router.replace(route as any);
-      } catch (error: any) {
-        const message =
-          error?.data?.message ||
-          error?.data?.error ||
-          error?.message ||
-          'Login failed. Please try again.';
-        showToast(message, 'error');
+      } catch (err: any) {
+        console.log('Login error:', JSON.stringify(err));
+        showToast(err?.data?.message || 'Login failed.', 'error');
       }
     },
   });
@@ -90,14 +102,20 @@ export default function LoginScreen() {
                 touched={touched[FORM_FIELDS.PASSWORD]}
               />
 
-              <CustomButton
-                title="Log in"
-                onPress={handleSubmit}
-                width="100%"
-                height={hp(70)}
-                borderRadius={16}
-                style={{ marginTop: hp(8) }}
-              />
+              {isLoading ? (
+                <View style={{ alignItems: 'center', marginTop: hp(8) }}>
+                  <CustomLoader size={50} strokeWidth={1} />
+                </View>
+              ) : (
+                <CustomButton
+                  title="Log in"
+                  onPress={handleSubmit}
+                  width="100%"
+                  height={hp(70)}
+                  borderRadius={16}
+                  style={{ marginTop: hp(8) }}
+                />
+              )}
             </View>
 
             <View style={{ marginTop: hp(20) }}>
@@ -117,6 +135,7 @@ export default function LoginScreen() {
                   <Caption2 color={Colors.BRAND_PRIMARY}> Sign up</Caption2>
                 </TouchableOpacity>
               </View>
+              
             </View>
           </View>
         </View>

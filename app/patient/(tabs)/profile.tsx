@@ -4,12 +4,16 @@ import { LogoutIcon } from '@/assets/icons/patient_icon/LogoutIcon'
 import { PrivacyPolicyIcon } from '@/assets/icons/patient_icon/PrivacyPolicyIcon'
 import { TermsConditionIcon } from '@/assets/icons/patient_icon/TermsConditionIcon'
 import { CustomButton } from '@/components/shared/CustomButton'
+import CustomLoader from '@/components/shared/CustomLoader'
 import { ProfileCard } from '@/components/shared/ProfileCard'
 import SectionTitle from '@/components/shared/SectionTitle'
 import { Body2, Caption1, Caption4, H2, H6 } from '@/components/typo/Typography'
 import { IMAGE_COMPONENTS } from '@/constants/image.index'
 import { Colors } from '@/constants/theme'
+import { logout } from '@/redux/authSlice'
+import { useLogoutMutation } from '@/redux/services/authApi'
 import { hp, wp } from '@/utils/responsiveDevice'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useRouter } from 'expo-router'
 import React from 'react'
 import {
@@ -20,6 +24,7 @@ import {
   View
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useDispatch } from 'react-redux'
 
 // Fake patient data
 const PATIENT = {
@@ -41,6 +46,22 @@ const PATIENT = {
 
 export default function ProfileScreen() {
   const router = useRouter()
+
+  const dispatch = useDispatch();
+  const [logoutApi, { isLoading }] = useLogoutMutation();
+
+  const handleLogout = async () => {
+    try {
+      await logoutApi(undefined).unwrap();
+    } catch (err) {
+
+    } finally {
+
+      await AsyncStorage.multiRemove(['access_token', 'refresh_token', 'role']);
+      dispatch(logout());
+      router.replace('/(auth)/login');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -150,20 +171,23 @@ export default function ProfileScreen() {
             iconBG={`${Colors.BRAND_PRIMARY}1A`}
             onPress={() => router.push('/patient/profile/privacy_policy')}
           />
-          <TouchableOpacity>
-            <ProfileCard
-              icon={<LogoutIcon size={16} color={Colors.COLOR_DANGER} />}
-              label="Logout"
-              iconBG={`${Colors.COLOR_DANGER}1A`}
-              textColor={Colors.COLOR_DANGER}
-              borderColor={`${Colors.COLOR_DANGER}33`}
-              rightAngleColor={Colors.COLOR_DANGER}
-              onPress={() => {
-                // handle logout
-                router.push("/(auth)/login")
-              }}
-            />
-          </TouchableOpacity>
+          {isLoading ? (
+            <View style={{ alignItems: 'center', paddingVertical: hp(12) }}>
+              <CustomLoader size={40} strokeWidth={3} />
+            </View>
+          ) : (
+            <TouchableOpacity>
+              <ProfileCard
+                icon={<LogoutIcon size={16} color={Colors.COLOR_DANGER} />}
+                label="Logout"
+                iconBG={`${Colors.COLOR_DANGER}1A`}
+                textColor={Colors.COLOR_DANGER}
+                borderColor={`${Colors.COLOR_DANGER}33`}
+                rightAngleColor={Colors.COLOR_DANGER}
+                onPress={handleLogout}
+              />
+            </TouchableOpacity>
+          )}
         </View>
 
       </ScrollView>

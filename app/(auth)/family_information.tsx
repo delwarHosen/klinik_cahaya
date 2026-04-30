@@ -4,8 +4,10 @@ import { PlusButtonIcon } from '@/assets/icons/patient_icon/PlusButtonIcon';
 import { AuthHeading } from '@/components/auth/AuthHeading';
 import { FormInput } from '@/components/inputForm/inputForm';
 import { CustomButton } from '@/components/shared/CustomButton';
+import { showToast } from '@/components/shared/Toast';
 import { Body2, Body3, Caption1, Caption2, H1 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
+import { useUpdateFamilyMutation } from '@/redux/services/authApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -52,10 +54,11 @@ export default function FamilyInformationScreen() {
   const [form, setForm] = useState<AddMemberForm>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [inlineForm, setInlineForm] = useState<AddMemberForm>(EMPTY_FORM);
+  const [updateFamily, { isLoading }] = useUpdateFamilyMutation();
 
-  const handleContinue = () => {
-    router.push('/(auth)/upload_photo');
-  };
+  // const handleContinue = () => {
+  //   router.push('/(auth)/upload_photo');
+  // };
 
   const handleSkip = () => {
     // router.push('/(auth)/welcome_profile');
@@ -94,6 +97,27 @@ export default function FamilyInformationScreen() {
     setShowModal(false);
     setForm(EMPTY_FORM);
     setEditingId(null);
+  };
+
+
+
+
+  const handleContinue = async () => {
+    try {
+      await updateFamily({
+        family_members: members.map((m) => ({
+          member_name: m.memberName,
+          ic_number: m.icNumber,
+          date_of_birth: m.dateOfBirth,
+          relationship: m.relationship,
+        })),
+      }).unwrap();
+
+      showToast('Family info saved!', 'success');
+      router.push('/(auth)/upload_photo');
+    } catch (err: any) {
+      showToast(err?.data?.message || 'Failed to save family info.', 'error');
+    }
   };
 
   return (

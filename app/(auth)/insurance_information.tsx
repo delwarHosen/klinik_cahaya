@@ -2,8 +2,11 @@ import { LeftAngleIcon } from '@/assets/icons/common_icon/LeftAngleIcon';
 import { AuthHeading } from '@/components/auth/AuthHeading';
 import { FormInput } from '@/components/inputForm/inputForm';
 import { CustomButton } from '@/components/shared/CustomButton';
+import CustomLoader from '@/components/shared/CustomLoader';
+import { showToast } from '@/components/shared/Toast';
 import { Body3 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
+import { useUpdateInsuranceMutation } from '@/redux/services/authApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -23,14 +26,42 @@ export default function InsuranceInformationScreen() {
   const [planType, setPlanType] = useState('');
   const [memberId, setMemberId] = useState('');
   const [coverageType, setCoverageType] = useState('');
+   const [updateInsurance, { isLoading }] = useUpdateInsuranceMutation();
 
-  const handleContinue = () => {
-    router.push('/(auth)/family_information');
-  };
+  // const handleContinue = () => {
+  //   router.push('/(auth)/family_information');
+  // };
 
   const handleSkip = () => {
     router.push('/(auth)/family_information');
   };
+
+ 
+
+const handleContinue = async () => {
+  try {
+    await updateInsurance({
+      provider_name: providerName,
+      plan_type: planType,
+      member_id: memberId,
+      coverage_type: coverageType,
+    }).unwrap();
+
+    showToast('Insurance info saved!', 'success');
+    router.push('/(auth)/family_information');
+  } catch (err: any) {
+    showToast(err?.data?.message || 'Failed to save insurance info.', 'error');
+  }
+};
+
+// Button replace:
+{isLoading ? (
+  <View style={{ alignItems: 'center', marginTop: hp(12) }}>
+    <CustomLoader size={50} strokeWidth={3} />
+  </View>
+) : (
+  <CustomButton title="Continue" onPress={handleContinue} width="100%" height={hp(70)} borderRadius={16} style={{ marginTop: hp(12) }} />
+)}
 
   return (
     <SafeAreaView style={styles.safeArea}>

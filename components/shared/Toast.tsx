@@ -57,8 +57,8 @@ export default function Toast() {
     }, []);
 
     const bgColor =
-        state.type === 'success' ? '#822CE7' :
-            state.type === 'error' ? '#FE4C5D' :
+        state.type === 'success' ? '#2596BE' :
+            state.type === 'error' ? '#FF383C' :
                 '#1565C0';
 
 
@@ -89,8 +89,8 @@ export default function Toast() {
 const styles = StyleSheet.create({
     toast: {
         position: 'absolute',
-        // top: hp(100),
-        bottom:hp(200),
+        top: hp(40),
+        // bottom:hp(200),
         left: 20,
         right: 20,
         borderRadius: 8,

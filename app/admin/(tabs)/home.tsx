@@ -1,4 +1,3 @@
-// app/admin/(tabs)/home.tsx
 import { NotificationIcon } from '@/assets/icons/common_icon/Notification'
 import { CustomButton } from '@/components/shared/CustomButton'
 import { Body1, Caption1, Caption2, Caption4, H3, H6 } from '@/components/typo/Typography'

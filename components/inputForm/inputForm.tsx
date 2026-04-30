@@ -1,3 +1,5 @@
+import { CloseEyeIcon } from '@/assets/icons/common_icon/CloseEyeIcon';
+import { EyeIconIcon } from '@/assets/icons/common_icon/EyeIcon';
 import { Colors } from '@/constants/theme';
 import { hp, wp } from '@/utils/responsiveDevice';
 import React, { useState } from 'react';
@@ -79,8 +81,9 @@ export const FormInput: React.FC<FormInputProps> = ({
                     <TouchableOpacity
                         style={styles.iconButton}
                         onPress={() => setShowPassword(!showPassword)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     >
-                       
+                        {showPassword ? <EyeIconIcon  size={18}/> : <CloseEyeIcon color={"#8C88A3"} size={18}/>}
                     </TouchableOpacity>
                 ) : (
                     rightIcon && <View style={styles.iconButton}>{rightIcon}</View>

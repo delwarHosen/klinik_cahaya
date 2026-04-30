@@ -119,7 +119,7 @@ export default function EmailVerifyOtp() {
 
                             <View style={styles.buttonWrapper}>
                                 {loading ? (
-                                    <CustomLoader size={45} />
+                                    <CustomLoader size={50} />
                                 ) : (
                                     <CustomButton
                                         title="Verify"

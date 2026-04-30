@@ -34,7 +34,7 @@ export default function RegisterScreen() {
     onSubmit: async (values) => {
       try {
         console.log("Registration Data:", values);
-        router.push("/(auth)/email_verify");
+        router.push("/(auth)/personal_information");
       } catch (error: any) {
         showToast(error?.message || "Registration failed", 'error');
       }
@@ -108,7 +108,7 @@ export default function RegisterScreen() {
 
               <CustomButton
                 title={"Sign Up"}
-                onPress={() => router.push("/(auth)/email_verify")}
+                onPress={() => router.push("/(auth)/personal_information")}
                 width="100%"
                 height={hp(70)}
                 borderRadius={16}

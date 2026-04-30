@@ -2,67 +2,118 @@
 import { Colors } from '@/constants/theme';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
+import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { Caption1, H4 } from '../typo/Typography';
- 
+
 interface PageLoaderProps {
   visible: boolean;
 }
- 
-export default function PageLoader({ visible }: PageLoaderProps) {
-  const spinAnim = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
- 
+
+const LOADER_SIZE = 130;
+const STROKE_WIDTH = 1.5;
+
+function LoaderCircle() {
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
-    if (visible) {
-      // Fade in
-      Animated.timing(fadeAnim, {
+    Animated.loop(
+      Animated.timing(rotateAnim, {
         toValue: 1,
-        duration: 200,
+        duration: 1200,
+        easing: Easing.linear,
         useNativeDriver: true,
-      }).start();
- 
-      // Infinite spin
-      Animated.loop(
-        Animated.timing(spinAnim, {
-          toValue: 1,
-          duration: 1200,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        })
-      ).start();
-    } else {
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
-      spinAnim.setValue(0);
-    }
-  }, [visible]);
- 
-  if (!visible) return null;
- 
-  const rotate = spinAnim.interpolate({
+      })
+    ).start();
+  }, []);
+
+  const rotate = rotateAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
   });
- 
+
+  const size = LOADER_SIZE;
+  const strokeWidth = STROKE_WIDTH;
+  const color = Colors.BRAND_PRIMARY;
+  const center = size / 2;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const arcLength = circumference * 0.75;
+
+  return (
+    <Animated.View style={{ width: size, height: size, transform: [{ rotate }] }}>
+      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <Defs>
+          <LinearGradient
+            id="pageLoaderGrad"
+            x1={`${center}`}
+            y1="0"
+            x2={`${center}`}
+            y2={`${size}`}
+            gradientUnits="userSpaceOnUse"
+          >
+            <Stop offset="0%" stopColor={color} stopOpacity="5" />
+            <Stop offset="20%" stopColor={color} stopOpacity="5" />
+            <Stop offset="40%" stopColor={color} stopOpacity="5" />
+            <Stop offset="60%" stopColor={color} stopOpacity="5" />
+            <Stop offset="80%" stopColor={color} stopOpacity="5" />
+            {/* Bottom = tail, fades to transparent */}
+            <Stop offset="100%" stopColor={color} stopOpacity="1.5" />
+            <Stop offset="0%" stopColor={color} stopOpacity="0" />
+          </LinearGradient>
+        </Defs>
+
+        {/* Faint background track */}
+        <Circle
+          cx={center}
+          cy={center}
+          r={radius}
+          stroke={color}
+          strokeWidth={strokeWidth}
+          fill="none"
+          opacity={0.12}
+        />
+
+        {/* Gradient arc */}
+        <Circle
+          cx={center}
+          cy={center}
+          r={radius}
+          stroke="url(#pageLoaderGrad)"
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeDasharray={`${arcLength} ${circumference - arcLength}`}
+          strokeLinecap="round"
+          transform={`rotate(-90, ${center}, ${center})`}
+        />
+      </Svg>
+    </Animated.View>
+  );
+}
+
+export default function PageLoader({ visible }: PageLoaderProps) {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: visible ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [visible]);
+
+  if (!visible) return null;
+
   return (
     <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
       <View style={styles.content}>
-        {/* Spinning circle */}
-        <Animated.View style={[styles.spinnerWrapper, { transform: [{ rotate }] }]}>
-          <View style={styles.spinnerRing} />
-        </Animated.View>
- 
-        {/* Loading text */}
+        <LoaderCircle />
         <H4 style={styles.loadingText}>LOADING</H4>
         <Caption1 style={styles.subText}>May take few seconds to load this page</Caption1>
       </View>
     </Animated.View>
   );
 }
- 
+
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
@@ -75,32 +126,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 16,
   },
-  spinnerWrapper: {
-    width: 130,
-    height: 130,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  spinnerRing: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    borderWidth: 3,
-    borderColor: 'transparent',
-    borderTopColor: Colors.BRAND_PRIMARY,
-    borderRightColor: Colors.BRAND_PRIMARY,
-    // Subtle shadow for depth
-    shadowColor: Colors.BRAND_PRIMARY,
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 2,
-  },
   loadingText: {
     color: '#1A1A1A',
     letterSpacing: 2,
     fontWeight: '700',
+    marginTop: 8,
   },
   subText: {
     color: '#AAAAAA',

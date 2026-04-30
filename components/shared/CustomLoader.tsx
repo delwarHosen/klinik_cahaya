@@ -7,12 +7,14 @@ interface Props {
     size?: number;
     strokeWidth?: number;
     color?: string;
+    visible?: boolean;
 }
 
 export default function CustomLoader({
-    size = 45,
-    strokeWidth = 6,
+    size = 160,
+    strokeWidth = 1,
     color = Colors.BRAND_PRIMARY,
+    visible = true,
 }: Props) {
     const rotateAnim = useRef(new Animated.Value(0)).current;
 
@@ -20,7 +22,7 @@ export default function CustomLoader({
         Animated.loop(
             Animated.timing(rotateAnim, {
                 toValue: 1,
-                duration: 1000,          
+                duration: 1200,
                 easing: Easing.linear,
                 useNativeDriver: true,
             })
@@ -36,8 +38,8 @@ export default function CustomLoader({
     const radius = (size - strokeWidth) / 2;
     const circumference = 2 * Math.PI * radius;
 
-    
-    const cometLength = circumference * 0.72;
+    // ~75% of circle visible, 25% transparent tail
+    const arcLength = circumference * 0.75;
 
     return (
         <View style={{ width: size, height: size }}>
@@ -50,49 +52,54 @@ export default function CustomLoader({
             >
                 <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
                     <Defs>
-                        <LinearGradient 
-                            id="cometGrad" 
-                            x1="0%" 
-                            y1="50%" 
-                            x2="100%" 
-                            y2="50%" 
-                            gradientUnits="objectBoundingBox"
+                        {/*
+                          Gradient runs along the stroke direction.
+                          offset="0%" = arc start (tail) — transparent
+                          offset="100%" = arc end (head) — full color
+                          gradientUnits="userSpaceOnUse" lets us aim along the circle.
+                        */}
+                        <LinearGradient
+                            id="loaderGrad"
+                            x1={`${center}`}
+                            y1="0"
+                            x2={`${center}`}
+                            y2={`${size}`}
+                            gradientUnits="userSpaceOnUse"
                         >
-                            {/* Head — brightest & most opaque */}
-                            <Stop offset="0%" stopColor={color} stopOpacity="1" />
-                            {/* Middle — still strong but starting to fade */}
-                            <Stop offset="25%" stopColor={color} stopOpacity="0.85" />
-                            {/* Tail start — gradual fade */}
-                            <Stop offset="65%" stopColor={color} stopOpacity="0.90" />
-                            {/* Tail end — almost invisible */}
-                            <Stop offset="100%" stopColor={color} stopOpacity="0.1" />
+                            {/* Top = head, full brand color */}
+                            <Stop offset="0%"   stopColor={color} stopOpacity="5"   />
+                            <Stop offset="20%"  stopColor={color} stopOpacity="5" />
+                            <Stop offset="40%"  stopColor={color} stopOpacity="5" />
+                            <Stop offset="60%"  stopColor={color} stopOpacity="5" />
+                            <Stop offset="80%"  stopColor={color} stopOpacity="5" />
+                            {/* Bottom = tail, fades to transparent */}
+                            <Stop offset="100%" stopColor={color} stopOpacity="1.5"   />
+                            <Stop offset="0%" stopColor={color} stopOpacity="0"   />
                         </LinearGradient>
                     </Defs>
 
-                    {/* Background faint circle */}
+                    {/* Faint full background track */}
                     <Circle
                         cx={center}
                         cy={center}
                         r={radius}
-                        // stroke={color}
-                        stroke="#d4b0ff"
+                        stroke={color}
                         strokeWidth={strokeWidth}
                         fill="none"
-                        // opacity={1}
+                        opacity={0.12}
                     />
 
-                    {/* Comet Effect */}
+                    {/* Gradient arc — starts at top (−90°) */}
                     <Circle
                         cx={center}
                         cy={center}
                         r={radius}
-                        stroke="url(#cometGrad)"
+                        stroke="url(#loaderGrad)"
                         strokeWidth={strokeWidth}
                         fill="none"
-                        strokeDasharray={`${cometLength} ${circumference - cometLength}`}
-                        strokeLinecap="round"          
-                        strokeLinejoin="round"
-                        transform={`rotate(-90, ${center}, ${center})`}   
+                        strokeDasharray={`${arcLength} ${circumference - arcLength}`}
+                        strokeLinecap="round"
+                        transform={`rotate(-90, ${center}, ${center})`}
                     />
                 </Svg>
             </Animated.View>

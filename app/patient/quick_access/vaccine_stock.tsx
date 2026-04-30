@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   header: {
-    // paddingHorizontal: wp(20),
+    paddingHorizontal: wp(20),
     paddingTop: hp(10),
     // paddingBottom: hp(10),
     // backgroundColor: '#FFFFFF',

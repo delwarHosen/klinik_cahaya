@@ -16,6 +16,7 @@ import {
   Image,
   ScrollView,
   StyleSheet,
+  TouchableOpacity,
   View
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -149,16 +150,20 @@ export default function ProfileScreen() {
             iconBG={`${Colors.BRAND_PRIMARY}1A`}
             onPress={() => router.push('/patient/profile/privacy_policy')}
           />
-          <ProfileCard
-            icon={<LogoutIcon size={16} color={Colors.COLOR_DANGER} />}
-            label="Logout"
-            iconBG={`${Colors.COLOR_DANGER}1A`}
-            textColor={Colors.COLOR_DANGER}
-            borderColor={`${Colors.COLOR_DANGER}33`}
-            onPress={() => {
-              // handle logout
-            }}
-          />
+          <TouchableOpacity>
+            <ProfileCard
+              icon={<LogoutIcon size={16} color={Colors.COLOR_DANGER} />}
+              label="Logout"
+              iconBG={`${Colors.COLOR_DANGER}1A`}
+              textColor={Colors.COLOR_DANGER}
+              borderColor={`${Colors.COLOR_DANGER}33`}
+              rightAngleColor={Colors.COLOR_DANGER}
+              onPress={() => {
+                // handle logout
+                router.push("/(auth)/login")
+              }}
+            />
+          </TouchableOpacity>
         </View>
 
       </ScrollView>

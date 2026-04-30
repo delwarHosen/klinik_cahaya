@@ -16,11 +16,7 @@ const TabIcon = ({ focused, children }: { focused: boolean; children: React.Reac
         borderRadius: 22,
         width: 44,
         height: 44,
-        // shadowColor: focused ? "#000" : "transparent",
-        // shadowOffset: { width: 0, height: 2 },
-        // shadowOpacity: 0.1,
-        // shadowRadius: 4,
-        elevation: focused ? 2 : 0,
+        elevation: focused ? 0 : 0,
     }}>
         {children}
     </View>
@@ -38,7 +34,7 @@ export default function AdminTabsLayout() {
                 tabBarInactiveTintColor: "#13193A",
                 tabBarStyle: {
                     backgroundColor: "#F8F8F8",
-                    height: hp(100),
+                    height: hp(90),
                     position: 'absolute',
                     // bottom: hp(20),
                     left: wp(20),

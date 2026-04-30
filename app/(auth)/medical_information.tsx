@@ -26,13 +26,20 @@ const ALLERGY_OPTIONS = [
   'Dust Allergies',
 ];
 
+const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
 export default function MedicalInformationScreen() {
   const router = useRouter();
+  
+  // States
   const [bloodGroup, setBloodGroup] = useState('');
+  const [showBloodModal, setShowBloodModal] = useState(false);
+  
   const [selectedAllergies, setSelectedAllergies] = useState<string[]>([]);
+  const [showAllergyModal, setShowAllergyModal] = useState(false);
+  
   const [medicalCondition, setMedicalCondition] = useState('');
   const [medication, setMedication] = useState('');
-  const [showAllergyModal, setShowAllergyModal] = useState(false);
 
   const handleContinue = () => {
     router.push('/(auth)/insurance_information');
@@ -81,14 +88,52 @@ export default function MedicalInformationScreen() {
               />
             </View>
 
-            {/* Blood Group */}
-            <FormInput
-              value={bloodGroup}
-              onChangeText={setBloodGroup}
-              placeholder="Blood Group"
-            />
+            {/* ── Blood Group Field ── */}
+            {!showBloodModal ? (
+              <TouchableOpacity
+                style={styles.dropdownInput}
+                onPress={() => setShowBloodModal(true)}
+                activeOpacity={0.7}
+              >
+                <Body3
+                  color={bloodGroup ? Colors.TEXT_COLOR : '#8C88A3'}
+                  style={{ flex: 1 }}
+                >
+                  {bloodGroup || 'Blood Group'}
+                </Body3>
+                <DownArrowIcon />
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.expandedContainer}>
+                <View style={styles.expandedHeader}>
+                  <Body2 color={Colors.TEXT_COLOR}>Select Blood Group</Body2>
+                  <TouchableOpacity onPress={() => setShowBloodModal(false)}>
+                    <UpArrowIcon />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.bloodGrid}>
+                  {BLOOD_GROUPS.map((group) => (
+                    <TouchableOpacity
+                      key={group}
+                      style={[
+                        styles.bloodOption,
+                        bloodGroup === group && styles.optionSelected
+                      ]}
+                      onPress={() => {
+                        setBloodGroup(group);
+                        setShowBloodModal(false);
+                      }}
+                    >
+                      <Body3 color={bloodGroup === group ? Colors.BRAND_PRIMARY : Colors.TEXT_COLOR}>
+                        {group}
+                      </Body3>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
 
-            {/* Allergies - shows expanded list inline when open, or dropdown trigger */}
+            {/* ── Allergies Field ── */}
             {!showAllergyModal ? (
               <TouchableOpacity
                 style={styles.dropdownInput}
@@ -102,18 +147,14 @@ export default function MedicalInformationScreen() {
                 >
                   {allergyDisplayText || 'Allergies'}
                 </Body3>
-                <Body3 color="#8C88A3">
-                  <DownArrowIcon/>
-                </Body3>
+                <DownArrowIcon />
               </TouchableOpacity>
             ) : (
-              <View style={styles.allergyExpandedContainer}>
-                <View style={styles.allergyExpandedHeader}>
+              <View style={styles.expandedContainer}>
+                <View style={styles.expandedHeader}>
                   <Body2 color={Colors.TEXT_COLOR}>Choose Allergies</Body2>
                   <TouchableOpacity onPress={() => setShowAllergyModal(false)}>
-                    <Body3 color="#8C88A3">
-                      <UpArrowIcon/>
-                    </Body3>
+                    <UpArrowIcon />
                   </TouchableOpacity>
                 </View>
                 {ALLERGY_OPTIONS.map((allergy) => {
@@ -121,7 +162,7 @@ export default function MedicalInformationScreen() {
                   return (
                     <TouchableOpacity
                       key={allergy}
-                      style={styles.allergyOption}
+                      style={styles.listOption}
                       onPress={() => toggleAllergy(allergy)}
                     >
                       <Body3 color={Colors.TEXT_COLOR}>{allergy}</Body3>
@@ -132,9 +173,7 @@ export default function MedicalInformationScreen() {
                         ]}
                       >
                         {selected && (
-                          <Body3 color={Colors.BRAND_PRIMARY} style={{ fontSize: 12 }}>
-                            ✓
-                          </Body3>
+                          <Body3 color={Colors.BRAND_PRIMARY} style={{ fontSize: 12 }}>✓</Body3>
                         )}
                       </View>
                     </TouchableOpacity>
@@ -205,10 +244,6 @@ const styles = StyleSheet.create({
   titleBlock: {
     marginBottom: hp(30),
   },
-  subtitle: {
-    marginTop: hp(4),
-    fontStyle: 'italic',
-  },
   dropdownInput: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -220,7 +255,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     marginBottom: hp(12),
   },
-  allergyExpandedContainer: {
+  expandedContainer: {
     borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.BORDER_COLOR,
@@ -230,13 +265,28 @@ const styles = StyleSheet.create({
     marginBottom: hp(12),
     gap: hp(8),
   },
-  allergyExpandedHeader: {
+  expandedHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: hp(4),
+    marginBottom: hp(10),
   },
-  allergyOption: {
+  bloodGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: wp(10),
+  },
+  bloodOption: {
+    width: wp(65),
+    height: hp(45),
+    backgroundColor: '#F5F5F5',
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  listOption: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -244,6 +294,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: wp(16),
     paddingVertical: hp(12),
+  },
+  optionSelected: {
+    borderColor: Colors.BRAND_PRIMARY,
+    backgroundColor: '#E8F4FD',
   },
   checkbox: {
     width: 22,

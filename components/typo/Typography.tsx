@@ -104,8 +104,8 @@ const Typography: React.FC<TypographyProps> = ({
             case "body3": return 20;
             case "body4": return 20;
             case "caption1": return 20;
-            case "caption2": return 18;
-            case "caption3": return 14;
+            case "caption2": return 20;
+            case "caption3": return 18;
             case "caption4": return 16;
             case 'button': return 24;
             case "specialText": return 20;

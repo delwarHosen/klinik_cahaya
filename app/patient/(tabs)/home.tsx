@@ -68,6 +68,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
 
       <PageLoader visible={loading} />
+      {/* <CustomLoader size={50}/> */}
 
       <View style={styles.stickyTop}>
         <View style={styles.header}>
@@ -209,7 +210,7 @@ const styles = StyleSheet.create({
   },
 
   stickyTop: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.APP_BACKGROUND,
     paddingHorizontal: wp(20),
     paddingTop: hp(10),
     paddingBottom: hp(12),

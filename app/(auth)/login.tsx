@@ -3,34 +3,44 @@ import { FormInput } from '@/components/inputForm/inputForm';
 import { CustomButton } from '@/components/shared/CustomButton';
 import { showToast } from '@/components/shared/Toast';
 import { Caption2 } from '@/components/typo/Typography';
-import { FORM_FIELDS, FORM_PLACEHOLDERS } from '@/components/ui/form'; // FORM_LABELS দরকার নেই তাই রিমুভ করা হয়েছে
+import { FORM_FIELDS, FORM_PLACEHOLDERS } from '@/components/ui/form';
 import { IMAGE_COMPONENTS } from '@/constants/image.index';
 import { Colors } from '@/constants/theme';
 import { useForm } from '@/hooks/useForm';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { validateEmail, validatePassword } from '@/utils/validation';
 import { Link, useRouter } from 'expo-router';
-
 import React from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
+const ROLE_ROUTES: Record<string, string> = {
+  'admin123@gmail.com':   '/admin/home',
+  'patient123@gmail.com': '/patient/(tabs)/home',
+};
 
 export default function LoginScreen() {
   const router = useRouter();
 
   const { values, errors, touched, handleChange, handleSubmit } = useForm({
     initialValues: {
-      [FORM_FIELDS.EMAIL]: "",
-      [FORM_FIELDS.PASSWORD]: "",
+      [FORM_FIELDS.EMAIL]: '',
+      [FORM_FIELDS.PASSWORD]: '',
     },
     validationRules: {
       [FORM_FIELDS.EMAIL]: validateEmail,
       [FORM_FIELDS.PASSWORD]: validatePassword,
     },
-
     onSubmit: async (values) => {
       try {
-        // Login logic here
+        const email = values[FORM_FIELDS.EMAIL].trim().toLowerCase();
+        const route = ROLE_ROUTES[email];
+
+        if (!route) {
+          showToast('Invalid email or password.', 'error');
+          return;
+        }
+
+        router.replace(route as any);
       } catch (error: any) {
         const message =
           error?.data?.message ||
@@ -44,7 +54,7 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1 }}
     >
       <ScrollView
@@ -53,8 +63,7 @@ export default function LoginScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.container}>
-
-          <View style={{ width: '100%', maxWidth: 500, }}>
+          <View style={{ width: '100%', maxWidth: 500 }}>
             <AuthHeading
               imageSource={IMAGE_COMPONENTS.logo}
               title="Welcome Back"
@@ -67,7 +76,7 @@ export default function LoginScreen() {
                 value={values[FORM_FIELDS.EMAIL]}
                 onChangeText={(text) => handleChange(FORM_FIELDS.EMAIL, text)}
                 type="email"
-                placeholder='Enter Your Email'
+                placeholder="Enter Your Email"
                 error={errors[FORM_FIELDS.EMAIL]}
                 touched={touched[FORM_FIELDS.EMAIL]}
               />
@@ -81,12 +90,9 @@ export default function LoginScreen() {
                 touched={touched[FORM_FIELDS.PASSWORD]}
               />
 
-
-
               <CustomButton
-                title={"Log in"}
-                // onPress={handleSubmit}
-                onPress={()=>router.push("/admin/home")}
+                title="Log in"
+                onPress={handleSubmit}
                 width="100%"
                 height={hp(70)}
                 borderRadius={16}
@@ -94,12 +100,9 @@ export default function LoginScreen() {
               />
             </View>
 
-
-
             <View style={{ marginTop: hp(20) }}>
-
               <View style={styles.forgotPasswordContainer}>
-                <Link href={"/(auth)/forgot_password"} asChild>
+                <Link href="/(auth)/forgot_password" asChild>
                   <TouchableOpacity>
                     <Caption2 color={Colors.BRAND_PRIMARY} style={styles.forgotPassword}>
                       Forgot password?
@@ -109,13 +112,12 @@ export default function LoginScreen() {
               </View>
 
               <View style={styles.footer}>
-                <Caption2 color={Colors.PLACEHOLLDER_TEXT}>Don’t have an account?</Caption2>
-                <TouchableOpacity onPress={() => router.push("/(auth)/register")}>
+                <Caption2 color={Colors.PLACEHOLLDER_TEXT}>Don't have an account?</Caption2>
+                <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
                   <Caption2 color={Colors.BRAND_PRIMARY}> Sign up</Caption2>
                 </TouchableOpacity>
               </View>
             </View>
-
           </View>
         </View>
       </ScrollView>
@@ -130,24 +132,19 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: wp(20)
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: wp(20),
   },
-  form: {
-    // marginTop: hp(32),
-    // gap: 12,
-  },
+  form: {},
   forgotPasswordContainer: {
     alignItems: 'center',
     marginTop: -5,
   },
-  forgotPassword: {
-    fontSize: 14,
-  },
+  forgotPassword: {},
   footer: {
     marginTop: hp(16),
-    flexDirection: "row",
-    justifyContent: "center",
-  }
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
 });

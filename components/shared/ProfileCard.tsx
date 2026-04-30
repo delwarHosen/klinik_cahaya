@@ -14,7 +14,8 @@ interface ProfileItemProps {
     style?: ViewStyle;
     textColor?: string,
     borderColor?: string,
-    iconBG?: string
+    iconBG?: string,
+    rightAngleColor?: string;
 }
 
 export const ProfileCard: React.FC<ProfileItemProps> = ({
@@ -24,7 +25,8 @@ export const ProfileCard: React.FC<ProfileItemProps> = ({
     style,
     textColor,
     borderColor,
-    iconBG
+    iconBG,
+    rightAngleColor,
 }) => {
 
     return (
@@ -43,7 +45,9 @@ export const ProfileCard: React.FC<ProfileItemProps> = ({
                 </View>
                 <Body3 color={textColor ? textColor : Colors.TEXT_COLOR} >{label}</Body3>
             </View>
-            <RightAngleIcon size={16} color={Colors.BRAND_PRIMARY} />
+            <RightAngleIcon size={16}
+                color={rightAngleColor ? rightAngleColor : Colors.BRAND_PRIMARY}
+            />
         </TouchableOpacity>
     )
 };

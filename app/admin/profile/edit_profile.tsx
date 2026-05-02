@@ -6,6 +6,7 @@ import SectionTitle from '@/components/shared/SectionTitle'
 import { Caption1, H6 } from '@/components/typo/Typography'
 import { ADMIN_APPOINTMENTS } from '@/constants/adminData'
 import { Colors } from '@/constants/theme'
+import { getImageSource } from '@/utils/imageSource'
 import { hp, wp } from '@/utils/responsiveDevice'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useState } from 'react'
@@ -54,7 +55,6 @@ export default function EditDoctorProfileScreen() {
     return (
         <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
 
-            {/* Header fixed outside scroll */}
             <View style={styles.header}>
                 <SectionTitle title="Edit Profile" />
             </View>
@@ -72,7 +72,7 @@ export default function EditDoctorProfileScreen() {
                     {/* Avatar */}
                     <View style={styles.avatarSection}>
                         <View style={styles.avatarWrapper}>
-                            <Image source={{ uri: doctor.doctorImage }} style={styles.avatar} />
+                            <Image source={getImageSource(doctor.doctorImage)} style={styles.avatar} />
                             <View style={styles.cameraBtn}>
                                 <EditIcon size={14} color='#FFFFFF' />
                             </View>

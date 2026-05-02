@@ -5,13 +5,12 @@ import { GeneralIcon } from '@/assets/icons/patient_icon/GenaralIcon';
 import { PediatricIcon } from '@/assets/icons/patient_icon/PediatricIcon';
 import { VaccinesIcon } from '@/assets/icons/patient_icon/VaccinesIcon';
 import PageLoader from '@/components/shared/PageLoader';
-
 import { Caption1, Caption4, H3, H6 } from '@/components/typo/Typography';
 import { DOCTORS, QUICK_ACTIONS, SERVICE_NAMES } from '@/constants/fakeData';
 import { IMAGE_COMPONENTS } from '@/constants/image.index';
 import { Colors } from '@/constants/theme';
 import { usePageLoader } from '@/hooks/usePageLoader';
-
+import { getImageSource } from '@/utils/imageSource';
 import { hp, wp } from '@/utils/responsiveDevice';
 import React, { useRef } from 'react';
 import {
@@ -24,7 +23,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
 
 const SERVICE_ICONS: Record<string, React.ReactNode> = {
   '1': <GeneralIcon />,
@@ -68,7 +66,6 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
 
       <PageLoader visible={loading} />
-      {/* <CustomLoader size={50}/> */}
 
       <View style={styles.stickyTop}>
         <View style={styles.header}>
@@ -95,7 +92,7 @@ export default function HomeScreen() {
             <TouchableOpacity style={styles.searchBtn}
               onPress={() => navigate('/patient/(tabs)/search')}
             >
-              <H6 color='#F4F4F4' >Search</H6>
+              <H6 color='#F4F4F4'>Search</H6>
             </TouchableOpacity>
           </View>
         </View>
@@ -169,7 +166,7 @@ export default function HomeScreen() {
               activeOpacity={0.85}
               onPress={() => navigate(`/patient/doctors_info/doctor_details?id=${item.id}`)}
             >
-              <Image source={{ uri: item.image }} style={styles.doctorImage} />
+              <Image source={getImageSource(item.image)} style={styles.doctorImage} />
               <View style={styles.doctorInfo}>
                 <H6 style={styles.doctorName}>{item.name}</H6>
                 <Caption1 style={styles.doctorSpec}>{item.specialty}</Caption1>
@@ -178,7 +175,7 @@ export default function HomeScreen() {
                   {
                     backgroundColor: item.tier === 'Tier 1' ? '#E8F5E9' : '#FFF3E0',
                     borderColor: item.tier === 'Tier 1' ? '#1D9E75' : '#FF8D2833',
-                    borderWidth: 1, 
+                    borderWidth: 1,
                     borderRadius: 12
                   }
                 ]}>
@@ -208,7 +205,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-
   stickyTop: {
     backgroundColor: Colors.APP_BACKGROUND,
     paddingHorizontal: wp(20),
@@ -217,43 +213,34 @@ const styles = StyleSheet.create({
     zIndex: 10,
     elevation: 1,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
   },
-
   scrollContent: {
     paddingHorizontal: wp(20),
     paddingTop: hp(10),
     paddingBottom: hp(100),
   },
-
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: hp(10),
   },
-
   logoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-
   logo: {
     height: hp(54),
     width: wp(138),
     resizeMode: 'contain',
   },
-
   headerIcons: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-
   iconBtn: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -263,17 +250,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F8F8',
     borderRadius: 26,
   },
-
   avatar: {
     width: 52,
     height: 52,
     borderRadius: 26,
   },
-
   searchSection: {
     marginTop: hp(20),
   },
-
   searchContainer: {
     flexDirection: 'row',
     borderRadius: 16,
@@ -281,7 +265,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.CARD_BORDER,
     overflow: 'hidden',
   },
-
   searchInput: {
     flex: 1,
     paddingHorizontal: wp(15),
@@ -289,7 +272,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
   },
-
   searchBtn: {
     backgroundColor: Colors.BRAND_PRIMARY,
     paddingHorizontal: wp(20),
@@ -297,7 +279,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     margin: 4,
   },
-
   gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -305,7 +286,6 @@ const styles = StyleSheet.create({
     marginTop: hp(20),
     gap: 12,
   },
-
   gridItem: {
     width: '47.5%',
     backgroundColor: '#F8F8F8',
@@ -316,14 +296,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     elevation: 1,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
   },
-
   gridText: {
     fontSize: 13,
     fontWeight: '600',
@@ -331,31 +307,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 18,
   },
-
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: hp(28),
   },
-
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: '#1A1A1A',
   },
-
   servicesList: {
     paddingTop: hp(14),
     paddingBottom: hp(4),
     gap: 14,
   },
-
   serviceCard: {
     alignItems: 'center',
     gap: 8,
   },
-
   serviceIconContainer: {
     width: wp(110),
     height: hp(140),
@@ -367,25 +338,19 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.10,
     shadowRadius: 6,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
   },
-
   serviceName: {
     color: Colors.BRAND_PRIMARY,
     fontWeight: '600',
     textAlign: 'center',
     marginTop: hp(20),
   },
-
   doctorsList: {
     paddingTop: hp(12),
     paddingBottom: hp(50),
     gap: 14,
   },
-
   doctorCard: {
     width: 155,
     backgroundColor: '#F8F8F8',
@@ -395,30 +360,22 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.10,
     shadowRadius: 6,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
   },
-
   doctorImage: {
     width: '100%',
     height: hp(180),
     backgroundColor: '#1D9E7533',
   },
-
   doctorInfo: {
     padding: 10,
   },
-
   doctorName: {},
-
   doctorSpec: {
     fontSize: 11,
     color: '#888888',
     marginVertical: 3,
   },
-
   tierBadge: {
     paddingHorizontal: wp(10),
     paddingVertical: wp(3),
@@ -427,12 +384,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
     borderWidth: 1,
   },
-
   tierText: {
     fontSize: 10,
     fontWeight: '700',
   },
-
   kncFloatBtn: {
     position: 'absolute',
     bottom: hp(110),
@@ -445,15 +400,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     elevation: 1,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.20,
     shadowRadius: 8,
     overflow: 'hidden',
   },
-
   kncImage: {
     width: 60,
     height: 60,

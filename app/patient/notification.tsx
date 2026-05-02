@@ -10,8 +10,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const NOTIFICATIONS = [
     { id: '1', doctor: 'Dr. Anis Effendi', message: 'Accept Your Booking Request', time: '9:30 PM', read: false }, // Unread (Bold + Dot)
     { id: '2', doctor: 'Dr. Muhammad Faiz', message: 'Reject Your Booking Request', time: '8:45 PM', read: false }, // Unread (Bold + Dot)
-    { id: '3', doctor: 'Dr. Noormimi Khadijah', message: 'Reject Your Booking Request', time: '10:20 AM', read: true }, // Read (Normal)
-    { id: '4', doctor: 'Dr. Liyana Binti Radzi', message: 'Accept Your Booking Request', time: 'Yesterday', read: true }, // Read (Normal)
+    { id: '3', doctor: 'Dr.Noormimi Khatijah', message: 'Reject Your Booking Request', time: '10:20 AM', read: true }, // Read (Normal)
+    { id: '4', doctor: 'Dr. Liyana Ramli', message: 'Accept Your Booking Request', time: 'Yesterday', read: true }, // Read (Normal)
 ];
 
 export default function NotificationScreen() {

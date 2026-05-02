@@ -2,6 +2,7 @@ import SectionTitle from '@/components/shared/SectionTitle';
 import { Caption1, Caption4, H6 } from '@/components/typo/Typography';
 import { DOCTORS } from '@/constants/fakeData';
 import { Colors } from '@/constants/theme';
+import { getImageSource } from '@/utils/imageSource';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useRouter } from 'expo-router';
 import React from 'react';
@@ -35,7 +36,7 @@ export default function BookAppointmentScreen() {
             activeOpacity={0.85}
             onPress={() => router.push({ pathname: '/patient/doctors_info/doctor_details', params: { id: item.id } })}
           >
-            <Image source={{ uri: item.image }} style={styles.doctorImage} />
+            <Image source={getImageSource(item.image)} style={styles.doctorImage} />
             <View style={styles.cardInfo}>
 
               {/* Name + Tier row */}
@@ -73,7 +74,6 @@ const styles = StyleSheet.create({
   },
   header: {},
   listContent: {
-    // paddingHorizontal: wp(20),
     paddingBottom: hp(100),
     paddingTop: hp(20),
     gap: 14

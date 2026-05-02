@@ -139,7 +139,8 @@ export default function PersonalInformationScreen() {
             ) : (
               <CustomButton
                 title="Continue"
-                onPress={handleContinue}
+                // onPress={handleContinue}
+                onPress={()=>router.push('/(auth)/medical_information')}
                 width="100%"
                 height={hp(70)}
                 borderRadius={16}

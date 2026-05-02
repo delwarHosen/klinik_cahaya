@@ -230,7 +230,8 @@ const handleContinue = async () => {
 
             <CustomButton
               title="Continue"
-              onPress={handleContinue}
+              // onPress={handleContinue}
+              onPress={()=>router.push('/(auth)/insurance_information')}
               width="100%"
               height={hp(70)}
               borderRadius={16}

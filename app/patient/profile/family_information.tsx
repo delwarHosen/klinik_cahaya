@@ -28,7 +28,7 @@ interface FamilyMember {
 
 const INITIAL_MEMBERS: FamilyMember[] = [
   { id: '1', name: 'Razak bin Osman', ic: '900101-14-5677', dob: '10 January 1997', relationship: 'Brother' },
-  { id: '2', name: 'Aisyah binte Musa', ic: '900101-14-5645', dob: '10 January 1994', relationship: 'Sister' },
+  { id: '2', name: 'Aisyah binti Musa', ic: '900101-14-5645', dob: '10 January 1994', relationship: 'Sister' },
 ]
 
 interface MemberFormProps {

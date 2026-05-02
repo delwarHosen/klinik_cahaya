@@ -3,6 +3,7 @@ import { ProfileCard } from '@/components/shared/ProfileCard'
 import SectionTitle from '@/components/shared/SectionTitle'
 import { ADMIN_APPOINTMENTS } from '@/constants/adminData'
 import { Colors } from '@/constants/theme'
+import { getImageSource } from '@/utils/imageSource'
 import { hp, wp } from '@/utils/responsiveDevice'
 import { useRouter } from 'expo-router'
 import React from 'react'
@@ -14,8 +15,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-// unique doctors from adminData by doctorId
-const doctorMap = new Map<string, { doctorId: string; doctorName: string; doctorImage: string; doctorSpecialty: string }>()
+const doctorMap = new Map<string, { doctorId: string; doctorName: string; doctorImage: string | number; doctorSpecialty: string }>()
 ADMIN_APPOINTMENTS.forEach(a => {
     if (!doctorMap.has(a.doctorId)) {
         doctorMap.set(a.doctorId, {
@@ -33,7 +33,7 @@ export default function ManageDoctors() {
 
     return (
         <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-            <SectionTitle title="Manage Doctors" />
+            <SectionTitle title="Menage Doctors" />
 
             <ScrollView
                 showsVerticalScrollIndicator={false}
@@ -45,7 +45,7 @@ export default function ManageDoctors() {
                             key={doctor.doctorId}
                             icon={
                                 <Image
-                                    source={{ uri: doctor.doctorImage }}
+                                    source={getImageSource(doctor.doctorImage)}
                                     style={styles.avatar}
                                 />
                             }

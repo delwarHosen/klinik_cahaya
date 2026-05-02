@@ -61,7 +61,7 @@ export default function FamilyInformationScreen() {
   // };
 
   const handleSkip = () => {
-    // router.push('/(auth)/welcome_profile');
+    router.push('/(auth)/upload_photo');
   };
 
   const openAddModal = () => {
@@ -204,7 +204,8 @@ export default function FamilyInformationScreen() {
 
             <CustomButton
               title="Continue"
-              onPress={handleContinue}
+              // onPress={handleContinue}
+              onPress={()=>router.push('/(auth)/upload_photo')}
               width="100%"
               height={hp(70)}
               borderRadius={16}

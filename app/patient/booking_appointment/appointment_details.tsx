@@ -1,33 +1,29 @@
 // app/patient/booking_appointment/appointment_details.tsx
+import { DateTimePickerModal } from '@/components/booking/DateTimePickerModal';
 import { CancelModal } from '@/components/shared/CancleModal';
 import { CustomButton } from '@/components/shared/CustomButton';
 import SectionTitle from '@/components/shared/SectionTitle';
 import { Body1, Body2, Body3, Caption1, Caption2, Caption4, H5, H6 } from '@/components/typo/Typography';
 import { APPOINTMENTS_DATA } from '@/constants/fakeData';
 import { Colors } from '@/constants/theme';
+import { getImageSource } from '@/utils/imageSource';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Image, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-// DateTimePickerModal ইম্পোর্ট করা হয়েছে
-import { DateTimePickerModal } from '@/components/booking/DateTimePickerModal';
 
 export default function AppointmentDetails() {
     const router = useRouter();
     const { appointmentId } = useLocalSearchParams();
     const [showCancelModal, setShowCancelModal] = useState(false);
-    
-  
     const [rescheduleVisible, setRescheduleVisible] = useState(false);
 
     const data = APPOINTMENTS_DATA.find(item => item.id === appointmentId) || APPOINTMENTS_DATA[0];
 
-   
     const handleRescheduleConfirm = (date: string, time: string) => {
         setRescheduleVisible(false);
         console.log("Rescheduled to:", date, time);
-        
         router.push({ pathname: '/patient/doctors_info/information' as any, params: { activeTab: 'Upcoming' } });
     };
 
@@ -39,7 +35,7 @@ export default function AppointmentDetails() {
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 <View style={styles.doctorCard}>
-                    <Image source={{ uri: data.image }} style={styles.doctorImg} />
+                    <Image source={getImageSource(data.image)} style={styles.doctorImg} />
                     <View style={styles.doctorInfo}>
                         <View style={styles.nameRow}>
                             <View>
@@ -93,11 +89,9 @@ export default function AppointmentDetails() {
                     <Body2 weight="bold" style={{ marginTop: 4 }}>{data.patientName}</Body2>
                 </View>
 
-               
                 {(data.status === 'Accepted' || data.status === 'Pending') && (
                     <View style={styles.actionsContainer}>
                         <View style={styles.buttonRow}>
-                            {/* Cancel Button */}
                             <CustomButton
                                 title='Cancel Appointment'
                                 onPress={() => setShowCancelModal(true)}
@@ -108,8 +102,6 @@ export default function AppointmentDetails() {
                                 height={50}
                                 color={Colors.COLOR_DANGER}
                             />
-
-                            {/* Reschedule Button */}
                             <CustomButton
                                 title='Reschedule'
                                 onPress={() => setRescheduleVisible(true)}
@@ -125,7 +117,6 @@ export default function AppointmentDetails() {
                 )}
             </ScrollView>
 
-            {/* মোডালসমূহ */}
             <CancelModal
                 visible={showCancelModal}
                 onClose={() => setShowCancelModal(false)}
@@ -141,7 +132,6 @@ export default function AppointmentDetails() {
     );
 }
 
-// Helper Functions
 const getStatusBg = (s: string) => s === 'Accepted' ? Colors.BRAND_PRIMARY : s === 'Canceled' ? '#FFEBEE' : s === 'Completed' ? '#E8F5E9' : Colors.ACCENT_YELLOW;
 const getStatusTextColor = (s: string) => (s === 'Accepted' || s === 'Pending') ? '#FFF' : s === 'Canceled' ? Colors.COLOR_DANGER : Colors.SUCCESS_COLOR;
 

@@ -8,16 +8,22 @@ import { FORM_FIELDS } from '@/components/ui/form';
 import { IMAGE_COMPONENTS } from '@/constants/image.index';
 import { Colors } from '@/constants/theme';
 import { useForm } from '@/hooks/useForm';
-import { useSignupMutation } from '@/redux/services/authApi';
+import { setCredentials } from '@/redux/authSlice';
+// import { useSignupMutation } from '@/redux/services/authApi'; // TODO: real API ready হলে uncomment
 import { hp, wp } from '@/utils/responsiveDevice';
 import { validateEmail, validateName, validatePassword, validatePhoneNumber } from '@/utils/validation';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useDispatch } from 'react-redux';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const [signup, { isLoading }] = useSignupMutation();
+  const dispatch = useDispatch();
+
+  // TODO: real API ready হলে নিচের line uncomment করো এবং isLoading state সরাও
+  // const [signup, { isLoading }] = useSignupMutation();
+  const [isLoading, setIsLoading] = React.useState(false);
 
   const { values, errors, touched, handleChange, handleSubmit } = useForm({
     initialValues: {
@@ -35,22 +41,45 @@ export default function RegisterScreen() {
       [FORM_FIELDS.CONFIRM_PASSWORD]: validatePassword,
     },
     onSubmit: async (values) => {
-      try {
-        await signup({
-          name: values[FORM_FIELDS.FULL_NAME],
-          email: values[FORM_FIELDS.EMAIL].trim().toLowerCase(),
-          ic_number: values[FORM_FIELDS.CONTACT_NO],
-          password: values[FORM_FIELDS.PASSWORD],
-          confirm_password: values[FORM_FIELDS.CONFIRM_PASSWORD],
-        }).unwrap();
 
-        showToast('Check your email to verify your account.', 'success');
-        router.push('/(auth)/personal_information');
+      // ── MOCK REGISTER ─────────────────────────────────────────────────────
+      // TODO: real API ready হলে এই block সরিয়ে নিচের commented block uncomment করো
+      setIsLoading(true);
+      await new Promise((r) => setTimeout(r, 500));
 
-      } catch (err: any) {
-         console.log('Login error:', JSON.stringify(err));
-        showToast(err?.data?.message || 'Registration failed.', 'error');
-      }
+      const email = values[FORM_FIELDS.EMAIL].trim().toLowerCase();
+
+      dispatch(setCredentials({
+        access_token: 'mock-token',
+        refresh_token: 'mock-refresh-token',
+        role: 'patient',
+        user: { email, app_metadata: { role: 'patient' } },
+      }));
+
+      setIsLoading(false);
+      showToast('Registration successful!', 'success');
+      router.push('/(auth)/personal_information');
+      return;
+      // ── END MOCK REGISTER ─────────────────────────────────────────────────
+
+      // ── REAL API LOGIN (disabled) ─────────────────────────────────────────
+      // TODO: mock period শেষ হলে উপরের mock block সরিয়ে এটা uncomment করো
+      //
+      // try {
+      //   await signup({
+      //     name: values[FORM_FIELDS.FULL_NAME],
+      //     email: values[FORM_FIELDS.EMAIL].trim().toLowerCase(),
+      //     ic_number: values[FORM_FIELDS.CONTACT_NO],
+      //     password: values[FORM_FIELDS.PASSWORD],
+      //     confirm_password: values[FORM_FIELDS.CONFIRM_PASSWORD],
+      //   }).unwrap();
+      //   showToast('Check your email to verify your account.', 'success');
+      //   router.push('/(auth)/personal_information');
+      // } catch (err: any) {
+      //   console.log('Signup error:', JSON.stringify(err));
+      //   showToast(err?.data?.message || 'Registration failed.', 'error');
+      // }
+      // ── END REAL API ──────────────────────────────────────────────────────
     },
   });
 
@@ -126,7 +155,7 @@ export default function RegisterScreen() {
               ) : (
                 <CustomButton
                   title="Sign Up"
-                  onPress={handleSubmit}
+                  onPress={() => router.push('/(auth)/personal_information')}
                   width="100%"
                   height={hp(70)}
                   borderRadius={16}

@@ -161,7 +161,7 @@ export default function ProfileScreen() {
           />
           <ProfileCard
             icon={<TermsConditionIcon size={16} color={Colors.BRAND_PRIMARY} />}
-            label="Terms & Condition"
+            label="Terms & Conditions"
             iconBG={`${Colors.BRAND_PRIMARY}1A`}
             onPress={() => router.push('/patient/profile/terms_condition')}
           />

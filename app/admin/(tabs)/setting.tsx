@@ -4,6 +4,7 @@ import { LogoutIcon } from '@/assets/icons/patient_icon/LogoutIcon'
 import { ProfileCard } from '@/components/shared/ProfileCard'
 import SectionTitle from '@/components/shared/SectionTitle'
 import { Colors } from '@/constants/theme'
+import { logout } from '@/redux/authSlice'
 import { hp, wp } from '@/utils/responsiveDevice'
 import { useRouter } from 'expo-router'
 import React from 'react'
@@ -13,11 +14,18 @@ import {
   View
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useDispatch } from 'react-redux'
 
 
 
 export default function SettingScreen() {
-  const router = useRouter()
+    const router = useRouter()
+  const dispatch = useDispatch()
+
+  const handleLogout = () => {
+    dispatch(logout())
+    router.replace("/(auth)/login" as any)
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -31,7 +39,7 @@ export default function SettingScreen() {
         <View style={styles.menuSection}>
           <ProfileCard
             icon={<ProfileIcon size={22} color={Colors.BRAND_PRIMARY} />}
-            label="Menage Doctors"
+            label="Manage Doctors"
             iconBG={`${Colors.BRAND_PRIMARY}1A`}
             onPress={() => router.push('/admin/profile/manage_doctos')}
           />
@@ -49,10 +57,7 @@ export default function SettingScreen() {
             textColor={Colors.COLOR_DANGER}
             borderColor={`${Colors.COLOR_DANGER}33`}
             rightAngleColor={Colors.COLOR_DANGER}
-            onPress={() => {
-              // handle logout
-              router.push("/(auth)/login")
-            }}
+            onPress={handleLogout} 
           />
         </View>
 

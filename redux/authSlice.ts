@@ -8,24 +8,26 @@ const authSlice = createSlice({
     refresh_token: null as string | null,
     role: null as string | null,
     user: null as any,
+    isProfileComplete: false as boolean,
   },
   reducers: {
     setCredentials: (state, action) => {
-      const { access_token, refresh_token, role, user } = action.payload;
-      state.access_token  = access_token;
-      state.refresh_token = refresh_token;
-      state.role          = role;
-      state.user          = user;
-      
+      const { access_token, refresh_token, role, user, isProfileComplete } = action.payload;
+      state.access_token      = access_token;
+      state.refresh_token     = refresh_token;
+      state.role              = role;
+      state.user              = user;
+      state.isProfileComplete = isProfileComplete ?? false;
       AsyncStorage.setItem('access_token', access_token);
       AsyncStorage.setItem('refresh_token', refresh_token);
       AsyncStorage.setItem('role', role);
     },
     logout: (state) => {
-      state.access_token  = null;
-      state.refresh_token = null;
-      state.role          = null;
-      state.user          = null;
+      state.access_token      = null;
+      state.refresh_token     = null;
+      state.role              = null;
+      state.user              = null;
+      state.isProfileComplete = false;
       AsyncStorage.multiRemove(['access_token', 'refresh_token', 'role']);
     },
   },

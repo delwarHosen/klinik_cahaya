@@ -19,21 +19,21 @@ const PERSONAL_RECORDS = [
     doctorName: 'Dr. Anis Effendi',
     specialty: 'GENERAL PRACTITIONER Primary Care for Adults & C...',
     patient: 'My Self',
-    dateTime: '08:00 | March 13, 2014 (Sunday)',
+    dateTime: '09:30 | May 05, 2026 (Tuesday)',
   },
   {
     id: '2',
     doctorName: 'Dr. Anis Effendi',
     specialty: 'GENERAL PRACTITIONER Primary Care for Adults & C...',
     patient: 'My Self',
-    dateTime: '08:00 | March 13, 2014 (Sunday)',
+    dateTime: '11:00 | May 12, 2026 (Tuesday)',
   },
   {
     id: '3',
     doctorName: 'Dr. Anis Effendi',
     specialty: 'GENERAL PRACTITIONER Primary Care for Adults & C...',
     patient: 'My Self',
-    dateTime: '08:00 | March 13, 2014 (Sunday)',
+    dateTime: '18:00 | May 24, 2026 (Sunday)',
   },
 ];
  
@@ -43,21 +43,21 @@ const FAMILY_RECORDS = [
     doctorName: 'Dr. Anis Effendi',
     specialty: 'GENERAL PRACTITIONER Primary Care for Adults & C...',
     patient: 'Hakim',
-    dateTime: '08:00 | March 13, 2014 (Sunday)',
+    dateTime: '08:00 | May 03, 2026 (Sunday)',
   },
   {
     id: '2',
     doctorName: 'Dr. Anis Effendi',
     specialty: 'GENERAL PRACTITIONER Primary Care for Adults & C...',
     patient: 'Hakim',
-    dateTime: '08:00 | March 13, 2014 (Sunday)',
+    dateTime: '10:15 | May 15, 2026 (Friday)',
   },
   {
     id: '3',
     doctorName: 'Dr. Anis Effendi',
     specialty: 'GENERAL PRACTITIONER Primary Care for Adults & C...',
     patient: 'Hakim',
-    dateTime: '08:00 | March 13, 2014 (Sunday)',
+    dateTime: '16:45 | May 28, 2026 (Thursday)',
   },
 ];
  

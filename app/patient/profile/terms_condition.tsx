@@ -35,7 +35,7 @@ const TERMS_CONTENT = [
 export default function TermsConditionScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <SectionTitle title="Terms & Condition" />
+      <SectionTitle title="Terms & Conditions" />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {TERMS_CONTENT.map((section, idx) => (

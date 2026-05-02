@@ -10,7 +10,7 @@ import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const PATIENTS = ['My self', 'Razak bin Osman', 'Faris', 'Aisyah binte Musa'];
+const PATIENTS = ['My self', 'Razak bin Osman', 'Faris', 'Aisyah binti Musa'];
 const REASONS = ['Demam/Sakit', 'Checkup', 'Follow-up', 'Vaksin'];
 
 export default function InformationScreen() {

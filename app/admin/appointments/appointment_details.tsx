@@ -12,7 +12,7 @@ import { Colors } from '@/constants/theme'
 import { hp, wp } from '@/utils/responsiveDevice'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useState } from 'react'
-import { Image, ScrollView, StyleSheet, View } from 'react-native'
+import { Image, ImageSourcePropType, ScrollView, StyleSheet, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 const STATUS_CONFIG = {
@@ -20,6 +20,12 @@ const STATUS_CONFIG = {
   Pending:   { label: 'Pending',   color: '#1A1A1A', bg: '#D4F000',            border: '#D4F000'            },
   Completed: { label: 'Completed', color: '#FFFFFF', bg: Colors.BRAND_PRIMARY, border: Colors.BRAND_PRIMARY },
   Canceled:  { label: 'Canceled',  color: '#FFFFFF', bg: '#FF383C',            border: '#FF383C'            },
+}
+
+// Helper: string URL → { uri } object, number → local require() asset
+const getImageSource = (img?: string | number): ImageSourcePropType => {
+  if (!img) return { uri: '' }
+  return typeof img === 'string' ? { uri: img } : (img as ImageSourcePropType)
 }
 
 export default function AppointmentDetailsScreen() {
@@ -70,7 +76,7 @@ export default function AppointmentDetailsScreen() {
       >
         {/* ── Doctor Row ── */}
         <View style={styles.doctorRow}>
-          <Image source={{ uri: appt.doctorImage }} style={styles.doctorImage} />
+          <Image source={getImageSource(appt.doctorImage)} style={styles.doctorImage} />
           <View style={styles.doctorInfo}>
             <H3 style={styles.doctorName}>{appt.doctorName}</H3>
             <Caption1 style={styles.doctorSpecialty} numberOfLines={4}>
@@ -113,7 +119,7 @@ export default function AppointmentDetailsScreen() {
         {!isFamily ? (
           <>
             <View style={styles.personCard}>
-              <Image source={{ uri: appt.patientImage }} style={styles.personAvatar} />
+              <Image source={getImageSource(appt.patientImage)} style={styles.personAvatar} />
               <View style={styles.personInfo}>
                 <Caption2 weight='semiBold'>
                   {appt.patientName}{' '}
@@ -145,7 +151,7 @@ export default function AppointmentDetailsScreen() {
             <Caption1 style={styles.boldValue}>{appt.patientName}</Caption1>
             <Caption2 style={[styles.label, { marginTop: hp(16) }]}>Booked By</Caption2>
             <View style={styles.personCard}>
-              <Image source={{ uri: appt.bookedByImage }} style={styles.personAvatar} />
+              <Image source={getImageSource(appt.bookedByImage)} style={styles.personAvatar} />
               <View style={styles.personInfo}>
                 <Caption1 style={styles.personName}>
                   {appt.bookedByName}{' '}
@@ -241,7 +247,6 @@ const styles = StyleSheet.create({
     paddingBottom: hp(40),
   },
 
-  //  Doctor Section (image up, info below)
   doctorRow: {
     flexDirection: 'column',
     alignItems: 'center',
@@ -274,7 +279,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  //  Section Title
   sectionTitle: {
     fontSize: 18,
     fontWeight: '500',
@@ -287,7 +291,6 @@ const styles = StyleSheet.create({
     marginBottom: hp(6),
   },
 
-  //  Status Section (vertical)
   statusRow: {
     flexDirection: 'column',
     alignItems: 'flex-start',
@@ -313,7 +316,6 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
 
-  // 🔹 Texts
   boldValue: {
     color: Colors.TEXT_COLOR,
     fontWeight: '700',
@@ -327,7 +329,6 @@ const styles = StyleSheet.create({
     marginBottom: hp(6),
   },
 
-  //  Person Card (still row for avatar + info)
   personCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -364,7 +365,6 @@ const styles = StyleSheet.create({
     color: '#9C9C9C',
   },
 
-  //  Actions
   actionsSection: {
     marginTop: hp(24),
     gap: hp(12),
@@ -375,8 +375,7 @@ const styles = StyleSheet.create({
     gap: hp(12),
   },
 
-  //  Reusable spacing
   section: {
     marginBottom: hp(20),
   },
-});
+})

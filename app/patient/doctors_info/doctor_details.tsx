@@ -1,8 +1,10 @@
+// app/patient/doctors_info/doctor_details.tsx
 import { CustomButton } from '@/components/shared/CustomButton';
 import SectionTitle from '@/components/shared/SectionTitle';
 import { Caption1, Caption4, H3, SpecialText } from '@/components/typo/Typography';
 import { DOCTORS } from '@/constants/fakeData';
 import { Colors } from '@/constants/theme';
+import { getImageSource } from '@/utils/imageSource';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
@@ -14,8 +16,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// ─── Component ───────────────────────────────────────────────────────────────
-
 export default function DoctorDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,20 +24,18 @@ export default function DoctorDetailsScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
 
-      {/* ── Header ── */}
-      <View >
+      <View>
         <SectionTitle title="Doctor Details" />
       </View>
 
-      {/* ── Scrollable Content ── */}
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* ── Doctor Card ── */}
+        {/* Doctor Card */}
         <View style={styles.profileRow}>
-          <Image source={{ uri: DOCTOR.image }} style={styles.doctorImage} />
+          <Image source={getImageSource(DOCTOR.image)} style={styles.doctorImage} />
           <View style={styles.profileInfo}>
             <View style={styles.nameRow}>
               <H3 style={styles.doctorName} numberOfLines={1}>{DOCTOR.name}</H3>
@@ -49,7 +47,7 @@ export default function DoctorDetailsScreen() {
           </View>
         </View>
 
-        {/* ── Appointment Consultation Time ── */}
+        {/* Consultation Time */}
         <SpecialText style={styles.sectionTitle}>Appointment Consultation Time</SpecialText>
         <View style={styles.timeRow}>
           <View style={styles.timeDot} />
@@ -59,11 +57,11 @@ export default function DoctorDetailsScreen() {
           </View>
         </View>
 
-        {/* ── About ── */}
+        {/* About */}
         <SpecialText style={styles.sectionTitle}>About</SpecialText>
         <Caption1 style={styles.aboutText}>{DOCTOR.about}</Caption1>
 
-        {/* ── Services ── */}
+        {/* Services */}
         <SpecialText style={styles.sectionTitle}>Services</SpecialText>
         {DOCTOR.services.map((service, index) => (
           <View key={index} style={styles.serviceRow}>
@@ -71,10 +69,8 @@ export default function DoctorDetailsScreen() {
             <Caption1 style={styles.serviceText}>{service}</Caption1>
           </View>
         ))}
-
       </ScrollView>
 
-      {/* ── Book Appointment Button — sticky bottom ── */}
       <View style={styles.bottomBar}>
         <CustomButton
           title='Book Appointment'
@@ -88,29 +84,17 @@ export default function DoctorDetailsScreen() {
   );
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
-
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: wp(20),
   },
-
-
-
-  scroll: {
-    flex: 1,
-  },
-
+  scroll: { flex: 1 },
   scrollContent: {
-    //
     paddingTop: hp(20),
     paddingBottom: hp(30),
   },
-
-  // ── Profile
   profileRow: {
     flexDirection: 'row',
     gap: wp(14),
@@ -125,10 +109,7 @@ const styles = StyleSheet.create({
     borderColor: "#dbf0ef",
     borderRadius: 16,
   },
-  profileInfo: {
-    flex: 1,
-    gap: 6,
-  },
+  profileInfo: { flex: 1, gap: 6 },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -137,7 +118,7 @@ const styles = StyleSheet.create({
   },
   doctorName: {
     color: Colors.BRAND_PRIMARY,
-    marginTop:hp(-15)
+    marginTop: hp(-15)
   },
   tierBadge: {
     paddingHorizontal: wp(10),
@@ -147,48 +128,25 @@ const styles = StyleSheet.create({
     borderColor: Colors.SUCCESS_COLOR,
     backgroundColor: '#E8F5E9',
   },
-  tierText: {
-    color: Colors.SUCCESS_COLOR,
-    // fontWeight: '700',
-  },
-  specialty: {
-    color: '#888888',
-    lineHeight: 20,
-  },
-
-  // ── Section Title
+  tierText: { color: Colors.SUCCESS_COLOR },
+  specialty: { color: '#888888', lineHeight: 20 },
   sectionTitle: {
     color: '#1A1A1A',
     marginTop: hp(20),
     marginBottom: hp(20),
   },
-
-  // ── Consultation Time
   timeRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: wp(12),
   },
   timeDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 3,
-    borderColor: Colors.ACCENT_YELLOW,
+    width: 14, height: 14, borderRadius: 7,
+    borderWidth: 3, borderColor: Colors.ACCENT_YELLOW,
     marginTop: hp(10),
   },
-  timeText: {
-    color: Colors.TEXT_COLOR,
-    marginBottom: 2
-  },
-
-  // ── About
-  aboutText: {
-    color: '#0D0D0D',
-    lineHeight: 22,
-  },
-
-  // ── Services
+  timeText: { color: Colors.TEXT_COLOR, marginBottom: 2 },
+  aboutText: { color: '#0D0D0D', lineHeight: 22 },
   serviceRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -196,23 +154,15 @@ const styles = StyleSheet.create({
     marginBottom: hp(8),
   },
   bullet: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 8, height: 8, borderRadius: 4,
     backgroundColor: Colors.BRAND_PRIMARY,
   },
-  serviceText: {
-    color: '#0D0D0D',
-  },
-
-  // ── Bottom Bar
+  serviceText: { color: '#0D0D0D' },
   bottomBar: {
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: Colors.BORDER_COLOR,
     paddingTop: 10,
-    // paddingHorizontal: wp(20),
     paddingBottom: hp(50),
   },
-
 });

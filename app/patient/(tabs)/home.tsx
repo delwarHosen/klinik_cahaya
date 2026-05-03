@@ -5,7 +5,7 @@ import { GeneralIcon } from '@/assets/icons/patient_icon/GenaralIcon';
 import { PediatricIcon } from '@/assets/icons/patient_icon/PediatricIcon';
 import { VaccinesIcon } from '@/assets/icons/patient_icon/VaccinesIcon';
 import PageLoader from '@/components/shared/PageLoader';
-import { Caption1, Caption4, H3, H6 } from '@/components/typo/Typography';
+import { Caption1, H3, H6 } from '@/components/typo/Typography';
 import { DOCTORS, QUICK_ACTIONS, SERVICE_NAMES } from '@/constants/fakeData';
 import { IMAGE_COMPONENTS } from '@/constants/image.index';
 import { Colors } from '@/constants/theme';
@@ -168,9 +168,9 @@ export default function HomeScreen() {
             >
               <Image source={getImageSource(item.image)} style={styles.doctorImage} />
               <View style={styles.doctorInfo}>
-                <H6 style={styles.doctorName}>{item.name}</H6>
-                <Caption1 style={styles.doctorSpec}>{item.specialty}</Caption1>
-                <View style={[
+                <H6 style={styles.doctorName} numberOfLines={1}>{item.name}</H6>
+                <Caption1 style={styles.doctorSpec}>{item.fullSpecialty}</Caption1>
+                {/* <View style={[
                   styles.tierBadge,
                   {
                     backgroundColor: item.tier === 'Tier 1' ? '#E8F5E9' : '#FFF3E0',
@@ -182,7 +182,7 @@ export default function HomeScreen() {
                   <Caption4 style={[styles.tierText, { color: item.tier === 'Tier 1' ? '#388E3C' : '#F57C00' }]}>
                     {item.tier}
                   </Caption4>
-                </View>
+                </View> */}
               </View>
             </TouchableOpacity>
           )}

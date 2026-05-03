@@ -1,3 +1,4 @@
+import { LanguageIcon } from '@/assets/icons/common_icon/LanguageIcon'
 import { ChangePasswordIcon } from '@/assets/icons/patient_icon/ChangePasswordIcon'
 import { ContactSupportIcon } from '@/assets/icons/patient_icon/ContactSupportIcon'
 import { LogoutIcon } from '@/assets/icons/patient_icon/LogoutIcon'
@@ -41,7 +42,7 @@ const PATIENT = {
     planType: 'A-Plus Med',
     memberId: 'AIA-MY-123456789',
   },
-  avatar: 'https://i.pravatar.cc/150?u=ahmad',
+  avatar: IMAGE_COMPONENTS.patient,
 }
 
 export default function ProfileScreen() {
@@ -85,7 +86,7 @@ export default function ProfileScreen() {
 
           {/* Avatar + Name */}
           <View style={styles.avatarSection}>
-            <Image source={{ uri: PATIENT.avatar }} style={styles.avatar} />
+            <Image source={PATIENT.avatar} style={styles.avatar} />
             <H2 color={Colors.TEXT_COLOR}>{PATIENT.name}</H2>
             <Body2 color={Colors.PLACEHOLLDER_TEXT}>{PATIENT.dob}</Body2>
             <H6 style={{ marginTop: 2 }}>{PATIENT.phone}</H6>
@@ -147,6 +148,12 @@ export default function ProfileScreen() {
 
         {/* ── Menu Items ── */}
         <View style={styles.menuSection}>
+          <ProfileCard
+            icon={<LanguageIcon size={22} color={Colors.BRAND_PRIMARY} />}
+            label="Language"
+            iconBG={`${Colors.BRAND_PRIMARY}1A`}
+            onPress={() => router.push('/patient/profile/change_password')}
+          />
           <ProfileCard
             icon={<ChangePasswordIcon size={22} color={Colors.BRAND_PRIMARY} />}
             label="Change Password"

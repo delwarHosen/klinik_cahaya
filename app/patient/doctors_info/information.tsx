@@ -4,6 +4,7 @@ import { PatientDropdown } from '@/components/booking/PatientDropdown';
 import { CustomButton } from '@/components/shared/CustomButton';
 import SectionTitle from '@/components/shared/SectionTitle';
 import { Caption1, SpecialText } from '@/components/typo/Typography';
+import { Colors } from '@/constants/theme';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -60,7 +61,7 @@ export default function InformationScreen() {
                     <SpecialText style={styles.question}>
                         What kind of issue do you need treatment for?
                     </SpecialText>
-                    <Caption1 style={styles.label}>Booking For</Caption1>
+                    <Caption1 weight="medium" style={styles.label}>Booking For</Caption1>
 
                     <PatientDropdown
                         patients={PATIENTS}
@@ -110,6 +111,8 @@ export default function InformationScreen() {
                     setSelectedTime(time);
                     setDateTimeVisible(false);
                 }}
+                disabledDates={['2026-05-10', '2026-05-15','2026-05-18']}
+                disabledTimes={['09:00 AM', '09:30 AM','02:30 PM','01:30 PM']}
             />
         </SafeAreaView>
     );
@@ -134,16 +137,16 @@ const styles = StyleSheet.create({
         marginBottom: hp(16),
     },
     label: {
-        color: '#555555',
-        marginBottom: hp(8),
+        color: Colors.TEXT_COLOR,
+        marginVertical: hp(12),
     },
     bottomBar: {
         backgroundColor: '#FFFFFF',
         paddingHorizontal: wp(20),
         paddingTop: hp(12),
-        paddingBottom: hp(12), 
+        paddingBottom: hp(12),
         borderTopWidth: 1,
-        borderTopColor: '#F0F0F0',
+        borderTopColor: Colors.BORDER_COLOR,
         width: '100%',
     },
 });

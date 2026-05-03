@@ -225,7 +225,7 @@ export const APPOINTMENTS_DATA: Appointment[] = [
     status: 'Accepted',
     reason: 'Checkup',
     details: "Regular health checkup for blood pressure and general wellness monitoring. The patient has requested a full body screening and consultation regarding chronic fatigue.",
-    image: 'https://i.pravatar.cc/150?u=anis',
+    image: IMAGE_COMPONENTS.drAnis,
   },
   {
     id: '2',
@@ -239,11 +239,11 @@ export const APPOINTMENTS_DATA: Appointment[] = [
     status: 'Pending',
     reason: 'Vaccination',
     details: "Scheduled 6-in-1 vaccine (Hexaxim) for the baby. This is the second dose of the mandatory immunization program to ensure full protection.",
-    image: 'https://i.pravatar.cc/150?u=noormimi',
+    image: IMAGE_COMPONENTS.drNoormimiKhatijah,
   },
   {
     id: '3',
-    doctorName: 'Dr. Liyana Ramli',
+    doctorName: 'Dr. Liyana Binti Ramli',
     specialty: "GENERAL PRACTICE Adults & Children, Women's Health",
     tier: 'Tier 1',
     patientName: 'Sara Khan',
@@ -253,7 +253,7 @@ export const APPOINTMENTS_DATA: Appointment[] = [
     status: 'Completed',
     reason: 'Consultation',
     details: "Post-consultation summary: Discussion regarding persistent migraine and nutritional guidance. Patient was advised to maintain a strict sleep schedule.",
-    image: 'https://i.pravatar.cc/150?u=liyana',
+    image: IMAGE_COMPONENTS.drLiyanaBintiRamli,
   },
   {
     id: '4',
@@ -267,7 +267,7 @@ export const APPOINTMENTS_DATA: Appointment[] = [
     status: 'Canceled',
     reason: 'Minor Surgery',
     details: "Request for wound dressing and follow-up after a minor surgical procedure. The session was canceled due to patient unavailability.",
-    image: 'https://i.pravatar.cc/150?u=faiz',
+    image: IMAGE_COMPONENTS.drMuhammadFaiz,
   },
   {
     id: '5',
@@ -281,6 +281,6 @@ export const APPOINTMENTS_DATA: Appointment[] = [
     status: 'Accepted',
     reason: 'Ultrasound Scan',
     details: "Routine antenatal checkup including a 4D ultrasound scan for pregnancy monitoring. Both mother and baby are reported to be in stable condition.",
-    image: 'https://i.pravatar.cc/150?u=noorliyana',
+    image: IMAGE_COMPONENTS.drNoorLiyana,
   },
 ];

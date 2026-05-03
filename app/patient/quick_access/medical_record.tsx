@@ -116,7 +116,7 @@ export default function MedicalRecordScreen() {
             <Caption2 style={styles.specialty} numberOfLines={1}>{item.specialty}</Caption2>
             <View style={styles.divider} />
             <Caption2 style={styles.patientName}>{item.patient}</Caption2>
-            <Body4 style={styles.dateTime}>{item.dateTime}</Body4>
+            <Body4 weight='semiBold' style={styles.dateTime}>{item.dateTime}</Body4>
           </TouchableOpacity>
         )}
       />

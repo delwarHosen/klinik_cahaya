@@ -1,7 +1,7 @@
 import { SuccessVerifyIcon } from '@/assets/icons/common_icon/SuccessVerifyIcon';
 import { CustomButton } from '@/components/shared/CustomButton';
 import SectionTitle from '@/components/shared/SectionTitle';
-import { Caption1, H6 } from '@/components/typo/Typography';
+import { Body1, Caption1, H6 } from '@/components/typo/Typography';
 import { DOCTORS } from '@/constants/fakeData';
 import { Colors } from '@/constants/theme';
 import { hp, wp } from '@/utils/responsiveDevice';
@@ -37,31 +37,41 @@ export default function OverviewScreen() {
                 contentContainerStyle={styles.scroll}
                 showsVerticalScrollIndicator={false}
             >
+                {/* Doctor info */}
                 <H6 style={styles.doctorName}>{doctor.name}</H6>
-                <Caption1 style={styles.specialty}>{doctor.specialty}</Caption1>
+                <Caption1 style={styles.specialty}>{doctor.fullSpecialty}</Caption1>
 
                 <View style={styles.divider} />
 
+                {/* Patients + Date/Time */}
                 <View style={styles.row}>
-                    <Caption1 style={styles.rowLabel}>Patients</Caption1>
+                    <Caption1 weight='semiBold' style={styles.rowLabel}>Patients</Caption1>
                     <View style={{ alignItems: 'flex-end' }}>
-                        <Caption1 style={styles.rowValue}>{date}</Caption1>
-                        <Caption1 style={styles.rowValue}>{time}</Caption1>
+                        <Caption1 weight='semiBold' style={styles.dateValue}>{date}</Caption1>
+                        <Caption1 weight='semiBold' style={styles.dateValue}>{time}</Caption1>
                     </View>
                 </View>
-                <Caption1 style={styles.patientValue}>{patient}</Caption1>
+                <Caption1 weight='semiBold' style={styles.patientValue}>{patient}</Caption1>
 
                 <View style={styles.divider} />
 
-                <Caption1 style={styles.rowLabel}>Visit Reason</Caption1>
-                <Caption1 style={styles.rowValue}>{reason}</Caption1>
+                {/* Visit Reason */}
+                <Caption1 weight='semiBold' style={styles.rowLabel}>Visit Reason</Caption1>
+                <Caption1 weight='semiBold' style={styles.reasonValue}>{reason}</Caption1>
 
+                {/* Details */}
                 {!!details && (
                     <>
                         <View style={styles.divider} />
                         <Caption1 style={styles.detailText}>{details}</Caption1>
                     </>
                 )}
+
+                <View style={styles.divider} />
+
+                {/* Estimated Consultation Cost */}
+                <Body1 weight='bold' style={styles.costLabel}>Estimated Consultation Cost</Body1>
+                <Caption1 style={styles.costValue}>RM 220</Caption1>
             </ScrollView>
 
             <View style={styles.bottomBar}>
@@ -83,7 +93,7 @@ export default function OverviewScreen() {
                         </H6>
 
                         <CustomButton
-                            title=" Back To Home"
+                            title="Back To Home"
                             height={54}
                             width="100%"
                             onPress={handleBackToHome}
@@ -110,14 +120,67 @@ const styles = StyleSheet.create({
         paddingTop: hp(20),
         paddingBottom: hp(20),
     },
-    doctorName: { fontWeight: '700', color: '#1A1A1A', marginBottom: 4 },
-    specialty: { color: '#888888' },
-    divider: { height: 1, backgroundColor: '#F0F0F0', marginVertical: hp(16) },
-    row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-    rowLabel: { color: '#888888', marginBottom: 4 },
-    rowValue: { color: '#1A1A1A', textAlign: 'right' },
-    patientValue: { color: '#1A1A1A', marginTop: 4 },
-    detailText: { color: '#333333', lineHeight: 22 },
+
+    // ── Doctor info ──
+    doctorName: {
+        fontWeight: '700',
+        color: '#1A1A1A',
+        marginBottom: hp(4),
+    },
+    specialty: {
+        color: '#888888',
+        lineHeight: 20,
+    },
+
+    divider: {
+        height: 1,
+        backgroundColor: '#F0F0F0',
+        marginVertical: hp(16),
+    },
+
+    // ── Row ──
+    row: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+    },
+    rowLabel: {
+        color: '#888888',
+        marginBottom: hp(4),
+    },
+    dateValue: {
+        color: '#1A1A1A',
+        textAlign: 'right',
+        marginBottom: hp(2),
+    },
+    patientValue: {
+        color: '#1A1A1A',
+        marginTop: hp(4),
+    },
+
+    // ── Visit Reason ──
+    reasonValue: {
+        color: '#1A1A1A',
+        marginTop: hp(4),
+    },
+
+    // ── Details ──
+    detailText: {
+        color: '#333333',
+        lineHeight: 22,
+    },
+
+    // ── Estimated Cost ──
+    costLabel: {
+        color: '#1A1A1A',
+        fontWeight: '600',
+        marginBottom: hp(4),
+    },
+    costValue: {
+        color: '#1A1A1A',
+    },
+
+    // ── Bottom Bar ──
     bottomBar: {
         backgroundColor: '#FFFFFF',
         paddingHorizontal: wp(20),
@@ -127,7 +190,7 @@ const styles = StyleSheet.create({
         borderTopColor: '#F0F0F0',
     },
 
-    // Modal
+    // ── Modal ──
     modalBackdrop: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.45)',
@@ -153,13 +216,5 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         color: '#1A1A1A',
         lineHeight: 26,
-    },
-    backBtn: {
-        borderWidth: 1.5,
-        borderColor: Colors.BRAND_PRIMARY,
-        borderRadius: 100,
-        paddingVertical: hp(14),
-        paddingHorizontal: wp(40),
-        marginTop: hp(4),
     },
 });

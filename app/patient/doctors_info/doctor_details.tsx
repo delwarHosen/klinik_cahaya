@@ -1,7 +1,6 @@
-// app/patient/doctors_info/doctor_details.tsx
 import { CustomButton } from '@/components/shared/CustomButton';
 import SectionTitle from '@/components/shared/SectionTitle';
-import { Caption1, Caption4, H3, SpecialText } from '@/components/typo/Typography';
+import { Caption1, H3, SpecialText } from '@/components/typo/Typography';
 import { DOCTORS } from '@/constants/fakeData';
 import { Colors } from '@/constants/theme';
 import { getImageSource } from '@/utils/imageSource';
@@ -39,9 +38,6 @@ export default function DoctorDetailsScreen() {
           <View style={styles.profileInfo}>
             <View style={styles.nameRow}>
               <H3 style={styles.doctorName} numberOfLines={1}>{DOCTOR.name}</H3>
-              <View style={styles.tierBadge}>
-                <Caption4 style={styles.tierText}>{DOCTOR.tier}</Caption4>
-              </View>
             </View>
             <Caption1 style={styles.specialty}>{DOCTOR.fullSpecialty}</Caption1>
           </View>
@@ -71,11 +67,13 @@ export default function DoctorDetailsScreen() {
         ))}
       </ScrollView>
 
+      {/* Bottom Bar */}
       <View style={styles.bottomBar}>
         <CustomButton
           title='Book Appointment'
           height={54}
           width={"100%"}
+          borderRadius={16}
           onPress={() => router.push("/patient/doctors_info/information")}
         />
       </View>
@@ -95,6 +93,8 @@ const styles = StyleSheet.create({
     paddingTop: hp(20),
     paddingBottom: hp(30),
   },
+
+  // ── Profile ──
   profileRow: {
     flexDirection: 'row',
     gap: wp(14),
@@ -118,23 +118,18 @@ const styles = StyleSheet.create({
   },
   doctorName: {
     color: Colors.BRAND_PRIMARY,
-    marginTop: hp(-15)
+    marginTop: hp(-15),
   },
-  tierBadge: {
-    paddingHorizontal: wp(10),
-    paddingVertical: 3,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.SUCCESS_COLOR,
-    backgroundColor: '#E8F5E9',
-  },
-  tierText: { color: Colors.SUCCESS_COLOR },
   specialty: { color: '#888888', lineHeight: 20 },
+
+  // ── Section title ──
   sectionTitle: {
     color: '#1A1A1A',
     marginTop: hp(20),
     marginBottom: hp(20),
   },
+
+  // ── Consultation time ──
   timeRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -146,7 +141,11 @@ const styles = StyleSheet.create({
     marginTop: hp(10),
   },
   timeText: { color: Colors.TEXT_COLOR, marginBottom: 2 },
+
+  // ── About ──
   aboutText: { color: '#0D0D0D', lineHeight: 22 },
+
+  // ── Services ──
   serviceRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -158,11 +157,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.BRAND_PRIMARY,
   },
   serviceText: { color: '#0D0D0D' },
+
+  // ── Bottom Bar ──
   bottomBar: {
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: Colors.BORDER_COLOR,
-    paddingTop: 10,
-    paddingBottom: hp(50),
+    paddingTop: hp(12),
+    paddingBottom: hp(24),
+    paddingHorizontal: wp(20),
+    marginHorizontal: wp(-20),  
+    marginBottom:hp(30)
   },
 });

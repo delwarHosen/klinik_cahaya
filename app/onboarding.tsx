@@ -24,7 +24,7 @@ const SLIDES = [
         id: '1',
         image: IMAGE_COMPONENTS.onboarding1,
         title: '23 Hours Clinic',
-        description: 'Kami sedia melayan anda 23 jam sehiri, 7 hari seminggu',
+        description: 'Kami sedia melayan anda 23 jam sehari, 7 hari seminggu',
     },
     {
         id: '2',

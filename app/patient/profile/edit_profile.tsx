@@ -3,6 +3,7 @@ import { EditIcon } from '@/assets/icons/patient_icon/EditIcon'
 import { CustomButton } from '@/components/shared/CustomButton'
 import SectionTitle from '@/components/shared/SectionTitle'
 import { Body3, Caption2, H6 } from '@/components/typo/Typography'
+import { IMAGE_COMPONENTS } from '@/constants/image.index'
 import { Colors } from '@/constants/theme'
 import { hp, wp } from '@/utils/responsiveDevice'
 import { useRouter } from 'expo-router'
@@ -39,7 +40,7 @@ export default function EditProfileScreen() {
           <View style={styles.avatarSection}>
             <View style={styles.avatarWrapper}>
               <Image
-                source={{ uri: 'https://i.pravatar.cc/150?u=luna' }}
+                source={IMAGE_COMPONENTS.patient}
                 style={styles.avatar}
               />
               <View style={styles.cameraBtn}>

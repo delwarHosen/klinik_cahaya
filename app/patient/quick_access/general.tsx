@@ -5,7 +5,7 @@ import { Colors } from '@/constants/theme';
 import { getImageSource } from '@/utils/imageSource';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   FlatList,
   Image,
@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function BookAppointmentScreen() {
   const router = useRouter();
-  const isTier1 = (tier: string) => tier === 'Tier 1';
+  const [expanded, setExpanded] = useState<boolean>(false);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -40,16 +40,13 @@ export default function BookAppointmentScreen() {
             <View style={styles.cardInfo}>
 
               {/* Name + Tier row */}
-              <View style={styles.nameRow}>
-                <H6 style={styles.doctorName} numberOfLines={1}>
-                  {item.name.split(' ').slice(0, 2).join(' ')}{item.name.split(' ').length > 2 ? '...' : ''}
-                </H6>
-                <View style={[styles.tierBadge, { backgroundColor: isTier1(item.tier) ? '#E8F5E9' : '#FFF3E0', borderColor: isTier1(item.tier) ? '#1D9E75' : '#FF8D28' }]}>
-                  <Caption4 style={{ color: isTier1(item.tier) ? '#1D9E75' : '#FF8D28', fontWeight: '700' }}>
-                    {item.tier}
-                  </Caption4>
+              <TouchableOpacity onPress={() => setExpanded(!expanded)} activeOpacity={0.8}>
+                <View style={styles.nameRow}>
+                  <H6 style={styles.doctorName} numberOfLines={expanded ? 0 : 1}>
+                    {item.name}
+                  </H6>
                 </View>
-              </View>
+              </TouchableOpacity>
 
               {/* Time badge */}
               <View style={styles.timeBadge}>
@@ -84,16 +81,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.BORDER_COLOR,
     overflow: 'hidden',
+    paddingBottom:hp(10)
   },
   doctorImage: {
     width: wp(100),
-    height: hp(100),
+    height: hp(120),
     backgroundColor: '#dfefee',
     borderWidth: 1,
     borderColor: '#dbf0ef',
     borderRadius: 16,
     marginLeft: wp(10),
     marginTop: hp(10),
+    paddingBottom:(10)
   },
   cardInfo: { flex: 1, paddingVertical: wp(12), paddingHorizontal: hp(12), justifyContent: 'center', gap: 6 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },

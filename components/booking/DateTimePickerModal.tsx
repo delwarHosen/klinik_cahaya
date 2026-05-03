@@ -18,36 +18,63 @@ const MONTH_NAMES = [
 ];
 const WEEK_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+const TODAY = new Date();
+TODAY.setHours(0, 0, 0, 0);
+
 interface Props {
     visible: boolean;
     onClose: () => void;
     onConfirm: (date: string, time: string) => void;
+    disabledDates?: string[];
+    disabledTimes?: string[];
 }
 
-export function DateTimePickerModal({ visible, onClose, onConfirm }: Props) {
-    const today = new Date();
+export function DateTimePickerModal({
+    visible,
+    onClose,
+    onConfirm,
+    disabledDates = [],
+    disabledTimes = [],
+}: Props) {
+
     const [step, setStep] = useState<'date' | 'time'>('date');
-    const [currentYear, setCurrentYear] = useState(today.getFullYear());
-    const [currentMonth, setCurrentMonth] = useState(today.getMonth());
+    const [currentYear, setCurrentYear] = useState(TODAY.getFullYear());
+    const [currentMonth, setCurrentMonth] = useState(TODAY.getMonth());
     const [selectedDay, setSelectedDay] = useState<number | null>(null);
     const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
     const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-
-    // prev month trailing days
     const prevMonthDays = new Date(currentYear, currentMonth, 0).getDate();
     const leadingDays = Array.from({ length: firstDay }, (_, i) => prevMonthDays - firstDay + i + 1);
-
-    // current month days
     const currentDays = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-
-    // next month leading days to fill last row
     const totalCells = leadingDays.length + currentDays.length;
     const trailingCount = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
     const trailingDays = Array.from({ length: trailingCount }, (_, i) => i + 1);
 
+    const isDisabledDate = (day: number): boolean => {
+        const thisDate = new Date(currentYear, currentMonth, day);
+        thisDate.setHours(0, 0, 0, 0);
+        if (thisDate < TODAY) return true;
+
+        const mm = String(currentMonth + 1).padStart(2, '0');
+        const dd = String(day).padStart(2, '0');
+        const dateStr = `${currentYear}-${mm}-${dd}`;
+        return disabledDates.includes(dateStr);
+    };
+
+    const canGoPrev = () => {
+        const firstOfPrevMonth = new Date(
+            currentMonth === 0 ? currentYear - 1 : currentYear,
+            currentMonth === 0 ? 11 : currentMonth - 1,
+            1
+        );
+        const firstOfCurrentMonth = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
+        return firstOfPrevMonth >= firstOfCurrentMonth;
+    };
+
     const handlePrevMonth = () => {
+        if (!canGoPrev()) return;
         if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(y => y - 1); }
         else setCurrentMonth(m => m - 1);
         setSelectedDay(null);
@@ -64,6 +91,10 @@ export function DateTimePickerModal({ visible, onClose, onConfirm }: Props) {
         const dayName = WEEK_DAYS[new Date(currentYear, currentMonth, selectedDay).getDay()];
         const dateStr = `${MONTH_NAMES[currentMonth]} ${selectedDay}, ${currentYear} (${dayName})`;
         onConfirm(dateStr, selectedTime);
+        resetState();
+    };
+
+    const resetState = () => {
         setStep('date');
         setSelectedDay(null);
         setSelectedTime(null);
@@ -71,7 +102,7 @@ export function DateTimePickerModal({ visible, onClose, onConfirm }: Props) {
 
     const handleClose = () => {
         onClose();
-        setStep('date');
+        resetState();
     };
 
     return (
@@ -88,7 +119,11 @@ export function DateTimePickerModal({ visible, onClose, onConfirm }: Props) {
                                     {MONTH_NAMES[currentMonth]} {currentYear}
                                 </Caption1>
                                 <View style={styles.navBtns}>
-                                    <TouchableOpacity style={styles.navBtn} onPress={handlePrevMonth}>
+                                    <TouchableOpacity
+                                        style={[styles.navBtn, !canGoPrev() && styles.navBtnDisabled]}
+                                        onPress={handlePrevMonth}
+                                        disabled={!canGoPrev()}
+                                    >
                                         <Caption2 color="#555">{'<'}</Caption2>
                                     </TouchableOpacity>
                                     <TouchableOpacity style={styles.navBtn} onPress={handleNextMonth}>
@@ -111,17 +146,34 @@ export function DateTimePickerModal({ visible, onClose, onConfirm }: Props) {
                                         <Caption1 style={styles.fadedText}>{d}</Caption1>
                                     </View>
                                 ))}
-                                {currentDays.map((day) => (
-                                    <TouchableOpacity
-                                        key={`day-${day}`}
-                                        style={[styles.cell, day === selectedDay && styles.selectedCell]}
-                                        onPress={() => setSelectedDay(day)}
-                                    >
-                                        <Caption1 style={[styles.cellText, day === selectedDay && styles.selectedCellText]}>
-                                            {day}
-                                        </Caption1>
-                                    </TouchableOpacity>
-                                ))}
+
+                                {currentDays.map((day) => {
+                                    const disabled = isDisabledDate(day);
+                                    const isSelected = day === selectedDay;
+
+                                    return (
+                                        <TouchableOpacity
+                                            key={`day-${day}`}
+                                            style={[
+                                                styles.cell,
+                                                isSelected && styles.selectedCell,
+                                                disabled && styles.disabledCell,
+                                            ]}
+                                            onPress={() => !disabled && setSelectedDay(day)}
+                                            disabled={disabled}
+                                            activeOpacity={disabled ? 1 : 0.7}
+                                        >
+                                            <Caption1 style={[
+                                                styles.cellText,
+                                                isSelected && styles.selectedCellText,
+                                                disabled && styles.disabledCellText,
+                                            ]}>
+                                                {day}
+                                            </Caption1>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+
                                 {trailingDays.map((d, i) => (
                                     <View key={`trail-${i}`} style={styles.cell}>
                                         <Caption1 style={styles.fadedText}>{d}</Caption1>
@@ -137,6 +189,7 @@ export function DateTimePickerModal({ visible, onClose, onConfirm }: Props) {
                                 <TouchableOpacity
                                     onPress={() => selectedDay && setStep('time')}
                                     style={[styles.okayBtn, !selectedDay && styles.disabledBtn]}
+                                    disabled={!selectedDay}
                                 >
                                     <Caption1 style={styles.okayText}>Okay</Caption1>
                                 </TouchableOpacity>
@@ -147,20 +200,32 @@ export function DateTimePickerModal({ visible, onClose, onConfirm }: Props) {
                             <H6 style={styles.title}>Select Time</H6>
 
                             <View style={styles.timeGrid}>
-                                {TIMES.map((t) => (
-                                    <TouchableOpacity
-                                        key={t}
-                                        style={[styles.timeCell, selectedTime === t && styles.selectedTimeCell]}
-                                        onPress={() => setSelectedTime(t)}
-                                    >
-                                        <Caption2 style={[
-                                            styles.timeText,
-                                            selectedTime === t && styles.selectedTimeText,
-                                        ]}>
-                                            {t}
-                                        </Caption2>
-                                    </TouchableOpacity>
-                                ))}
+                                {TIMES.map((t) => {
+                                    const isDisabled = disabledTimes.includes(t);
+                                    const isSelected = selectedTime === t;
+
+                                    return (
+                                        <TouchableOpacity
+                                            key={t}
+                                            style={[
+                                                styles.timeCell,
+                                                isSelected && styles.selectedTimeCell,
+                                                isDisabled && styles.disabledTimeCell,
+                                            ]}
+                                            onPress={() => !isDisabled && setSelectedTime(t)}
+                                            disabled={isDisabled}
+                                            activeOpacity={isDisabled ? 1 : 0.7}
+                                        >
+                                            <Caption2 style={[
+                                                styles.timeText,
+                                                isSelected && styles.selectedTimeText,
+                                                isDisabled && styles.disabledTimeText,
+                                            ]}>
+                                                {t}
+                                            </Caption2>
+                                        </TouchableOpacity>
+                                    );
+                                })}
                             </View>
 
                             {/* Buttons */}
@@ -171,6 +236,7 @@ export function DateTimePickerModal({ visible, onClose, onConfirm }: Props) {
                                 <TouchableOpacity
                                     onPress={handleTimeOkay}
                                     style={[styles.okayBtn, !selectedTime && styles.disabledBtn]}
+                                    disabled={!selectedTime}
                                 >
                                     <Caption1 style={styles.okayText}>Okay</Caption1>
                                 </TouchableOpacity>
@@ -199,7 +265,6 @@ const styles = StyleSheet.create({
         paddingBottom: hp(20),
         width: '100%',
     },
-
     title: {
         textAlign: 'center',
         color: Colors.BRAND_PRIMARY,
@@ -208,7 +273,7 @@ const styles = StyleSheet.create({
         marginBottom: hp(20),
     },
 
-    // Month navigation
+    // ── Month nav ──
     monthRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -233,8 +298,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    navBtnDisabled: {
+        opacity: 0.3,
+    },
 
-    // Day headers
+    // ── Day headers ──
     dayRow: {
         flexDirection: 'row',
         marginBottom: hp(4),
@@ -247,18 +315,22 @@ const styles = StyleSheet.create({
         fontSize: 13,
     },
 
-    // Calendar grid
+    // ── Calendar grid ──
     grid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         marginBottom: hp(8),
+        
     },
     cell: {
-        width: '14.28%',
+        // width: '14.28%',
+        height:40,
+        width:40,
         aspectRatio: 1,
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: 20,
+        // backgroundColor:Colors.ACCENT_YELLOW
     },
     cellText: {
         color: '#333333',
@@ -275,8 +347,49 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontWeight: '600',
     },
+    disabledCell: {
+        opacity: 0.35,
+    },
+    disabledCellText: {
+        color: '#AAAAAA',
+    },
 
-    // Buttons
+    // ── Time grid ──
+    timeGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: wp(8),
+        marginBottom: hp(8),
+    },
+    timeCell: {
+        width: '30.5%',
+        paddingVertical: hp(14),
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#E8E8E8',
+        backgroundColor: '#F8F8F8',
+        alignItems: 'center',
+    },
+    timeText: {
+        color: '#333333',
+        fontSize: 13,
+    },
+    selectedTimeCell: {
+        backgroundColor: Colors.BRAND_PRIMARY,
+        borderColor: Colors.BRAND_PRIMARY,
+    },
+    selectedTimeText: {
+        color: '#FFFFFF',
+        fontWeight: '600',
+    },
+    disabledTimeCell: {
+        opacity: 0.35,
+    },
+    disabledTimeText: {
+        color: '#AAAAAA',
+    },
+
+    // ── Buttons ──
     btnRow: {
         flexDirection: 'row',
         gap: wp(12),
@@ -307,34 +420,5 @@ const styles = StyleSheet.create({
     },
     disabledBtn: {
         opacity: 0.5,
-    },
-
-    // Time grid — 3 columns
-    timeGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: wp(8),
-        marginBottom: hp(8),
-    },
-    timeCell: {
-        width: '30.5%',
-        paddingVertical: hp(14),
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: '#E8E8E8',
-        backgroundColor: '#F8F8F8',
-        alignItems: 'center',
-    },
-    timeText: {
-        color: '#333333',
-        fontSize: 13,
-    },
-    selectedTimeCell: {
-        backgroundColor: Colors.BRAND_PRIMARY,
-        borderColor: Colors.BRAND_PRIMARY,
-    },
-    selectedTimeText: {
-        color: '#FFFFFF',
-        fontWeight: '600',
     },
 });

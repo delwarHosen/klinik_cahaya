@@ -1,5 +1,3 @@
-// app/patient/book_appointment/index.tsx  (Book Appointment screen)
-// NOTE: "General" screen is identical — just change the SectionTitle below
 import SectionTitle from '@/components/shared/SectionTitle';
 import { Caption1, Caption4, H6 } from '@/components/typo/Typography';
 import { DOCTORS } from '@/constants/fakeData';
@@ -7,7 +5,7 @@ import { Colors } from '@/constants/theme';
 import { getImageSource } from '@/utils/imageSource';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   FlatList,
   Image,
@@ -19,12 +17,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function BookAppointmentScreen() {
   const router = useRouter();
-  const isTier1 = (tier: string) => tier === 'Tier 1';
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        {/* Change title to "General" for the General screen */}
         <SectionTitle title="Book Appointment" />
       </View>
 
@@ -33,38 +30,48 @@ export default function BookAppointmentScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
-            activeOpacity={0.85}
-            onPress={() => router.push({ pathname: '/patient/doctors_info/doctor_details', params: { id: item.id } })}
-          >
-            <Image source={getImageSource(item.image)} style={styles.doctorImage} />
-            <View style={styles.cardInfo}>
+        renderItem={({ item }) => {
+          const isExpanded = expandedId === item.id; // ← এখানে রাখুন
 
-              <View style={styles.nameRow}>
-                <H6 style={styles.doctorName} numberOfLines={1}>
-                  {item.name.split(' ').slice(0, 2).join(' ')}{item.name.split(' ').length > 2 ? '...' : ''}
-                </H6>
-                <View style={[styles.tierBadge, {
-                  backgroundColor: isTier1(item.tier) ? '#E8F5E9' : '#FFF3E0',
-                  borderColor: isTier1(item.tier) ? '#1D9E75' : '#FF8D28'
-                }]}>
-                  <Caption4 style={{ color: isTier1(item.tier) ? '#1D9E75' : '#FF8D28', fontWeight: '700' }}>
-                    {item.tier}
-                  </Caption4>
+          return (
+            <TouchableOpacity
+              style={styles.card}
+              activeOpacity={0.85}
+              onPress={() => router.push({
+                pathname: '/patient/doctors_info/doctor_details',
+                params: { id: item.id }
+              })}
+            >
+              <Image source={getImageSource(item.image)} style={styles.doctorImage} />
+              <View style={styles.cardInfo}>
+
+                <TouchableOpacity
+                  onPress={(e) => {
+                    e.stopPropagation(); // ← card click prevent
+                    setExpandedId(isExpanded ? null : item.id)
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.nameRow}>
+                    <H6
+                      style={styles.doctorName}
+                      numberOfLines={isExpanded ? 0 : 1}
+                    >
+                      {item.name}
+                    </H6>
+                  </View>
+                </TouchableOpacity>
+
+                <View style={styles.timeBadge}>
+                  <Caption4 style={styles.timeText} numberOfLines={1}>{item.time}</Caption4>
                 </View>
+
+                <Caption1 style={styles.specialty} numberOfLines={2}>{item.fullSpecialty}</Caption1>
+
               </View>
-
-              <View style={styles.timeBadge}>
-                <Caption4 style={styles.timeText} numberOfLines={1}>{item.time}</Caption4>
-              </View>
-
-              <Caption1 style={styles.specialty} numberOfLines={2}>{item.fullSpecialty}</Caption1>
-
-            </View>
-          </TouchableOpacity>
-        )}
+            </TouchableOpacity>
+          );
+        }}
       />
     </SafeAreaView>
   );
@@ -108,7 +115,6 @@ const styles = StyleSheet.create({
   },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   doctorName: { color: Colors.BRAND_PRIMARY, flexShrink: 1 },
-  tierBadge: { paddingHorizontal: wp(10), paddingVertical: 3, borderRadius: 20, borderWidth: 1 },
   timeBadge: {
     backgroundColor: Colors.ACCENT_YELLOW,
     alignSelf: 'flex-start',

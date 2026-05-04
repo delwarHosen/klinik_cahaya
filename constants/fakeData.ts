@@ -149,14 +149,73 @@ export const QUICK_ACTIONS: QuickAction[] = [
   { id: '4', title: 'Medical Record' },
 ];
 
+export interface Service {
+  id: string;
+  name: string;
+  emoji: string;
+  subtitle: string;
+  description: string;
+  price: string;
+  doctorIds: string[];
+}
+
 export const SERVICE_NAMES: Service[] = [
-  { id: '1', name: 'General' },
-  { id: '2', name: 'Pediatric' },
-  { id: '3', name: 'Antenatal' },
-  { id: '4', name: 'Vaccination' },
-  { id: '5', name: 'Dental' },
-  { id: '6', name: 'Eye Care' },
+  {
+    id: '1',
+    name: '23-Jam GP',
+    emoji: '🌙',
+    subtitle: 'Walk-in 23 jam',
+    description: 'Perkhidmatan doktor umum yang beroperasi selama 23 jam sehari. Sesuai untuk rawatan segera, demam, sakit, dan keadaan yang memerlukan perhatian segera tanpa perlu buat temujanji terlebih dahulu.',
+    price: 'RM 30 – RM 80',
+    doctorIds: ['1', '2', '3'],
+  },
+  {
+    id: '2',
+    name: 'Kanak-Kanak & Vaksin',
+    emoji: '👶',
+    subtitle: 'KNC Junior',
+    description: 'Perkhidmatan kesihatan kanak-kanak merangkumi pemeriksaan tumbuh kembang, imunisasi mandatori dan pilihan, serta konsultasi pediatrik oleh doktor berpengalaman.',
+    price: 'RM 50 – RM 200',
+    doctorIds: ['4'],
+  },
+  {
+    id: '3',
+    name: 'Health Screening',
+    emoji: '🩺',
+    subtitle: 'Pakej pemeriksaan',
+    description: 'Pakej saringan kesihatan menyeluruh termasuk ujian darah, tekanan darah, kolesterol, gula darah, fungsi buah pinggang dan hati. Sesuai untuk pemeriksaan tahunan.',
+    price: 'RM 150 – RM 500',
+    doctorIds: ['1', '2'],
+  },
+  {
+    id: '4',
+    name: 'Antenatal & O&G',
+    emoji: '🤰',
+    subtitle: 'Penjagaan ibu mengandung',
+    description: 'Penjagaan menyeluruh untuk ibu mengandung termasuk pemeriksaan antenatal rutin, ultrasound 4D, konsultasi O&G, dan penjagaan selepas bersalin.',
+    price: 'RM 80 – RM 350',
+    doctorIds: ['5'],
+  },
+  {
+    id: '5',
+    name: 'Minor Surgery',
+    emoji: '🔬',
+    subtitle: 'Rawatan luka, tumor kecil, dll',
+    description: 'Prosedur pembedahan kecil termasuk rawatan luka, penjahitan, pemotongan tumor kecil, dan prosedur dermatologi ringkas di bawah anestesia tempatan.',
+    price: 'RM 100 – RM 600',
+    doctorIds: ['3'],
+  },
+  {
+    id: '6',
+    name: 'Tips Kesihatan',
+    emoji: '📰',
+    subtitle: 'Artikel & info terkini',
+    description: 'Akses kepada artikel kesihatan terkini, panduan gaya hidup sihat, tips pemakanan, dan maklumat perubatan yang dikurasi oleh pasukan doktor KNC.',
+    price: 'Percuma',
+    doctorIds: ['1', '2', '3', '4', '5'],
+  },
 ];
+
 
 export const VACCINES: Vaccine[] = [
   { id: '1', name: 'BCG (Bacillus Calmette–Guérin)', price: 'RM 1200', stock: 56, expireDate: 'October 30, 2027' },

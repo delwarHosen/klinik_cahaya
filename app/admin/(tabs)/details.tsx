@@ -31,20 +31,21 @@ export default function BookingRequestScreen() {
   const [search, setSearch] = useState('')
   const [filterVisible, setFilterVisible] = useState(false)
 
-  // Status — radio (single)
-  const [selectedStatus, setSelectedStatus] = useState<string>('Pending')
+  // applied filter state (after Find)
+  const [appliedStatus, setAppliedStatus] = useState<string>('Pending')
 
-  // Doctor — checkbox (multi)
+  // temp filter state (inside modal)
+  const [selectedStatus, setSelectedStatus] = useState<string>('Pending')
   const [selectedDoctors, setSelectedDoctors] = useState<string[]>(DOCTORS.map(d => d.name))
+  const [tempDoctors, setTempDoctors] = useState<string[]>(DOCTORS.map(d => d.name))
 
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-
   const [datePickerVisible, setDatePickerVisible] = useState(false)
   const [datePickerFor, setDatePickerFor] = useState<'start' | 'end'>('start')
 
-  const toggleDoctor = (name: string) => {
-    setSelectedDoctors(prev =>
+  const toggleTempDoctor = (name: string) => {
+    setTempDoctors(prev =>
       prev.includes(name) ? prev.filter(x => x !== name) : [...prev, name]
     )
   }
@@ -60,56 +61,35 @@ export default function BookingRequestScreen() {
     setDatePickerVisible(false)
   }
 
-  const filteredData = ADMIN_APPOINTMENTS.filter(a => {
-    const matchSearch = a.doctorName.toLowerCase().includes(search.toLowerCase())
-    const statusMatch =
-      (selectedStatus === 'Pending' && a.status === 'Pending') ||
-      (selectedStatus === 'Rejected / Cancelled' && a.status === 'Canceled')
-    const doctorMatch = selectedDoctors.includes(a.doctorName)
-    return matchSearch && statusMatch && doctorMatch
-  })
+  const handleFind = () => {
+    setAppliedStatus(selectedStatus)
+    setSelectedDoctors(tempDoctors)
+    setFilterVisible(false)
+  }
 
-  const pendingList = filteredData.filter(a => a.status === 'Pending')
-  const rejectedList = filteredData.filter(a => a.status === 'Canceled')
+  const handleOpenFilter = () => {
+    // sync temp state with current applied state
+    setSelectedStatus(appliedStatus)
+    setTempDoctors(selectedDoctors)
+    setFilterVisible(true)
+  }
 
-  const renderPendingCard = ({ item }: { item: typeof ADMIN_APPOINTMENTS[0] }) => (
-    <View style={styles.card}>
-      <View style={styles.cardLeft}>
-        <Caption1 weight='semiBold' style={styles.doctorName} numberOfLines={1}>
-          {item.doctorName}
-        </Caption1>
-        <Caption4 style={styles.metaNormal}>{item.time}</Caption4>
-        <Caption4 style={styles.metaNormal}>{item.displayDate}</Caption4>
-      </View>
-      <CustomButton
-        title='View'
-        borderRadius={14}
-        onPress={() =>
-          router.push({
-            pathname: '/admin/appointments/appointment_details' as any,
-            params: { id: item.id },
-          })
-        }
-        width={'25%'}
-        height={hp(44)}
-      />
-    </View>
+  // Pending list
+  const pendingList = ADMIN_APPOINTMENTS.filter(a =>
+    a.status === 'Pending' &&
+    a.doctorName.toLowerCase().includes(search.toLowerCase()) &&
+    selectedDoctors.includes(a.doctorName)
   )
 
-  const renderRejectedCard = ({ item }: { item: typeof ADMIN_APPOINTMENTS[0] }) => (
-    <View style={styles.card}>
-      <View style={styles.cardLeft}>
-        <Caption1 weight='semiBold' style={styles.doctorName} numberOfLines={1}>
-          {item.doctorName}
-        </Caption1>
-        <Caption4 style={styles.metaRed}>{item.time} | {item.displayDate}</Caption4>
-      </View>
-      <View style={styles.patientRight}>
-        <Caption4 style={styles.patientLabel}>Patient</Caption4>
-        <Caption4 style={styles.patientName}>{item.patientName}</Caption4>
-      </View>
-    </View>
+  // Canceled list
+  const canceledList = ADMIN_APPOINTMENTS.filter(a =>
+    a.status === 'Canceled' &&
+    a.doctorName.toLowerCase().includes(search.toLowerCase()) &&
+    selectedDoctors.includes(a.doctorName)
   )
+
+  const showPending  = appliedStatus === 'Pending'
+  const showCanceled = appliedStatus === 'Rejected / Cancelled'
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -131,44 +111,94 @@ export default function BookingRequestScreen() {
         </View>
         <TouchableOpacity
           style={styles.filterBtn}
-          onPress={() => setFilterVisible(true)}
+          onPress={handleOpenFilter}
           activeOpacity={0.8}
         >
           <FilterIcon />
         </TouchableOpacity>
       </View>
 
-      {/* List */}
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + hp(20) }}
       >
-        {pendingList.length > 0 && (
+        {/* ── Pending Section ── */}
+        {showPending && (
           <>
             <Caption1 style={styles.sectionLabel}>Pending</Caption1>
-            {pendingList.map(item => (
-              <View key={item.id} style={{ marginBottom: hp(10) }}>
-                {renderPendingCard({ item })}
+            {pendingList.length === 0 ? (
+              <View style={styles.empty}>
+                <Caption1 style={{ color: '#aaa' }}>No pending requests.</Caption1>
               </View>
-            ))}
+            ) : (
+              pendingList.map(item => (
+                <View key={item.id} style={{ marginBottom: hp(10) }}>
+                  <View style={styles.card}>
+                    <View style={styles.cardLeft}>
+                      <Caption1 weight='semiBold' style={styles.doctorName} numberOfLines={1}>
+                        {item.doctorName}
+                      </Caption1>
+                      <Caption4 style={styles.metaNormal}>{item.time}</Caption4>
+                      <Caption4 style={styles.metaNormal}>{item.displayDate}</Caption4>
+                    </View>
+                    <CustomButton
+                      title='View'
+                      borderRadius={14}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/admin/appointments/appointment_details' as any,
+                          params: { id: item.id },
+                        })
+                      }
+                      width={'25%'}
+                      height={hp(44)}
+                    />
+                  </View>
+                </View>
+              ))
+            )}
           </>
         )}
 
-        {rejectedList.length > 0 && (
+        {/* ── Canceled Section ── */}
+        {showCanceled && (
           <>
-            <Caption1 style={styles.sectionLabel}>Canceled</Caption1>
-            {rejectedList.map(item => (
-              <View key={item.id} style={{ marginBottom: hp(10) }}>
-                {renderRejectedCard({ item })}
+            <Caption1 style={styles.sectionLabel}>Rejected</Caption1>
+            {canceledList.length === 0 ? (
+              <View style={styles.empty}>
+                <Caption1 style={{ color: '#aaa' }}>No canceled requests.</Caption1>
               </View>
-            ))}
+            ) : (
+              canceledList.map(item => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={{ marginBottom: hp(10) }}
+                  activeOpacity={0.8}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/admin/appointments/canceled_appointment_details' as any,
+                      params: { id: item.id },
+                    })
+                  }
+                >
+                  <View style={styles.card}>
+                    <View style={styles.cardLeft}>
+                      <Caption1 weight='semiBold' style={styles.doctorName} numberOfLines={1}>
+                        {item.doctorName}
+                      </Caption1>
+                      <Caption4 style={styles.metaRed}>
+                        {item.time} | {item.displayDate}
+                      </Caption4>
+                    </View>
+                    <View style={styles.patientRight}>
+                      <Caption4 style={styles.patientLabel}>Patient</Caption4>
+                      <Caption4 style={styles.patientName}>{item.patientName}</Caption4>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
           </>
-        )}
-
-        {filteredData.length === 0 && (
-          <View style={styles.empty}>
-            <Caption1 style={{ color: '#aaa' }}>No requests found.</Caption1>
-          </View>
         )}
       </ScrollView>
 
@@ -209,12 +239,12 @@ export default function BookingRequestScreen() {
                   {/* Doctor — Checkbox */}
                   <Body2 style={styles.filterSectionLabel}>Doctor</Body2>
                   {DOCTORS.map(doc => {
-                    const checked = selectedDoctors.includes(doc.name)
+                    const checked = tempDoctors.includes(doc.name)
                     return (
                       <TouchableOpacity
                         key={doc.id}
                         style={styles.filterRow}
-                        onPress={() => toggleDoctor(doc.name)}
+                        onPress={() => toggleTempDoctor(doc.name)}
                         activeOpacity={0.7}
                       >
                         <Caption1 style={styles.filterRowText}>{doc.name}</Caption1>
@@ -227,7 +257,6 @@ export default function BookingRequestScreen() {
 
                   {/* Date */}
                   <Body2 style={styles.filterSectionLabel}>Date</Body2>
-
                   <TouchableOpacity
                     style={styles.filterRow}
                     activeOpacity={0.7}
@@ -253,7 +282,7 @@ export default function BookingRequestScreen() {
                   {/* Find Button */}
                   <TouchableOpacity
                     style={styles.findBtn}
-                    onPress={() => setFilterVisible(false)}
+                    onPress={handleFind}
                     activeOpacity={0.85}
                   >
                     <Caption1 style={styles.findBtnText}>Find</Caption1>
@@ -402,8 +431,6 @@ const styles = StyleSheet.create({
     color: Colors.BRAND_PRIMARY,
     fontSize: 12,
   },
-
-  // ── Radio (Status) ──
   radio: {
     width: 22,
     height: 22,
@@ -423,8 +450,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: Colors.BRAND_PRIMARY,
   },
-
-  // ── Checkbox (Doctor) ──
   checkbox: {
     width: 22,
     height: 22,
@@ -439,7 +464,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.BRAND_PRIMARY,
     borderColor: Colors.BRAND_PRIMARY,
   },
-
   findBtn: {
     backgroundColor: Colors.BRAND_PRIMARY,
     borderRadius: 14,

@@ -1,6 +1,7 @@
 import { SendIcon } from '@/assets/icons/common_icon/SendIcon';
 import { Colors } from '@/constants/theme';
 import { hp, wp } from '@/utils/responsiveDevice';
+import { useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
   FlatList,
@@ -55,6 +56,7 @@ export default function ChatScreen() {
   const [isTyping, setIsTyping] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const replyIndexRef = useRef(0);
+  const router = useRouter();
 
   const sendMessage = () => {
     const text = inputText.trim();
@@ -109,7 +111,7 @@ export default function ChatScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn}>
+        <TouchableOpacity onPress={()=>router.back()} style={styles.backBtn}>
           <Text style={styles.backArrow}>‹</Text>
         </TouchableOpacity>
         <View style={styles.avatarCircle}>

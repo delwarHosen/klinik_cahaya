@@ -12,6 +12,7 @@ import { Colors } from '@/constants/theme';
 import { usePageLoader } from '@/hooks/usePageLoader';
 import { getImageSource } from '@/utils/imageSource';
 import { hp, wp } from '@/utils/responsiveDevice';
+import { useRouter } from 'expo-router';
 import React, { useRef } from 'react';
 import {
   FlatList,
@@ -24,6 +25,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+const QUICK_ACTION_ROUTES: Record<string, string> = {
+  '1': '/patient/quick_access/general',
+  '2': '/patient/quick_access/queue_status',
+  '3': '/patient/quick_access/vaccine_stock',
+  '4': '/patient/quick_access/ic_verification',
+};
+
 const SERVICE_ICONS: Record<string, React.ReactNode> = {
   '1': <GeneralIcon />,
   '2': <PediatricIcon />,
@@ -33,26 +41,11 @@ const SERVICE_ICONS: Record<string, React.ReactNode> = {
   '6': <AntenatalIcon />,
 };
 
-const QUICK_ACTION_ROUTES: Record<string, string> = {
-  '1': '/patient/quick_access/general',
-  '2': '/patient/quick_access/queue_status',
-  '3': '/patient/quick_access/vaccine_stock',
-  '4': '/patient/quick_access/medical_record',
-};
-
-const SERVICE_ROUTES: Record<string, string> = {
-  '1': '/patient/booking_appointment/book_appointment',
-  '2': '/patient/booking_appointment/book_appointment',
-  '3': '/patient/booking_appointment/book_appointment',
-  '4': '/patient/booking_appointment/book_appointment',
-  '5': '/patient/booking_appointment/book_appointment',
-  '6': '/patient/booking_appointment/book_appointment',
-};
-
 export default function HomeScreen() {
   const servicesScrollRef = useRef<ScrollView>(null);
   const doctorsListRef = useRef<FlatList>(null);
   const { loading, navigate } = usePageLoader();
+  const router = useRouter();
 
   const handleServicesArrow = () => {
     servicesScrollRef.current?.scrollTo({ x: 200, animated: true });
@@ -67,18 +60,23 @@ export default function HomeScreen() {
 
       <PageLoader visible={loading} />
 
+      {/* ── Sticky Header ── */}
       <View style={styles.stickyTop}>
         <View style={styles.header}>
           <View style={styles.logoContainer}>
             <Image source={IMAGE_COMPONENTS.logo} style={styles.logo} />
           </View>
           <View style={styles.headerIcons}>
-            <TouchableOpacity style={styles.iconBtn}
+            <TouchableOpacity
+              style={styles.iconBtn}
               onPress={() => navigate('/patient/notification')}
             >
               <NotificationIcon />
             </TouchableOpacity>
-            <Image source={{ uri: 'https://i.pravatar.cc/150?u=user' }} style={styles.avatar} />
+            <Image
+              source={{ uri: 'https://i.pravatar.cc/150?u=user' }}
+              style={styles.avatar}
+            />
           </View>
         </View>
 
@@ -89,7 +87,8 @@ export default function HomeScreen() {
               placeholderTextColor="#999"
               style={styles.searchInput}
             />
-            <TouchableOpacity style={styles.searchBtn}
+            <TouchableOpacity
+              style={styles.searchBtn}
               onPress={() => navigate('/patient/(tabs)/search')}
             >
               <H6 color='#F4F4F4'>Search</H6>
@@ -98,7 +97,10 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
 
         {/* ── Quick Actions Grid ── */}
         <View style={styles.gridContainer}>
@@ -133,13 +135,17 @@ export default function HomeScreen() {
               key={item.id}
               style={styles.serviceCard}
               activeOpacity={0.8}
-              onPress={() => navigate(SERVICE_ROUTES[item.id])}
+              onPress={() => router.push({
+                pathname: '/patient/services/service_detail' as any,
+                params: { serviceId: item.id },
+              })}
             >
               <View style={styles.serviceIconContainer}>
-                <View style={{ width: 32, height: 32, justifyContent: 'center', alignItems: 'center' }}>
+                <View style={styles.serviceIconWrapper}>
                   {SERVICE_ICONS[item.id]}
                 </View>
                 <H6 style={styles.serviceName}>{item.name}</H6>
+                <Caption1 style={styles.serviceSubtitle}>{item.subtitle}</Caption1>
               </View>
             </TouchableOpacity>
           ))}
@@ -164,25 +170,17 @@ export default function HomeScreen() {
             <TouchableOpacity
               style={styles.doctorCard}
               activeOpacity={0.85}
-              onPress={() => navigate(`/patient/doctors_info/doctor_details?id=${item.id}`)}
+              onPress={() => router.push({
+                pathname: '/patient/doctors_info/doctor_details' as any,
+                params: { doctorId: item.id },
+              })}
             >
               <Image source={getImageSource(item.image)} style={styles.doctorImage} />
               <View style={styles.doctorInfo}>
                 <H6 style={styles.doctorName} numberOfLines={1}>{item.name}</H6>
-                <Caption1 style={styles.doctorSpec}>{item.fullSpecialty}</Caption1>
-                {/* <View style={[
-                  styles.tierBadge,
-                  {
-                    backgroundColor: item.tier === 'Tier 1' ? '#E8F5E9' : '#FFF3E0',
-                    borderColor: item.tier === 'Tier 1' ? '#1D9E75' : '#FF8D2833',
-                    borderWidth: 1,
-                    borderRadius: 12
-                  }
-                ]}>
-                  <Caption4 style={[styles.tierText, { color: item.tier === 'Tier 1' ? '#388E3C' : '#F57C00' }]}>
-                    {item.tier}
-                  </Caption4>
-                </View> */}
+                <Caption1 style={styles.doctorSpec} numberOfLines={2}>
+                  {item.fullSpecialty}
+                </Caption1>
               </View>
             </TouchableOpacity>
           )}
@@ -190,10 +188,17 @@ export default function HomeScreen() {
 
       </ScrollView>
 
-      <TouchableOpacity style={styles.kncFloatBtn}
+      {/* ── KNC Float Button ── */}
+      <TouchableOpacity
+        style={styles.kncFloatBtn}
         onPress={() => navigate('/patient/message')}
-        activeOpacity={0.85}>
-        <Image source={IMAGE_COMPONENTS.contactLogo} style={styles.kncImage} resizeMode="cover" />
+        activeOpacity={0.85}
+      >
+        <Image
+          source={IMAGE_COMPONENTS.contactLogo}
+          style={styles.kncImage}
+          resizeMode="cover"
+        />
       </TouchableOpacity>
 
     </SafeAreaView>
@@ -205,6 +210,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
+
+  // ── Sticky Top ──
   stickyTop: {
     backgroundColor: Colors.APP_BACKGROUND,
     paddingHorizontal: wp(20),
@@ -216,11 +223,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
-  },
-  scrollContent: {
-    paddingHorizontal: wp(20),
-    paddingTop: hp(10),
-    paddingBottom: hp(100),
   },
   header: {
     flexDirection: 'row',
@@ -255,6 +257,8 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 26,
   },
+
+  // ── Search ──
   searchSection: {
     marginTop: hp(20),
   },
@@ -279,6 +283,15 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     margin: 4,
   },
+
+  // ── Scroll ──
+  scrollContent: {
+    paddingHorizontal: wp(20),
+    paddingTop: hp(10),
+    paddingBottom: hp(100),
+  },
+
+  // ── Quick Actions ──
   gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -307,6 +320,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 18,
   },
+
+  // ── Section Header ──
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -318,6 +333,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1A1A1A',
   },
+
+  // ── Services ──
   servicesList: {
     paddingTop: hp(14),
     paddingBottom: hp(4),
@@ -325,7 +342,6 @@ const styles = StyleSheet.create({
   },
   serviceCard: {
     alignItems: 'center',
-    gap: 8,
   },
   serviceIconContainer: {
     width: wp(110),
@@ -334,18 +350,35 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: wp(8),
     elevation: 1,
     shadowColor: '#000',
     shadowOpacity: 0.10,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
   },
+  serviceIconWrapper: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp(8),
+  },
   serviceName: {
     color: Colors.BRAND_PRIMARY,
     fontWeight: '600',
     textAlign: 'center',
-    marginTop: hp(20),
+    fontSize: 12,
   },
+  serviceSubtitle: {
+    color: '#888888',
+    fontSize: 10,
+    textAlign: 'center',
+    marginTop: 4,
+    paddingHorizontal: 4,
+  },
+
+  // ── Doctors ──
   doctorsList: {
     paddingTop: hp(12),
     paddingBottom: hp(50),
@@ -376,18 +409,8 @@ const styles = StyleSheet.create({
     color: '#888888',
     marginVertical: 3,
   },
-  tierBadge: {
-    paddingHorizontal: wp(10),
-    paddingVertical: wp(3),
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-    marginTop: 4,
-    borderWidth: 1,
-  },
-  tierText: {
-    fontSize: 10,
-    fontWeight: '700',
-  },
+
+  // ── KNC Float ──
   kncFloatBtn: {
     position: 'absolute',
     bottom: hp(110),

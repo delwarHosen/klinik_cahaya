@@ -157,6 +157,6 @@ const styles = StyleSheet.create({
     paddingBottom: hp(24),
     paddingHorizontal: wp(20),
     marginHorizontal: wp(-20),
-    marginBottom: hp(30),
+    marginBottom: hp(20),
   },
 });

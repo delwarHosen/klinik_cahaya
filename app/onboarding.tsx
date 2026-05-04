@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: wp(20),
         zIndex: 10,
-        marginTop: hp(80),
+        marginTop: hp(30),
     },
     logoContainer: {
         flexDirection: 'row',
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: wp(24),
         paddingTop: hp(16),
         backgroundColor: 'transparent',
-        marginBottom: hp(50),
+        marginBottom: hp(10),
     },
     dotsRow: {
         flex: 1,

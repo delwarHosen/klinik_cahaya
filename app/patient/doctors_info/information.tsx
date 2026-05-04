@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         paddingHorizontal: wp(20),
         paddingTop: hp(12),
-        paddingBottom: hp(12),
+        // paddingBottom: hp(12),
         borderTopWidth: 1,
         borderTopColor: Colors.BORDER_COLOR,
         width: '100%',

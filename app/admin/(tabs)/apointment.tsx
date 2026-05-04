@@ -21,8 +21,8 @@ import {
 } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
-type Tab = 'Upcoming' | 'Completed' | 'Canceled'
-const STATUS_OPTIONS: Tab[] = ['Upcoming', 'Completed', 'Canceled']
+type Tab = 'Upcoming' | 'Completed' 
+const STATUS_OPTIONS: Tab[] = ['Upcoming', 'Completed']
 
 export default function AdminAppointmentScreen() {
   const router = useRouter()
@@ -135,14 +135,14 @@ export default function AdminAppointmentScreen() {
               >
                 {item.doctorName}
               </Caption1>
-              <Caption4
-                style={[
-                  styles.meta,
-                  item.status === 'Canceled' && { color: Colors.COLOR_DANGER },
-                ]}
+              <Caption2
+                weight='semiBold'
+                // style={styles.doctorName}
+                numberOfLines={1}
               >
-                {item.time} | {item.displayDate}
-              </Caption4>
+                {item.displayDate}
+              </Caption2>
+             
             </View>
 
             <View style={styles.verticalDivider} />

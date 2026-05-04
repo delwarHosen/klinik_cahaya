@@ -1,4 +1,5 @@
 // app/admin/profile/manage_doctors.tsx
+import { PlusButtonIcon } from '@/assets/icons/patient_icon/PlusButtonIcon'
 import { ProfileCard } from '@/components/shared/ProfileCard'
 import SectionTitle from '@/components/shared/SectionTitle'
 import { ADMIN_APPOINTMENTS } from '@/constants/adminData'
@@ -60,6 +61,15 @@ export default function ManageDoctors() {
                         />
                     ))}
                 </View>
+                <ProfileCard
+                    icon={<PlusButtonIcon size={16} color={Colors.BRAND_PRIMARY} />}
+                    label="Add Doctor"
+                    iconBG={`${Colors.COLOR_DANGER}1A`}
+                    textColor={Colors.BRAND_PRIMARY}
+                    // borderColor={`${Colors.COLOR_DANGER}33`}
+                    rightAngleColor={Colors.BRAND_PRIMARY}
+                    onPress={() => router.push('/admin/profile/add_doctor' as any)}
+                />
             </ScrollView>
         </SafeAreaView>
     )

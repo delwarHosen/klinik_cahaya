@@ -1,6 +1,7 @@
 import { CustomButton } from '@/components/shared/CustomButton';
 import SectionTitle from '@/components/shared/SectionTitle';
-import { Body1 } from '@/components/typo/Typography';
+import { Caption1 } from '@/components/typo/Typography';
+import { DOCTORS } from '@/constants/fakeData';
 import { Colors } from '@/constants/theme';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useRouter } from 'expo-router';
@@ -8,45 +9,24 @@ import React from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// ─── Fake Data ───────────────────────────────────────────────────────────────
+const TRAFFIC_LEVELS = ['Light', 'Moderate', 'Busy'];
 
-const QUEUE_DATA = [
-  {
-    id: '1',
-    doctorName: 'Dr. Anis Effendi',
-    waiting: 0,
-    served: 4,
-    estimatedWait: '0 minutes',
-    status: 'Called',
-  },
-  {
-    id: '2',
-    doctorName: 'Dr. Anis Effendi',
-    waiting: 1,
-    served: 8,
-    estimatedWait: '30 minutes',
-    status: 'Waiting',
-  },
-];
-
-const STATUS_COLOR: Record<string, string> = {
-  Called: '#4CAF50',
-  Waiting: '#FF9800',
+const TRAFFIC_COLOR: Record<string, string> = {
+  Light: '#4CAF50',
+  Moderate: '#FF9800',
+  Busy: '#F44336',
 };
 
-// ─── Component ───────────────────────────────────────────────────────────────
+
+const QUEUE_DATA = DOCTORS.map((doc, index) => ({
+  id: doc.id,
+  doctorName: doc.name,
+  traffic: TRAFFIC_LEVELS[index % TRAFFIC_LEVELS.length],
+  estimatedWait: '30 minutes',
+}));
 
 export default function QueueStatusScreen() {
   const router = useRouter();
-  // const [modalVisible, setModalVisible] = useState(false);
-
-  // const handleTimeConfirm = (time: string) => {
-  //   setModalVisible(false);
-  //   router.push({
-  //     pathname: '/patient/doctors_info/information',
-  //     params: { selectedTime: time },
-  //   });
-  // };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -61,68 +41,43 @@ export default function QueueStatusScreen() {
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <Row label="Doctor:" value={item.doctorName} />
-
-            {/* Status row */}
-            <View style={rowStyles.row}>
-              <Body1 style={rowStyles.label}>Status:</Body1>
-              <Body1 style={[rowStyles.value, { color: STATUS_COLOR[item.status] ?? Colors.TEXT_COLOR }]}>
-                {item.status}
-              </Body1>
+            {/* Doctor */}
+            <View style={styles.row}>
+              <Caption1 weight='medium' style={styles.label}>Doctor: </Caption1>
+              <Caption1 weight='medium' style={styles.doctorName}>{item.doctorName}</Caption1>
             </View>
 
-            <Row label="Waiting:" value={String(item.waiting)} />
-            <Row label="Served:" value={String(item.served)} />
-            <Row label="Estimated waiting time:" value={item.estimatedWait} />
+            {/* Queue Traffic */}
+            <View style={styles.row}>
+              <Caption1 weight='medium' style={styles.label}>Queue Traffic: </Caption1>
+              <Caption1 weight='medium' style={[styles.trafficText, { color: TRAFFIC_COLOR[item.traffic] }]}>
+                {item.traffic}
+              </Caption1>
+            </View>
 
+            {/* Estimated Wait */}
+            <View style={styles.row}>
+              <Caption1 weight='medium' style={styles.label}>Estimated waiting time: </Caption1>
+              <Caption1 weight='medium' style={styles.label}>{item.estimatedWait}</Caption1>
+            </View>
+
+            {/* Button */}
             <CustomButton
               onPress={() => {}}
               title="I am coming"
               width="100%"
+              height={hp(48)}
+              borderRadius={100}
               style={styles.button}
+              backgroundColor='#2596BE33'
+              color='#2596BE'
             />
           </View>
         )}
       />
-
-      {/* Time Picker Modal */}
-      {/* <TimePickerModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        onConfirm={handleTimeConfirm}
-        disabledTimes={['09:00 AM', '09:30 AM', '10:30 AM', '02:00 PM','03:00 PM']} 
-      /> */}
     </SafeAreaView>
   );
 }
-
-// ─── Helper ──────────────────────────────────────────────────────────────────
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={rowStyles.row}>
-      <Body1 style={rowStyles.label}>{label}</Body1>
-      <Body1 style={rowStyles.value}>{value}</Body1>
-    </View>
-  );
-}
-
-const rowStyles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: hp(0),
-  },
-  label: {
-    color: Colors.TEXT_COLOR,
-  },
-  value: {
-    color: Colors.TEXT_COLOR,
-  },
-});
-
-// ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
@@ -131,24 +86,44 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: wp(20),
-    paddingTop: hp(10),
-    paddingBottom: hp(10),
+    // paddingTop: hp(10),
+    // paddingBottom: hp(10),
   },
   listContent: {
     paddingHorizontal: wp(20),
     paddingTop: hp(16),
-    paddingBottom: hp(30),
-    gap: 14,
+    paddingBottom: hp(80),
+    gap: hp(14),
   },
   card: {
     borderWidth: 1,
     borderColor: Colors.BORDER_COLOR,
     borderRadius: 16,
-    padding: wp(16),
-    gap: hp(4),
+    paddingHorizontal: wp(16),
+    paddingVertical: hp(16),
+    gap: hp(6),
+    // backgroundColor: '#FFFFFF',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  label: {
+    color: Colors.TEXT_COLOR,
+   
+  },
+  doctorName: {
+    color: Colors.BRAND_PRIMARY,
+   
+    fontWeight: '600',
+  },
+  trafficText: {
+    
+    fontWeight: '600',
   },
   button: {
-    marginTop: hp(12),
-    borderRadius: 100,
+    marginTop: hp(10),
+    // backgroundColor: '#EBF6FA',
   },
 });

@@ -64,6 +64,9 @@ export interface Appointment {
   reason: string;
   details: string;
   image: string | number;
+  doctorId?: string;
+  cancelReason?: string;
+  cancelDate?: string;
 }
 
 export const DOCTORS: Doctor[] = [
@@ -224,6 +227,7 @@ export const APPOINTMENTS_DATA: Appointment[] = [
     time: '08:00 AM',
     status: 'Accepted',
     reason: 'Checkup',
+    doctorId: '1',
     details: "Regular health checkup for blood pressure and general wellness monitoring. The patient has requested a full body screening and consultation regarding chronic fatigue.",
     image: IMAGE_COMPONENTS.drAnis,
   },
@@ -238,6 +242,7 @@ export const APPOINTMENTS_DATA: Appointment[] = [
     time: '10:30 AM',
     status: 'Pending',
     reason: 'Vaccination',
+    doctorId: '4',
     details: "Scheduled 6-in-1 vaccine (Hexaxim) for the baby. This is the second dose of the mandatory immunization program to ensure full protection.",
     image: IMAGE_COMPONENTS.drNoormimiKhatijah,
   },
@@ -252,6 +257,7 @@ export const APPOINTMENTS_DATA: Appointment[] = [
     time: '02:00 PM',
     status: 'Completed',
     reason: 'Consultation',
+    doctorId: '2',
     details: "Post-consultation summary: Discussion regarding persistent migraine and nutritional guidance. Patient was advised to maintain a strict sleep schedule.",
     image: IMAGE_COMPONENTS.drLiyanaBintiRamli,
   },
@@ -268,6 +274,9 @@ export const APPOINTMENTS_DATA: Appointment[] = [
     reason: 'Minor Surgery',
     details: "Request for wound dressing and follow-up after a minor surgical procedure. The session was canceled due to patient unavailability.",
     image: IMAGE_COMPONENTS.drMuhammadFaiz,
+    doctorId: '3',
+    cancelReason: 'False Information',
+    cancelDate: '10 March, 2026 09:00 AM',
   },
   {
     id: '5',
@@ -280,6 +289,7 @@ export const APPOINTMENTS_DATA: Appointment[] = [
     time: '09:15 AM',
     status: 'Accepted',
     reason: 'Ultrasound Scan',
+    doctorId: '5',
     details: "Routine antenatal checkup including a 4D ultrasound scan for pregnancy monitoring. Both mother and baby are reported to be in stable condition.",
     image: IMAGE_COMPONENTS.drNoorLiyana,
   },

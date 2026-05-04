@@ -4,7 +4,7 @@ import { CancelModal } from '@/components/shared/CancleModal';
 import { CustomButton } from '@/components/shared/CustomButton';
 import SectionTitle from '@/components/shared/SectionTitle';
 import { Body1, Body2, Body3, Caption1, Caption2, H5, H6 } from '@/components/typo/Typography';
-import { APPOINTMENTS_DATA } from '@/constants/fakeData';
+import { APPOINTMENTS_DATA, DOCTORS } from '@/constants/fakeData';
 import { Colors } from '@/constants/theme';
 import { getImageSource } from '@/utils/imageSource';
 import { hp, wp } from '@/utils/responsiveDevice';
@@ -21,17 +21,44 @@ const DOWNLOAD_ITEMS = [
 
 export default function AppointmentDetails() {
     const router = useRouter();
-    const { appointmentId } = useLocalSearchParams();
+    const { appointmentId } = useLocalSearchParams<{ appointmentId: string }>();
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [rescheduleVisible, setRescheduleVisible] = useState(false);
 
-    const data = APPOINTMENTS_DATA.find(item => item.id === appointmentId) || APPOINTMENTS_DATA[0];
-    const isCompleted = data.status === 'Completed';
+    const data = APPOINTMENTS_DATA.find(item => item.id === String(appointmentId)) || APPOINTMENTS_DATA[0];
+
+    const status = data.status?.trim();
+    const isCompleted = status === 'Completed';
+    const isCanceled = status === 'Canceled';
+    const isPending = status === 'Pending';
+
+   
+    const showActions = isPending;
+
+    const doctor = DOCTORS.find(d => d.id === data.doctorId);
+
+    const handleDoctorPress = () => {
+        const targetId = doctor?.id ?? data.doctorId;
+        if (targetId) {
+            router.push({
+                pathname: '/patient/doctors_info/doctor_details' as any,
+                params: { doctorId: String(targetId) },
+            });
+        }
+    };
 
     const handleRescheduleConfirm = (date: string, time: string) => {
         setRescheduleVisible(false);
         console.log("Rescheduled to:", date, time);
-        router.push({ pathname: '/patient/doctors_info/information' as any, params: { activeTab: 'Upcoming' } });
+        router.push({
+            pathname: '/patient/doctors_info/information' as any,
+            params: { activeTab: 'Upcoming' },
+        });
+    };
+
+    const handleCancelConfirm = () => {
+        setShowCancelModal(false);
+        console.log('Appointment cancelled');
     };
 
     const handleDownload = (key: string) => {
@@ -47,15 +74,17 @@ export default function AppointmentDetails() {
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
                 {/* Doctor Card */}
-                <View style={styles.doctorCard}>
+                <TouchableOpacity
+                    style={styles.doctorCard}
+                    onPress={handleDoctorPress}
+                    activeOpacity={0.8}
+                >
                     <Image source={getImageSource(data.image)} style={styles.doctorImg} />
                     <View style={styles.doctorInfo}>
-                        <View style={styles.nameRow}>
-                            <Body1 color={Colors.BRAND_PRIMARY}>{data.doctorName}</Body1>
-                        </View>
+                        <Body1 color={Colors.BRAND_PRIMARY}>{data.doctorName}</Body1>
                         <Body1 color="#818181" style={{ marginTop: 4 }}>{data.specialty}</Body1>
                     </View>
-                </View>
+                </TouchableOpacity>
 
                 <H5 style={styles.sectionTitle} weight="semiBold">Appointment Details</H5>
 
@@ -66,13 +95,13 @@ export default function AppointmentDetails() {
                         <View style={[
                             styles.statusBadge,
                             {
-                                backgroundColor: getStatusBg(data.status),
-                                borderWidth: (data.status === 'Completed' || data.status === 'Canceled') ? 1 : 0,
-                                borderColor: data.status === 'Completed' ? Colors.SUCCESS_COLOR : Colors.COLOR_DANGER,
+                                backgroundColor: getStatusBg(status),
+                                borderWidth: (isCompleted || isCanceled) ? 1 : 0,
+                                borderColor: isCompleted ? Colors.SUCCESS_COLOR : Colors.COLOR_DANGER,
                             }
                         ]}>
-                            <Caption2 weight="semiBold" color={getStatusTextColor(data.status)}>
-                                {data.status}
+                            <Caption2 weight="semiBold" color={getStatusTextColor(status)}>
+                                {status}
                             </Caption2>
                         </View>
 
@@ -82,6 +111,19 @@ export default function AppointmentDetails() {
                         </View>
                     </View>
                 </View>
+
+                {/* Canceled — Reason box */}
+                {isCanceled && (
+                    <View style={styles.cancelReasonBox}>
+                        <Caption1 weight="semiBold" color={Colors.COLOR_DANGER}>Reason</Caption1>
+                        <Body2 weight="semiBold" color="#0D0D0D" style={{ marginTop: hp(4) }}>
+                            {data.cancelReason ?? 'No reason provided'}
+                        </Body2>
+                        <Caption2 color="#888" style={{ marginTop: hp(4) }}>
+                            {data.cancelDate ?? ''}
+                        </Caption2>
+                    </View>
+                )}
 
                 {/* Visit Reason */}
                 <View style={styles.infoBlock}>
@@ -109,14 +151,14 @@ export default function AppointmentDetails() {
                                 activeOpacity={0.7}
                             >
                                 <Caption1 weight='semiBold' style={styles.downloadLabel}>{item.label}</Caption1>
-                               <DownloadIcon/>
+                                <DownloadIcon />
                             </TouchableOpacity>
                         ))}
                     </View>
                 )}
 
-                {/* Action Buttons — Accepted/Pending */}
-                {(data.status === 'Accepted' || data.status === 'Pending') && (
+                {/*  Action Buttons —  Pending */}
+                {showActions && (
                     <View style={styles.actionsContainer}>
                         <View style={styles.buttonRow}>
                             <CustomButton
@@ -148,28 +190,33 @@ export default function AppointmentDetails() {
             <CancelModal
                 visible={showCancelModal}
                 onClose={() => setShowCancelModal(false)}
-                onConfirm={() => setShowCancelModal(false)}
+                onConfirm={handleCancelConfirm}
+                type="Cancel"
             />
 
             <DateTimePickerModal
                 visible={rescheduleVisible}
                 onClose={() => setRescheduleVisible(false)}
                 onConfirm={handleRescheduleConfirm}
+                disabledDates={['2026-05-10', '2026-05-15', '2026-05-18']}
+                disabledTimes={['09:00 AM', '09:30 AM', '02:30 PM', '01:30 PM']}
             />
+
         </SafeAreaView>
     );
 }
 
 const getStatusBg = (s: string) =>
     s === 'Accepted' ? Colors.BRAND_PRIMARY :
-    s === 'Canceled' ? '#FFEBEE' :
-    s === 'Completed' ? '#E8F5E9' :
-    Colors.ACCENT_YELLOW;
+        s === 'Canceled' ? '#FFEBEE' :
+            s === 'Completed' ? '#E8F5E9' :
+                Colors.ACCENT_YELLOW;
 
 const getStatusTextColor = (s: string) => {
     if (s === 'Pending') return Colors.TEXT_COLOR;
     if (s === 'Canceled') return Colors.COLOR_DANGER;
     if (s === 'Accepted') return Colors.APP_BACKGROUND;
+    if (s === 'Completed') return Colors.SUCCESS_COLOR;
     return Colors.TEXT_COLOR;
 };
 
@@ -182,8 +229,6 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingBottom: hp(40),
     },
-
-    // ── Doctor Card ──
     doctorCard: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -199,19 +244,10 @@ const styles = StyleSheet.create({
         flex: 1,
         marginLeft: wp(16),
     },
-    nameRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-    },
-
-    // ── Section Title ──
     sectionTitle: {
         marginTop: hp(30),
         marginBottom: hp(20),
     },
-
-    // ── Status ──
     statusSectionContainer: {
         marginBottom: hp(25),
     },
@@ -231,8 +267,15 @@ const styles = StyleSheet.create({
     dateTimeWrapper: {
         alignItems: 'flex-start',
     },
-
-    // ── Info Block ──
+    cancelReasonBox: {
+        backgroundColor: '#FFF5F5',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#FFD6D6',
+        paddingHorizontal: wp(16),
+        paddingVertical: hp(14),
+        marginBottom: hp(24),
+    },
     infoBlock: {
         marginBottom: hp(25),
     },
@@ -240,8 +283,6 @@ const styles = StyleSheet.create({
         marginTop: hp(12),
         lineHeight: 22,
     },
-
-    // ── Download Section ──
     downloadSection: {
         gap: hp(10),
         marginBottom: hp(20),
@@ -254,7 +295,7 @@ const styles = StyleSheet.create({
         paddingVertical: hp(16),
         borderColor: Colors.BORDER_COLOR,
         borderRadius: 12,
-        borderWidth:1,
+        borderWidth: 1,
     },
     downloadLabel: {
         color: Colors.TEXT_COLOR,
@@ -268,8 +309,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-
-    // ── Actions ──
     actionsContainer: {
         marginTop: hp(20),
     },

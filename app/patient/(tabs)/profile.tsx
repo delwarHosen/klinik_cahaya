@@ -152,7 +152,7 @@ export default function ProfileScreen() {
             icon={<LanguageIcon size={22} color={Colors.BRAND_PRIMARY} />}
             label="Language"
             iconBG={`${Colors.BRAND_PRIMARY}1A`}
-            onPress={() => router.push('/patient/profile/change_password')}
+            onPress={() => router.push('/patient/profile/language')}
           />
           <ProfileCard
             icon={<ChangePasswordIcon size={22} color={Colors.BRAND_PRIMARY} />}

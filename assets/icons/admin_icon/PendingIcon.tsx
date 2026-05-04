@@ -3,7 +3,7 @@ import React from "react";
 import Svg, { Path } from "react-native-svg";
 
 export const PendingIcon = ({
-    size = 24, // ডিফল্ট সাইজ ২৪ বা আপনার পছন্দমতো
+    size = 24, 
     color = "#822CE7",
 }: IconProps) => {
     return (

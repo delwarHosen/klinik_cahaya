@@ -1,7 +1,7 @@
+import { WarningIcon } from '@/assets/icons/common_icon/WarningIcon';
 import { Body2, H6 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
 import { hp, wp } from '@/utils/responsiveDevice';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 import { Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -18,9 +18,7 @@ export function CancelModal({ visible, onClose, onConfirm, type = 'Cancel' }: Pr
             <View style={styles.overlay}>
                 <View style={styles.modalCard}>
                     {/* Warning Icon */}
-                    <View style={styles.iconContainer}>
-                        <MaterialCommunityIcons name="alert-decagram-outline" size={50} color={Colors.MODAL_BUTTON} />
-                    </View>
+                    <WarningIcon/>
 
                     <H6 weight="bold" align="center" style={{ marginTop: hp(20) }}>Are You Sure</H6>
                     <H6 align="center">

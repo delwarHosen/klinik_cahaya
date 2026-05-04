@@ -1,4 +1,3 @@
-// components/appointment/RejectReasonModal.tsx
 import { CustomButton } from '@/components/shared/CustomButton'
 import { Colors } from '@/constants/theme'
 import { hp, wp } from '@/utils/responsiveDevice'
@@ -8,11 +7,13 @@ import { Modal, StyleSheet, TextInput, View } from 'react-native'
 interface Props {
   visible: boolean
   onCancel: () => void
-  onSave: (reason: string) => void
+  
+  onSave: (reason: string, note: string) => void 
 }
 
 export function RejectReasonModal({ visible, onCancel, onSave }: Props) {
   const [reason, setReason] = useState('')
+  const [note, setNote] = useState('') 
 
   return (
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
@@ -41,7 +42,7 @@ export function RejectReasonModal({ visible, onCancel, onSave }: Props) {
             />
             <CustomButton
               title='Save'
-              onPress={() => onSave(reason)}
+              onPress={() => onSave(reason, note)} 
               backgroundColor={Colors.BRAND_PRIMARY}
               borderRadius={12}
               width={"48%"}
@@ -53,6 +54,7 @@ export function RejectReasonModal({ visible, onCancel, onSave }: Props) {
     </Modal>
   )
 }
+
 
 const styles = StyleSheet.create({
   backdrop: {

@@ -1,3 +1,4 @@
+import { LanguageIcon } from '@/assets/icons/common_icon/LanguageIcon'
 import { ProfileIcon } from '@/assets/icons/common_icon/ProfileIcon'
 import { ChangePasswordIcon } from '@/assets/icons/patient_icon/ChangePasswordIcon'
 import { LogoutIcon } from '@/assets/icons/patient_icon/LogoutIcon'
@@ -19,7 +20,7 @@ import { useDispatch } from 'react-redux'
 
 
 export default function SettingScreen() {
-    const router = useRouter()
+  const router = useRouter()
   const dispatch = useDispatch()
 
   const handleLogout = () => {
@@ -43,6 +44,14 @@ export default function SettingScreen() {
             iconBG={`${Colors.BRAND_PRIMARY}1A`}
             onPress={() => router.push('/admin/profile/manage_doctos')}
           />
+
+          <ProfileCard
+            icon={<LanguageIcon size={22} color={Colors.BRAND_PRIMARY} />}
+            label="Language"
+            iconBG={`${Colors.BRAND_PRIMARY}1A`}
+            onPress={() => router.push('/admin/profile/language')}
+          />
+
           <ProfileCard
             icon={<ChangePasswordIcon size={22} color={Colors.BRAND_PRIMARY} />}
             label="Change Password"
@@ -57,7 +66,7 @@ export default function SettingScreen() {
             textColor={Colors.COLOR_DANGER}
             borderColor={`${Colors.COLOR_DANGER}33`}
             rightAngleColor={Colors.COLOR_DANGER}
-            onPress={handleLogout} 
+            onPress={handleLogout}
           />
         </View>
 

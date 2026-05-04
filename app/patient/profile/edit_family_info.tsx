@@ -1,5 +1,3 @@
-// app/patient/profile/edit_family_info.tsx
-
 import { DownArrowIcon } from '@/assets/icons/patient_icon/DownArrowIcon'
 import { UpArrowIcon } from '@/assets/icons/patient_icon/UpArrowIcon'
 import { CustomButton } from '@/components/shared/CustomButton'

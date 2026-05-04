@@ -1,6 +1,6 @@
-import { LeftAngleIcon } from '@/assets/icons/common_icon/LeftAngleIcon';
 import { ImageIcon } from '@/assets/icons/patient_icon/ImageIcon';
 import { CustomButton } from '@/components/shared/CustomButton';
+import SectionTitle from '@/components/shared/SectionTitle';
 import { Body3, H1 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
 import { setCredentials } from '@/redux/authSlice';
@@ -40,10 +40,8 @@ export default function WelcomeProfileScreen() {
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <View style={styles.header}>
-                <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-                    <LeftAngleIcon />
-                </TouchableOpacity>
+            <View >
+               <SectionTitle/>
             </View>
 
             <View style={styles.container}>
@@ -98,12 +96,9 @@ const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
         backgroundColor: Colors.APP_BACKGROUND,
+         paddingHorizontal: wp(20),
     },
-    header: {
-        paddingHorizontal: wp(20),
-        paddingTop: hp(10),
-        paddingBottom: hp(5),
-    },
+    
     backButton: {
         width: 52,
         height: 52,
@@ -114,7 +109,7 @@ const styles = StyleSheet.create({
     },
     container: {
         flex: 1,
-        paddingHorizontal: wp(20),
+        // paddingHorizontal: wp(20),
         paddingTop: hp(35),
     },
     titleBlock: {

@@ -8,22 +8,25 @@ import { Modal, StyleSheet, TouchableOpacity, View } from 'react-native'
 interface Props {
   visible: boolean
   onClose: () => void
+  doctorName?: string 
 }
 
-export function BookingConfirmedModal({ visible, onClose }: Props) {
+
+export function BookingConfirmedModal({ visible, onClose, doctorName }: Props) {
   return (
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
         <View style={styles.card}>
           <SuccessVerifyIcon />
           <H6 style={[styles.title, { marginTop: hp(8) }]}>
-            Booking Has Been Confirmed
+            Booking Has Been Confirmed {doctorName ? `with ${doctorName}` : ''}
           </H6>
         </View>
       </TouchableOpacity>
     </Modal>
   )
 }
+// ... rest of your styles
 
 const styles = StyleSheet.create({
   backdrop: {

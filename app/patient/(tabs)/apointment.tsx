@@ -62,7 +62,7 @@ export default function AppointmentScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View>
-        <SectionTitle title='Appointment' />
+        <SectionTitle title='Appointments' />
       </View>
 
       <View style={styles.tabContainer}>
@@ -102,18 +102,18 @@ const getStatusBg = (status: string) => {
   switch (status) {
     case 'Pending': return Colors.ACCENT_YELLOW;
     case 'Accepted': return Colors.BRAND_PRIMARY;
-    case 'Completed': return 'transparent'; // ব্যাকগ্রাউন্ড নেই
-    case 'Canceled': return 'transparent';  // ব্যাকগ্রাউন্ড নেই
+    case 'Completed': return 'transparent'; 
+    case 'Canceled': return 'transparent'; 
     default: return '#F0F0F0';
   }
 };
 
-// বর্ডার কালারের জন্য নতুন একটি ফাংশন
+
 const getStatusBorderColor = (status: string) => {
   switch (status) {
-    case 'Completed': return Colors.SUCCESS_COLOR;
+    case 'Completed': return Colors.BRAND_PRIMARY;
     case 'Canceled': return Colors.COLOR_DANGER;
-    default: return 'transparent'; // অন্যদের জন্য বর্ডার নেই
+    default: return 'transparent'; 
   }
 };
 
@@ -121,7 +121,7 @@ const getStatusTextColor = (status: string) => {
   switch (status) {
     case 'Pending': return '#000';
     case 'Accepted': return Colors.TEXT_WHITE;
-    case 'Completed': return Colors.SUCCESS_COLOR;
+    case 'Completed': return Colors.BRAND_PRIMARY;
     case 'Canceled': return Colors.COLOR_DANGER;
     default: return '#666';
   }
@@ -138,7 +138,6 @@ const styles = StyleSheet.create({
 
   tabContainer: {
     flexDirection: 'row',
-    // backgroundColor: '#F5F5F5',
     marginTop:hp(10),
     gap: 5,
     borderRadius: 12,
@@ -148,7 +147,7 @@ const styles = StyleSheet.create({
 
   tab: {
     flex: 1,
-    paddingVertical: hp(10),
+    paddingVertical: hp(12),
     alignItems: 'center',
     borderRadius: 10,
     backgroundColor: "#F6F6F6",

@@ -17,8 +17,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function DoctorDetailsScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const DOCTOR = DOCTORS.find((d) => d.id === id) ?? DOCTORS[0];
+
+  
+  const { id, doctorId } = useLocalSearchParams<{ id: string; doctorId: string }>();
+  const DOCTOR = DOCTORS.find((d) => d.id === (doctorId ?? id)) ?? DOCTORS[0];
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -93,8 +95,6 @@ const styles = StyleSheet.create({
     paddingTop: hp(20),
     paddingBottom: hp(30),
   },
-
-  // ── Profile ──
   profileRow: {
     flexDirection: 'row',
     gap: wp(14),
@@ -121,15 +121,11 @@ const styles = StyleSheet.create({
     marginTop: hp(-15),
   },
   specialty: { color: '#888888', lineHeight: 20 },
-
-  // ── Section title ──
   sectionTitle: {
     color: '#1A1A1A',
     marginTop: hp(20),
     marginBottom: hp(20),
   },
-
-  // ── Consultation time ──
   timeRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -141,11 +137,7 @@ const styles = StyleSheet.create({
     marginTop: hp(10),
   },
   timeText: { color: Colors.TEXT_COLOR, marginBottom: 2 },
-
-  // ── About ──
   aboutText: { color: '#0D0D0D', lineHeight: 22 },
-
-  // ── Services ──
   serviceRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -157,8 +149,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.BRAND_PRIMARY,
   },
   serviceText: { color: '#0D0D0D' },
-
-  // ── Bottom Bar ──
   bottomBar: {
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
@@ -166,7 +156,7 @@ const styles = StyleSheet.create({
     paddingTop: hp(12),
     paddingBottom: hp(24),
     paddingHorizontal: wp(20),
-    marginHorizontal: wp(-20),  
-    marginBottom:hp(30)
+    marginHorizontal: wp(-20),
+    marginBottom: hp(30),
   },
 });

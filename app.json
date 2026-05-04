@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Klinik NurCahaya",
-    "slug": "Klinik-NurCahaya",
+    "slug": "klinik-nurcahaya",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -9,16 +9,24 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.delwarhosen.klinik_nurCahaya",
+      "infoPlist": {
+        "CFBundleDisplayName": "Klinik NurCahaya"
+      }
     },
     "android": {
+      "package": "com.delwarhosen.klinik_nurCahaya",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/icon.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.delwarhosen.klinik_nurCahaya"
+      "config": {
+        "googleMobileAdsAppId": "ca-app-pub-xxxx~xxxx"
+      }
     },
     "web": {
       "output": "static",

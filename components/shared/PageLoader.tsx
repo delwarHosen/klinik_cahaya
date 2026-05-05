@@ -1,4 +1,3 @@
-// components/common/PageLoader.tsx
 import { Colors } from '@/constants/theme';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
@@ -7,6 +6,8 @@ import { Caption1, H4 } from '../typo/Typography';
 
 interface PageLoaderProps {
   visible: boolean;
+  title?: string;        
+  subtitle?: string;     
 }
 
 const LOADER_SIZE = 130;
@@ -45,39 +46,18 @@ function LoaderCircle() {
         <Defs>
           <LinearGradient
             id="pageLoaderGrad"
-            x1={`${center}`}
-            y1="0"
-            x2={`${center}`}
-            y2={`${size}`}
+            x1={`${center}`} y1="0"
+            x2={`${center}`} y2={`${size}`}
             gradientUnits="userSpaceOnUse"
           >
             <Stop offset="0%" stopColor={color} stopOpacity="5" />
-            <Stop offset="20%" stopColor={color} stopOpacity="5" />
-            <Stop offset="40%" stopColor={color} stopOpacity="5" />
-            <Stop offset="60%" stopColor={color} stopOpacity="5" />
-            <Stop offset="80%" stopColor={color} stopOpacity="5" />
-            {/* Bottom = tail, fades to transparent */}
             <Stop offset="100%" stopColor={color} stopOpacity="1.5" />
             <Stop offset="0%" stopColor={color} stopOpacity="0" />
           </LinearGradient>
         </Defs>
-
-        {/* Faint background track */}
+        <Circle cx={center} cy={center} r={radius} stroke={color} strokeWidth={strokeWidth} fill="none" opacity={0.12} />
         <Circle
-          cx={center}
-          cy={center}
-          r={radius}
-          stroke={color}
-          strokeWidth={strokeWidth}
-          fill="none"
-          opacity={0.12}
-        />
-
-        {/* Gradient arc */}
-        <Circle
-          cx={center}
-          cy={center}
-          r={radius}
+          cx={center} cy={center} r={radius}
           stroke="url(#pageLoaderGrad)"
           strokeWidth={strokeWidth}
           fill="none"
@@ -90,7 +70,11 @@ function LoaderCircle() {
   );
 }
 
-export default function PageLoader({ visible }: PageLoaderProps) {
+export default function PageLoader({
+  visible,
+  title = 'LOADING',
+  subtitle = 'May take few seconds to load this page',
+}: PageLoaderProps) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -107,8 +91,9 @@ export default function PageLoader({ visible }: PageLoaderProps) {
     <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
       <View style={styles.content}>
         <LoaderCircle />
-        <H4 style={styles.loadingText}>LOADING</H4>
-        <Caption1 style={styles.subText}>May take few seconds to load this page</Caption1>
+        {/*  title optional — */}
+        {title ? <H4 style={styles.loadingText}>{title}</H4> : null}
+        {subtitle ? <Caption1 style={styles.subText}>{subtitle}</Caption1> : null}
       </View>
     </Animated.View>
   );
@@ -135,5 +120,6 @@ const styles = StyleSheet.create({
   subText: {
     color: '#AAAAAA',
     textAlign: 'center',
+    paddingHorizontal: 32,
   },
 });

@@ -41,30 +41,28 @@ export default function PersonalInformationScreen() {
   const handleDateChange = (_: any, selected?: Date) => {
     setShowDatePicker(false);
     if (selected) {
-      const formatted = selected.toISOString().split('T')[0]; 
+      const formatted = selected.toISOString().split('T')[0];
       setDateOfBirth(formatted);
     }
   };
 
-  const handleContinue = async () => {
-    try {
-      await updateProfile({
-        gender,
-        date_of_birth: dateOfBirth,
-        address,
-        phone: phone || null,
-      }).unwrap();
+ const handleContinue = async () => {
+  try {
+    const res = await updateProfile({
+      gender,
+      date_of_birth: dateOfBirth,
+      address,
+      phone: phone || null,
+    }).unwrap();
 
-      showToast('Profile saved!', 'success');
-      router.push('/(auth)/medical_information');
-      console.log("hello")
-    } catch (err: any) {
-
-      console.log('update error error:', JSON.stringify(err));
-
-      showToast(err?.data?.message || 'Failed to save profile.', 'error');
-    }
-  };
+    console.log(' Personal saved:', JSON.stringify(res)); 
+    showToast('Profile saved!', 'success');
+    router.push('/(auth)/medical_information');
+  } catch (err: any) {
+    console.log(' Personal error:', JSON.stringify(err));
+    showToast(err?.data?.detail?.msg || err?.data?.message || 'Failed to save profile.', 'error');
+  }
+};
 
   const handleSkip = () => {
     router.push('/(auth)/medical_information');
@@ -130,7 +128,7 @@ export default function PersonalInformationScreen() {
             )}
 
             <FormInput value={address} onChangeText={setAddress} placeholder="Address" />
-            <FormInput value={phone} onChangeText={setPhone} placeholder="Phone (optional)" type="number" />
+            <FormInput value={phone} onChangeText={setPhone} placeholder="Phone" type="number" />
 
             {isLoading ? (
               <View style={{ alignItems: 'center', marginTop: hp(8) }}>
@@ -139,8 +137,7 @@ export default function PersonalInformationScreen() {
             ) : (
               <CustomButton
                 title="Continue"
-                // onPress={handleContinue}
-                onPress={()=>router.push('/(auth)/medical_information')}
+                onPress={handleContinue}
                 width="100%"
                 height={hp(70)}
                 borderRadius={16}

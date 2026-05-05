@@ -129,6 +129,7 @@ const styles = StyleSheet.create({
         padding: 4,
     },
     error: {
-        marginTop: 4,
+        marginTop:hp(-10) ,
+        marginBottom:hp(15)
     },
 })

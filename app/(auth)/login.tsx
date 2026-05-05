@@ -9,29 +9,21 @@ import { IMAGE_COMPONENTS } from '@/constants/image.index';
 import { Colors } from '@/constants/theme';
 import { useForm } from '@/hooks/useForm';
 import { setCredentials } from '@/redux/authSlice';
-// import { useLoginMutation } from '@/redux/services/authApi'; // TODO: real API ready হলে uncomment করো
+import { useLoginMutation } from '@/redux/services/authApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { validateEmail, validatePassword } from '@/utils/validation';
 import { Link, useRouter } from 'expo-router';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useDispatch } from 'react-redux';
-
-// ── MOCK ACCOUNTS ─────────────────────────────────────────────────────────────
-// TODO: real API ready হলে এই block সরিয়ে দাও
-const MOCK_ACCOUNTS: Record<string, 'admin' | 'patient'> = {
-  'admin123@gmail.com': 'admin',
-  'patient123@gmail.com': 'patient',
-};
-// ─────────────────────────────────────────────────────────────────────────────
 
 export default function LoginScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
+  const { t } = useTranslation(); 
 
-  
-  // const [login, { isLoading }] = useLoginMutation();
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [login, { isLoading }] = useLoginMutation();
 
   const { values, errors, touched, handleChange, handleSubmit } = useForm({
     initialValues: {
@@ -43,68 +35,32 @@ export default function LoginScreen() {
       [FORM_FIELDS.PASSWORD]: validatePassword,
     },
     onSubmit: async (values) => {
-
+      try {
+        const res = await login({
+          email: values[FORM_FIELDS.EMAIL].trim().toLocaleLowerCase(),
+          password: values[FORM_FIELDS.PASSWORD],
+        }).unwrap();
       
-      setIsLoading(true);
-      await new Promise((r) => setTimeout(r, 500)); // fake network delay
-
-      const email = values[FORM_FIELDS.EMAIL].trim().toLowerCase();
-      const mockRole = MOCK_ACCOUNTS[email];
-
-      if (!mockRole) {
-        setIsLoading(false);
-        showToast('Email not found।', 'error');
-        return;
+        const role = res.user?.app_metadata?.role ?? 'patient';
+      
+        dispatch(setCredentials({
+          access_token: res.access_token,
+          refresh_token: res.refresh_token,
+          role,
+          user: res.user,
+        }));
+      
+        showToast('Login successful!', 'success');
+      
+        if (role === 'admin') {
+          router.replace('/admin/home');
+        } else {
+          router.replace('/patient/(tabs)/home');
+        }
+      } catch (err: any) {
+        console.log('Login error:', JSON.stringify(err));
+        showToast(err?.data?.detail?.msg || err?.data?.message || 'Login failed.', 'error');
       }
-
-      dispatch(setCredentials({
-        access_token: 'mock-token',
-        refresh_token: 'mock-refresh-token',
-        role: mockRole,
-        user: { email, app_metadata: { role: mockRole } },
-      }));
-
-      showToast('Login successful!', 'success');
-      setIsLoading(false);
-
-      if (mockRole === 'admin') {
-        router.replace('/admin/home');
-      } else {
-        router.replace('/patient/(tabs)/home');
-      }
-      return;
-      // ── END MOCK LOGIN ────────────────────────────────────────────────────
-
-      // ── REAL API LOGIN (disabled) ─────────────────────────────────────────
-      // TODO: mock period শেষ হলে উপরের mock block সরিয়ে এটা uncomment করো
-      //
-      // try {
-      //   const res = await login({
-      //     email: values[FORM_FIELDS.EMAIL].trim().toLocaleLowerCase(),
-      //     password: values[FORM_FIELDS.PASSWORD],
-      //   }).unwrap();
-      //
-      //   const role = res.user?.app_metadata?.role ?? 'patient';
-      //
-      //   dispatch(setCredentials({
-      //     access_token: res.access_token,
-      //     refresh_token: res.refresh_token,
-      //     role,
-      //     user: res.user,
-      //   }));
-      //
-      //   showToast('Login successful!', 'success');
-      //
-      //   if (role === 'admin') {
-      //     router.replace('/admin/home');
-      //   } else {
-      //     router.replace('/patient/(tabs)/home');
-      //   }
-      // } catch (err: any) {
-      //   console.log('Login error:', JSON.stringify(err));
-      //   showToast(err?.data?.detail?.msg || err?.data?.message || 'Login failed.', 'error');
-      // }
-      // ── END REAL API LOGIN ────────────────────────────────────────────────
     },
   });
 
@@ -120,11 +76,12 @@ export default function LoginScreen() {
       >
         <View style={styles.container}>
           <View style={{ width: '100%', maxWidth: 500 }}>
+            
             <AuthHeading
               imageSource={IMAGE_COMPONENTS.logo}
-              title="Welcome Back"
+              title={t('welcome')} 
               style={{ marginBottom: hp(30) }}
-              description="Welcome back! Glad to See you again"
+              description={t('welcome_back') || "Welcome back! Glad to See you again"}
             />
 
             <View style={styles.form}>
@@ -132,7 +89,7 @@ export default function LoginScreen() {
                 value={values[FORM_FIELDS.EMAIL]}
                 onChangeText={(text) => handleChange(FORM_FIELDS.EMAIL, text)}
                 type="email"
-                placeholder="Enter Your Email"
+                placeholder={t('enter_your_email') || "Enter Your Email"}
                 error={errors[FORM_FIELDS.EMAIL]}
                 touched={touched[FORM_FIELDS.EMAIL]}
               />
@@ -152,7 +109,7 @@ export default function LoginScreen() {
                 </View>
               ) : (
                 <CustomButton
-                  title="Log in"
+                  title={t('login') || "Log in"}
                   onPress={handleSubmit}
                   width="100%"
                   height={hp(70)}
@@ -167,16 +124,18 @@ export default function LoginScreen() {
                 <Link href="/(auth)/forgot_password" asChild>
                   <TouchableOpacity>
                     <Caption2 color={Colors.BRAND_PRIMARY} style={styles.forgotPassword}>
-                      Forgot password?
+                      {t('forgot_password') || "Forgot password?"}
                     </Caption2>
                   </TouchableOpacity>
                 </Link>
               </View>
 
               <View style={styles.footer}>
-                <Caption2 color={Colors.PLACEHOLLDER_TEXT}>Don't have an account?</Caption2>
+                <Caption2 color={Colors.PLACEHOLLDER_TEXT}>
+                  {t('dont_have_account') || "Don't have an account?"}
+                </Caption2>
                 <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
-                  <Caption2 color={Colors.BRAND_PRIMARY}> Sign up</Caption2>
+                  <Caption2 color={Colors.BRAND_PRIMARY}> {t('sign_up') || "Sign up"}</Caption2>
                 </TouchableOpacity>
               </View>
             </View>

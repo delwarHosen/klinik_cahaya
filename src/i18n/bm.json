@@ -1,0 +1,12 @@
+{
+  "welcome": "Selamat Kembali",
+  "welcome_back": "Selamat kembali! Gembira berjumpa anda lagi",
+  "enter_your_email": "Masukkan E-mel Anda",
+  "login": "Log Masuk",
+  "forgot_password": "Lupa kata laluan?",
+  "dont_have_account": "Belum mempunyai akaun?",
+  "sign_up": "Daftar",
+  "forgot_password_title": "Lupa Kata Laluan",
+  "forgot_password_desc": "Kami akan menghantar kod pengesahan ke e-mel ini untuk mengesahkan akaun anda",
+  "send_confirmation": "Hantar Pengesahan"
+}

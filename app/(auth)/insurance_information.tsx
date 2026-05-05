@@ -26,7 +26,7 @@ export default function InsuranceInformationScreen() {
   const [planType, setPlanType] = useState('');
   const [memberId, setMemberId] = useState('');
   const [coverageType, setCoverageType] = useState('');
-   const [updateInsurance, { isLoading }] = useUpdateInsuranceMutation();
+  const [updateInsurance, { isLoading }] = useUpdateInsuranceMutation();
 
   // const handleContinue = () => {
   //   router.push('/(auth)/family_information');
@@ -36,32 +36,35 @@ export default function InsuranceInformationScreen() {
     router.push('/(auth)/family_information');
   };
 
- 
 
-const handleContinue = async () => {
-  try {
-    await updateInsurance({
-      provider_name: providerName,
-      plan_type: planType,
-      member_id: memberId,
-      coverage_type: coverageType,
-    }).unwrap();
+  const handleContinue = async () => {
+    try {
+      const res = await updateInsurance({
+        provider_name: providerName,
+        plan_type: planType,
+        member_id: memberId,
+        coverage_type: coverageType,
+      }).unwrap();
 
-    showToast('Insurance info saved!', 'success');
-    router.push('/(auth)/family_information');
-  } catch (err: any) {
-    showToast(err?.data?.message || 'Failed to save insurance info.', 'error');
+      console.log(' Insurance saved:', JSON.stringify(res));
+      showToast('Insurance info saved!', 'success');
+      router.push('/(auth)/family_information');
+    } catch (err: any) {
+      console.log(' Insurance error:', JSON.stringify(err));
+      showToast(err?.data?.detail?.msg || err?.data?.message || 'Failed to save insurance info.', 'error');
+    }
+  };
+
+  // Button replace:
+  {
+    isLoading ? (
+      <View style={{ alignItems: 'center', marginTop: hp(12) }}>
+        <CustomLoader size={50} strokeWidth={3} />
+      </View>
+    ) : (
+      <CustomButton title="Continue" onPress={handleContinue} width="100%" height={hp(70)} borderRadius={16} style={{ marginTop: hp(12) }} />
+    )
   }
-};
-
-// Button replace:
-{isLoading ? (
-  <View style={{ alignItems: 'center', marginTop: hp(12) }}>
-    <CustomLoader size={50} strokeWidth={3} />
-  </View>
-) : (
-  <CustomButton title="Continue" onPress={handleContinue} width="100%" height={hp(70)} borderRadius={16} style={{ marginTop: hp(12) }} />
-)}
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -117,15 +120,20 @@ const handleContinue = async () => {
               placeholder="Coverage Type"
             />
 
-            <CustomButton
-              title="Continue"
-              // onPress={handleContinue}
-              onPress={()=> router.push('/(auth)/family_information')}
-              width="100%"
-              height={hp(70)}
-              borderRadius={16}
-              style={{ marginTop: hp(12) }}
-            />
+            {isLoading ? (
+              <View style={{ alignItems: 'center', marginTop: hp(12) }}>
+                <CustomLoader size={50} strokeWidth={3} />
+              </View>
+            ) : (
+              <CustomButton
+                title="Continue"
+                onPress={handleContinue}
+                width="100%"
+                height={hp(70)}
+                borderRadius={16}
+                style={{ marginTop: hp(12) }}
+              />
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

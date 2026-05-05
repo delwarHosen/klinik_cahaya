@@ -1,152 +1,226 @@
+import { CalenderIcon } from '@/assets/icons/patient_icon/CalenderIcon'
 import { DownArrowIcon } from '@/assets/icons/patient_icon/DownArrowIcon'
 import { UpArrowIcon } from '@/assets/icons/patient_icon/UpArrowIcon'
 import { AuthHeading } from '@/components/auth/AuthHeading'
+import { FormInput } from '@/components/inputForm/inputForm'
 import { CustomButton } from '@/components/shared/CustomButton'
+import CustomLoader from '@/components/shared/CustomLoader'
 import SectionTitle from '@/components/shared/SectionTitle'
-import { Caption1 } from '@/components/typo/Typography'
+import { showToast } from '@/components/shared/Toast'
+import { Body2, Body3, Caption1 } from '@/components/typo/Typography'
 import { Colors } from '@/constants/theme'
+import { useUpdateFamilyPatchMutation } from '@/redux/services/authApi'
 import { hp, wp } from '@/utils/responsiveDevice'
-import { useRouter } from 'expo-router'
+import DateTimePicker from '@react-native-community/datetimepicker'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useState } from 'react'
 import {
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-const GENDER_OPTIONS = ['Male', 'Female']
-const ALLERGY_OPTIONS = ['Food Allergies', 'Seasonal Allergies', 'Pet Allergies', 'None']
+const GENDER_OPTIONS = ['Male', 'Female', 'Other']
+const ALLERGY_OPTIONS = ['Food Allergies', 'Seasonal Allergies', 'Animal Allergies', 'Dust Allergies']
+
+interface Allergy {
+  name: string
+  type: string | null
+  severity: string | null
+}
 
 export default function EditFamilyInfoScreen() {
   const router = useRouter()
+  const params = useLocalSearchParams()
+  const [updateFamilyPatch, { isLoading }] = useUpdateFamilyPatchMutation()
 
 
-  const [name, setName] = useState('Razak Bin Osman')
-  const [relation, setRelation] = useState('Brother')
-  const [ic, setIc] = useState('90001-14-5677')
-  const [dob, setDob] = useState('10 January 1997')
-  const [phone, setPhone] = useState('+60 56125454212')
-  const [genderOpen, setGenderOpen] = useState(false)
-  const [selectedGender, setSelectedGender] = useState('Male')
-  const [allergyOpen, setAllergyOpen] = useState(false)
-  const [selectedAllergy, setSelectedAllergy] = useState('')
+  const [memberName, setMemberName] = useState((params.member_name as string) ?? '')
+  const [icNumber, setIcNumber] = useState((params.ic_number as string) ?? '')
+  const [dateOfBirth, setDateOfBirth] = useState((params.date_of_birth as string) ?? '')
+  const [relationship, setRelationship] = useState((params.relationship as string) ?? '')
+  const [gender, setGender] = useState((params.gender as string) ?? '')
+  const [allergies, setAllergies] = useState<Allergy[]>(() => {
+    try {
+      return params.allergies ? JSON.parse(params.allergies as string) : []
+    } catch { return [] }
+  })
+  const allMembers: any[] = (() => {
+    try {
+      return params.all_members ? JSON.parse(params.all_members as string) : []
+    } catch { return [] }
+  })()
+  const memberIndex = parseInt((params.index as string) ?? '0')
 
-  const handleUpdate = () => {
-    router.back()
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [genderModalOpen, setGenderModalOpen] = useState(false)
+  const [allergyModalOpen, setAllergyModalOpen] = useState(false)
+
+  const handleDateChange = (_: any, selected?: Date) => {
+    setShowDatePicker(false)
+    if (selected) {
+      setDateOfBirth(selected.toISOString().split('T')[0])
+    }
   }
+
+  const toggleAllergy = (name: string) => {
+    const exists = allergies.find((a) => a.name === name)
+    if (exists) {
+      setAllergies((prev) => prev.filter((a) => a.name !== name))
+    } else {
+      setAllergies((prev) => [...prev, { name, type: null, severity: null }])
+    }
+  }
+
+  const handleUpdate = async () => {
+    const updatedMembers = allMembers.map((m: any, i: number) =>
+      i === memberIndex
+        ? { member_name: memberName, ic_number: icNumber, date_of_birth: dateOfBirth, relationship, gender, allergies }
+        : m
+    )
+
+    try {
+      await updateFamilyPatch({ family_members: updatedMembers }).unwrap()
+      showToast('Family member updated!', 'success')
+
+     
+      router.replace({
+        pathname: '/(auth)/get_family_info',
+        params: {
+          members: JSON.stringify(updatedMembers),
+        },
+      })
+    } catch (err: any) {
+      console.log('Update error:', JSON.stringify(err))
+      showToast(err?.data?.detail?.msg || err?.data?.message || 'Update failed.', 'error')
+    }
+  }
+
+
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <SectionTitle
-      // title="Edit Family Information" 
-      />
+      <SectionTitle />
 
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          <AuthHeading title="Edit Member" style={{ marginBottom: hp(30) }} description="Family Information" />
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          <AuthHeading
-            title="Add Member"
-            style={{ marginBottom: hp(30) }}
-            description="Family Information"
-          />
+          <FormInput value={memberName} onChangeText={setMemberName} placeholder="Member Name" />
+          <FormInput value={icNumber} onChangeText={setIcNumber} placeholder="IC Number" type="number" />
 
-          <Field placeholder="Member Name" value={name} onChangeText={setName} />
-          <Field placeholder="Relation" value={relation} onChangeText={setRelation} />
-          <Field placeholder="IC Number" value={ic} onChangeText={setIc} keyboardType="numeric" />
-          <Field placeholder="Date Of Birth" value={dob} onChangeText={setDob} />
-          <Field placeholder="Phone Number" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-
-          {/* Gender Dropdown */}
-          <TouchableOpacity
-            style={styles.dropdownBox}
-            onPress={() => { setGenderOpen(o => !o); setAllergyOpen(false) }}
-            activeOpacity={0.8}
-          >
-            <Caption1 style={selectedGender ? styles.dropdownSelected : styles.dropdownPlaceholder}>
-              {selectedGender || 'Gender'}
-            </Caption1>
-            <Caption1 style={styles.chevron}>{genderOpen ? <UpArrowIcon /> : <DownArrowIcon />}</Caption1>
+          {/* Date of Birth */}
+          <TouchableOpacity style={styles.dropdownBox} onPress={() => setShowDatePicker(true)} activeOpacity={0.7}>
+            <Body3 color={dateOfBirth ? Colors.TEXT_COLOR : '#8C88A3'} style={{ flex: 1 }}>
+              {dateOfBirth || 'Date Of Birth'}
+            </Body3>
+            <CalenderIcon />
           </TouchableOpacity>
-          {genderOpen && (
-            <View style={styles.dropdownList}>
-              {GENDER_OPTIONS.map(opt => (
-                <TouchableOpacity
-                  key={opt}
-                  style={styles.dropdownItem}
-                  onPress={() => { setSelectedGender(opt); setGenderOpen(false) }}
-                >
-                  <Caption1 style={styles.dropdownItemText}>{opt}</Caption1>
-                </TouchableOpacity>
-              ))}
-            </View>
+          {showDatePicker && (
+            <DateTimePicker
+              value={dateOfBirth ? new Date(dateOfBirth) : new Date()}
+              mode="date"
+              display="default"
+              maximumDate={new Date()}
+              onChange={handleDateChange}
+            />
           )}
 
-          {/* Allergy Dropdown */}
-          <TouchableOpacity
-            style={styles.dropdownBox}
-            onPress={() => { setAllergyOpen(o => !o); setGenderOpen(false) }}
-            activeOpacity={0.8}
-          >
-            <Caption1 style={selectedAllergy ? styles.dropdownSelected : styles.dropdownPlaceholder}>
-              {selectedAllergy || 'Allergies'}
-            </Caption1>
-            <Caption1 style={styles.chevron}>{allergyOpen ? <UpArrowIcon /> : <DownArrowIcon />}</Caption1>
+          <FormInput value={relationship} onChangeText={setRelationship} placeholder="Relationship" />
+
+          {/* Gender */}
+          <TouchableOpacity style={styles.dropdownBox} onPress={() => setGenderModalOpen(true)} activeOpacity={0.7}>
+            <Body3 color={gender ? Colors.TEXT_COLOR : '#8C88A3'} style={{ flex: 1 }}>
+              {gender || 'Gender'}
+            </Body3>
+            <DownArrowIcon />
           </TouchableOpacity>
-          {allergyOpen && (
-            <View style={styles.dropdownList}>
-              {ALLERGY_OPTIONS.map(opt => (
-                <TouchableOpacity
-                  key={opt}
-                  style={styles.dropdownItem}
-                  onPress={() => { setSelectedAllergy(opt); setAllergyOpen(false) }}
-                >
-                  <Caption1 style={styles.dropdownItemText}>{opt}</Caption1>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
+
+          {/* Allergies */}
+          <TouchableOpacity style={styles.dropdownBox} onPress={() => setAllergyModalOpen(true)} activeOpacity={0.7}>
+            <Body3 color={allergies.length > 0 ? Colors.TEXT_COLOR : '#8C88A3'} style={{ flex: 1 }} numberOfLines={1}>
+              {allergies.length > 0 ? allergies.map((a) => a.name).join(', ') : 'Allergies'}
+            </Body3>
+            <DownArrowIcon />
+          </TouchableOpacity>
 
           <View style={styles.bottomBar}>
-            <CustomButton
-              title='Update'
-              onPress={handleUpdate}
-              height={54}
-              width={"100%"}
-              borderRadius={16}
-            />
+            {isLoading ? (
+              <View style={{ alignItems: 'center', marginTop: hp(8) }}>
+                <CustomLoader size={50} strokeWidth={3} />
+              </View>
+            ) : (
+              <CustomButton title="Update" onPress={handleUpdate} height={hp(70)} width="100%" borderRadius={16} />
+            )}
           </View>
         </ScrollView>
-
-
       </KeyboardAvoidingView>
-    </SafeAreaView>
-  )
-}
 
-function Field({ placeholder, value, onChangeText, keyboardType }: any) {
-  return (
-    <View style={styles.fieldBox}>
-      <TextInput
-        placeholder={placeholder}
-        placeholderTextColor="#AAAAAA"
-        value={value}
-        onChangeText={onChangeText}
-        style={styles.input}
-        keyboardType={keyboardType ?? 'default'}
-      />
-    </View>
+      {/* Gender Modal */}
+      <Modal visible={genderModalOpen} transparent animationType="fade" onRequestClose={() => setGenderModalOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)' }]} onPress={() => setGenderModalOpen(false)} activeOpacity={1} />
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Body2 color={Colors.TEXT_COLOR}>Choose Gender</Body2>
+              <TouchableOpacity onPress={() => setGenderModalOpen(false)}>
+                <UpArrowIcon />
+              </TouchableOpacity>
+            </View>
+            {GENDER_OPTIONS.map((option) => {
+              const selected = gender === option
+              return (
+                <TouchableOpacity
+                  key={option}
+                  style={[styles.modalOption, selected && styles.modalOptionSelected]}
+                  onPress={() => { setGender(option); setGenderModalOpen(false) }}
+                >
+                  <Body3 color={Colors.TEXT_COLOR}>{option}</Body3>
+                  <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
+                    {selected && <Caption1 color={Colors.BRAND_PRIMARY} style={{ fontSize: 12 }}>✓</Caption1>}
+                  </View>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Allergy Modal */}
+      <Modal visible={allergyModalOpen} transparent animationType="fade" onRequestClose={() => setAllergyModalOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)' }]} onPress={() => setAllergyModalOpen(false)} activeOpacity={1} />
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Body2 color={Colors.TEXT_COLOR}>Choose Allergies</Body2>
+              <TouchableOpacity onPress={() => setAllergyModalOpen(false)}>
+                <UpArrowIcon />
+              </TouchableOpacity>
+            </View>
+            {ALLERGY_OPTIONS.map((option) => {
+              const selected = !!allergies.find((a) => a.name === option)
+              return (
+                <TouchableOpacity
+                  key={option}
+                  style={[styles.modalOption, selected && styles.modalOptionSelected]}
+                  onPress={() => toggleAllergy(option)}
+                >
+                  <Body3 color={Colors.TEXT_COLOR}>{option}</Body3>
+                  <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
+                    {selected && <Caption1 color={Colors.BRAND_PRIMARY} style={{ fontSize: 12 }}>✓</Caption1>}
+                  </View>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
   )
 }
 
@@ -156,69 +230,82 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.APP_BACKGROUND,
     paddingHorizontal: wp(20),
   },
+
   scrollContent: {
     paddingTop: hp(20),
     paddingBottom: hp(20),
   },
-  fieldBox: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: wp(16),
-    borderWidth: 1,
-    borderColor: Colors.BORDER_COLOR,
-    marginBottom: hp(12),
-  },
-  input: {
-    fontSize: 15,
-    color: '#333333',
-    paddingVertical: hp(16),
-    fontFamily: 'Poppins_400Regular',
-  },
+
   dropdownBox: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: wp(16),
-    paddingVertical: hp(16),
-    borderWidth: 1,
-    borderColor: Colors.BORDER_COLOR,
-    marginBottom: hp(12),
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  dropdownPlaceholder: {
-    color: '#AAAAAA',
-    fontSize: 15,
-  },
-  dropdownSelected: {
-    color: '#333333',
-    fontSize: 15,
-  },
-  chevron: {
-    color: '#AAAAAA',
-    fontSize: 11,
-  },
-  dropdownList: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 16,
+    paddingHorizontal: wp(16),
+    paddingVertical: hp(24),
     borderWidth: 1,
     borderColor: Colors.BORDER_COLOR,
-    marginTop: hp(-8),
     marginBottom: hp(12),
-    overflow: 'hidden',
   },
-  dropdownItem: {
-    paddingHorizontal: wp(16),
-    paddingVertical: hp(14),
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.BORDER_COLOR,
-  },
-  dropdownItemText: {
-    color: '#333333',
-    fontSize: 15,
-  },
+
   bottomBar: {
     paddingTop: hp(12),
     paddingBottom: hp(20),
   },
-})
+
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: wp(20),
+  },
+
+  modalContainer: {
+    width: '100%',
+    zIndex: 2,
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    paddingHorizontal: wp(20),
+    paddingTop: hp(16),
+    paddingBottom: Platform.OS === 'ios' ? hp(40) : hp(30),
+    gap: hp(8),
+    elevation: 5,
+  },
+
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: hp(16),
+  },
+
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    paddingHorizontal: wp(16),
+    paddingVertical: hp(14),
+  },
+
+  modalOptionSelected: {
+    backgroundColor: '#F0F8FF',
+  },
+
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: '#ccc',
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  checkboxSelected: {
+    borderColor: Colors.BRAND_PRIMARY,
+    backgroundColor: '#E8F4FD',
+  },
+});

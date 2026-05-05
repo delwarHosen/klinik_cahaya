@@ -33,15 +33,15 @@ const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 export default function MedicalInformationScreen() {
   const router = useRouter();
-   const [updateMedical, { isLoading }] = useUpdateMedicalMutation();
-  
+  const [updateMedical, { isLoading }] = useUpdateMedicalMutation();
+
   // States
   const [bloodGroup, setBloodGroup] = useState('');
   const [showBloodModal, setShowBloodModal] = useState(false);
-  
+
   const [selectedAllergies, setSelectedAllergies] = useState<string[]>([]);
   const [showAllergyModal, setShowAllergyModal] = useState(false);
-  
+
   const [medicalCondition, setMedicalCondition] = useState('');
   const [medication, setMedication] = useState('');
 
@@ -60,32 +60,37 @@ export default function MedicalInformationScreen() {
   };
 
 
- 
 
-const handleContinue = async () => {
-  try {
-    await updateMedical({
-      blood_group: bloodGroup,
-      allergies: selectedAllergies.map((name) => ({ name, type: null, severity: null })),
-      medical_condition: medicalCondition ? [medicalCondition] : [],
-      medication: medication ? [medication] : [],
-    }).unwrap();
 
-    showToast('Medical info saved!', 'success');
-    router.push('/(auth)/insurance_information');
-  } catch (err: any) {
-    showToast(err?.data?.message || 'Failed to save medical info.', 'error');
+  const handleContinue = async () => {
+    try {
+      const res = await updateMedical({
+        blood_group: bloodGroup,
+        allergies: selectedAllergies.map((name) => ({ name, type: null, severity: null })),
+        medical_condition: medicalCondition ? [medicalCondition] : [],
+        medication: medication ? [medication] : [],
+      }).unwrap();
+
+      console.log(' Medical saved:', JSON.stringify(res));
+      showToast('Medical info saved!', 'success');
+      router.push('/(auth)/insurance_information');
+
+    } catch (err: any) {
+      console.log('Medical error:', JSON.stringify(err));
+      showToast(err?.data?.detail?.msg || err?.data?.message || 'Failed to save medical info.', 'error');
+    }
+  };
+
+  // Button replace:
+  {
+    isLoading ? (
+      <View style={{ alignItems: 'center', marginTop: hp(12) }}>
+        <CustomLoader size={50} strokeWidth={3} />
+      </View>
+    ) : (
+      <CustomButton title="Continue" onPress={handleContinue} width="100%" height={hp(70)} borderRadius={16} style={{ marginTop: hp(12) }} />
+    )
   }
-};
-
-// Button replace:
-{isLoading ? (
-  <View style={{ alignItems: 'center', marginTop: hp(12) }}>
-    <CustomLoader size={50} strokeWidth={3} />
-  </View>
-) : (
-  <CustomButton title="Continue" onPress={handleContinue} width="100%" height={hp(70)} borderRadius={16} style={{ marginTop: hp(12) }} />
-)}
 
   const allergyDisplayText =
     selectedAllergies.length > 0 ? selectedAllergies.join(', ') : '';
@@ -228,15 +233,20 @@ const handleContinue = async () => {
               placeholder="Medication"
             />
 
-            <CustomButton
-              title="Continue"
-              // onPress={handleContinue}
-              onPress={()=>router.push('/(auth)/insurance_information')}
-              width="100%"
-              height={hp(70)}
-              borderRadius={16}
-              style={{ marginTop: hp(12) }}
-            />
+            {isLoading ? (
+              <View style={{ alignItems: 'center', marginTop: hp(12) }}>
+                <CustomLoader size={50} strokeWidth={3} />
+              </View>
+            ) : (
+              <CustomButton
+                title="Continue"
+                onPress={handleContinue}
+                width="100%"
+                height={hp(70)}
+                borderRadius={16}
+                style={{ marginTop: hp(12) }}
+              />
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

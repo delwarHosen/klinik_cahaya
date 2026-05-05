@@ -73,6 +73,44 @@ export const authApi = baseApi.injectEndpoints({
         method: 'POST',
       }),
     }),
+
+    // update family info
+    updateFamilyPatch: builder.mutation({
+      query: (data) => ({
+        url: '/auth/profile/family',
+        method: 'PATCH',
+        body: data,
+      }),
+    }),
+
+    // forgot password
+    forgotPassword: builder.mutation({
+      query: (data) => ({
+        url: '/auth/forgot_password',
+        method: 'POST',
+        body: data,
+      }),
+    }),
+
+    // reset password
+    resetPassword: builder.mutation({
+      query: ({ access_token, new_password, confirm_password }) => ({
+        url: '/auth/change_password',  // ← এটা fix করুন
+        method: 'POST',
+        body: { new_password, confirm_password },
+        headers: {
+          Authorization: `Bearer ${access_token}`,  // ← token header এ পাঠান
+        },
+      }),
+    }),
+
+
+    // Get Profile
+    getProfile: builder.query({
+      query: () => '/auth/onboarding',
+      providesTags: ['Auth'],
+    }),
+
   }),
   overrideExisting: true,
 });
@@ -84,4 +122,9 @@ export const { useLoginMutation,
   useUpdateMedicalMutation,
   useUpdateInsuranceMutation,
   useUpdateFamilyMutation,
-  useUploadPhotoMutation, } = authApi;
+  useUploadPhotoMutation,
+  useUpdateFamilyPatchMutation,
+  useGetProfileQuery,
+  useForgotPasswordMutation,
+  useResetPasswordMutation,
+} = authApi;

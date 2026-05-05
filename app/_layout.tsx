@@ -1,5 +1,6 @@
 import Toast from '@/components/shared/Toast';
 import { store } from '@/redux/store';
+import i18n from '@/src/i18n';
 import {
   Poppins_400Regular,
   Poppins_400Regular_Italic,
@@ -11,19 +12,47 @@ import {
   Poppins_800ExtraBold,
   useFonts,
 } from '@expo-google-fonts/poppins';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import * as Linking from 'expo-linking';
+import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, useColorScheme, View } from 'react-native';
 import 'react-native-reanimated';
 import { Provider } from 'react-redux';
 
-SplashScreen.preventAutoHideAsync()
+SplashScreen.preventAutoHideAsync();
+
+
+const handleDeepLink = async ({ url }: { url: string }) => {
+  console.log(' Deep link URL:', url);
+
+
+  const fragmentPart = url.includes('#') ? url.split('#')[1] : url.split('?')[1];
+  if (!fragmentPart) return;
+
+  const params = new URLSearchParams(fragmentPart);
+  const accessToken = params.get('access_token');
+  const refreshToken = params.get('refresh_token');
+
+  console.log(' Access Token:', accessToken);
+
+  if (accessToken) {
+    await AsyncStorage.setItem('access_token', accessToken);
+    console.log(' Token saved!');
+    router.push('/(auth)/personal_information');
+  }
+  if (refreshToken) {
+    await AsyncStorage.setItem('refresh_token', refreshToken);
+  }
+};
+
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme()
+  const colorScheme = useColorScheme();
+  const [isI18nReady, setIsI18nReady] = useState(false);
 
   const [loaded] = useFonts({
     Poppins_400Regular,
@@ -34,19 +63,50 @@ export default function RootLayout() {
     Poppins_700Bold,
     Poppins_700Bold_Italic,
     Poppins_800ExtraBold,
-  })
+  });
+
+  //  Deep link listener
+  useEffect(() => {
+
+    Linking.getInitialURL().then((url) => {
+      if (url) handleDeepLink({ url });
+    });
+
+
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+    return () => subscription.remove();
+  }, []);
 
   useEffect(() => {
-    if (loaded) SplashScreen.hideAsync()
-  }, [loaded])
+    const prepare = async () => {
+      if (i18n.isInitialized) {
+        setIsI18nReady(true);
+      } else {
+        i18n.on('initialized', () => {
+          setIsI18nReady(true);
+        });
+      }
 
-  if (!loaded) return null
+      if (loaded) {
+        await SplashScreen.hideAsync();
+      }
+    };
+
+    prepare();
+  }, [loaded]);
+
+  if (!loaded || !isI18nReady) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return (
     <Provider store={store}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack>
-          {/* ── index — video splash, no header ── */}
           <Stack.Screen name="index" options={{ headerShown: false, animation: 'none' }} />
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
@@ -57,6 +117,5 @@ export default function RootLayout() {
         <StatusBar style="auto" />
       </ThemeProvider>
     </Provider>
-
-  )
+  );
 }

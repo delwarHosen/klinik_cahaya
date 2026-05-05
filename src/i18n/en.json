@@ -1,0 +1,12 @@
+{
+  "welcome": "Welcome Back",
+  "welcome_back": "Welcome back! Glad to see you again",
+  "enter_your_email": "Enter Your Email",
+  "login": "Log in",
+  "forgot_password": "Forgot password?",
+  "dont_have_account": "Don't have an account?",
+  "sign_up": "Sign up",
+  "forgot_password_title": "Forgot Password",
+  "forgot_password_desc": "We'll send a verification code to this email to confirm your account",
+  "send_confirmation": "Send Confirmation"
+}

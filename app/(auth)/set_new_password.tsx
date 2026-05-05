@@ -3,9 +3,13 @@ import { SuccessVerifyIcon } from '@/assets/icons/common_icon/SuccessVerifyIcon'
 import { AuthHeading } from '@/components/auth/AuthHeading';
 import { FormInput } from '@/components/inputForm/inputForm';
 import { CustomButton } from '@/components/shared/CustomButton';
+import CustomLoader from '@/components/shared/CustomLoader';
+import { showToast } from '@/components/shared/Toast';
 import { Body3, H2 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
+import { useResetPasswordMutation } from '@/redux/services/authApi';
 import { hp, wp } from '@/utils/responsiveDevice';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -24,40 +28,56 @@ export default function CreateNewPasswordScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [resetPassword, { isLoading }] = useResetPasswordMutation();
 
-  const handleChangePassword = () => {
-   
+  const handleChangePassword = async () => {
     Keyboard.dismiss();
 
-   
     if (!newPassword.trim() || !confirmPassword.trim()) {
-        console.log("Empty fields");
-        return;
+      showToast('Please fill all fields.', 'error');
+      return;
     }
     if (newPassword !== confirmPassword) {
-        console.log("Passwords do not match");
-        return;
+      showToast('Passwords do not match.', 'error');
+      return;
     }
 
-  
-    setShowSuccessModal(true);
+    try {
+      // AsyncStorage থেকে token নিন
+      const accessToken = await AsyncStorage.getItem('access_token');
+      console.log('🔑 Access token for reset:', accessToken);
+
+      if (!accessToken) {
+        showToast('Session expired. Please request a new reset link.', 'error');
+        return;
+      }
+
+      await resetPassword({
+        new_password: newPassword,
+        confirm_password: confirmPassword,
+        access_token: accessToken, // ← token পাঠান
+      }).unwrap();
+
+      setShowSuccessModal(true);
+    } catch (err: any) {
+      console.log('Reset password error:', JSON.stringify(err));
+      showToast(
+        err?.data?.detail?.msg || err?.data?.message || 'Failed to reset password.',
+        'error'
+      );
+    }
   };
 
   const handleGoToLogin = () => {
     setShowSuccessModal(false);
-   
     setTimeout(() => {
-        router.replace('/(auth)/login');
+      router.replace('/(auth)/login');
     }, 300);
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
-        {/* Header */}
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <LeftAngleIcon />
@@ -85,14 +105,20 @@ export default function CreateNewPasswordScreen() {
             placeholder="Confirm Password"
           />
 
-          <CustomButton
-            title="Change Password"
-            onPress={handleChangePassword}
-            width="100%"
-            height={hp(60)} 
-            borderRadius={16}
-            style={{ marginTop: hp(12) }}
-          />
+          {isLoading ? (
+            <View style={{ alignItems: 'center', marginTop: hp(12) }}>
+              <CustomLoader size={50} strokeWidth={3} />
+            </View>
+          ) : (
+            <CustomButton
+              title="Change Password"
+              onPress={handleChangePassword}
+              width="100%"
+              height={hp(60)}
+              borderRadius={16}
+              style={{ marginTop: hp(12) }}
+            />
+          )}
         </View>
       </KeyboardAvoidingView>
 
@@ -101,7 +127,7 @@ export default function CreateNewPasswordScreen() {
         visible={showSuccessModal}
         transparent={true}
         animationType="fade"
-        statusBarTranslucent={true} 
+        statusBarTranslucent={true}
         onRequestClose={() => setShowSuccessModal(false)}
       >
         <View style={styles.modalOverlay}>
@@ -109,12 +135,10 @@ export default function CreateNewPasswordScreen() {
             <View style={styles.successIconWrapper}>
               <SuccessVerifyIcon />
             </View>
-
             <H2 style={styles.modalTitle}>Password Changed!</H2>
             <Body3 color={Colors.PLACEHOLLDER_TEXT} style={styles.modalDescription}>
               Your password has been changed successfully.
             </Body3>
-
             <CustomButton
               title="Back to Login"
               onPress={handleGoToLogin}
@@ -135,11 +159,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.APP_BACKGROUND,
   },
+
   header: {
     paddingHorizontal: wp(20),
     paddingTop: hp(20),
     paddingBottom: hp(5),
   },
+
   backButton: {
     width: 52,
     height: 52,
@@ -148,45 +174,51 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   container: {
     flex: 1,
     paddingHorizontal: wp(20),
     paddingTop: hp(35),
   },
+
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)', 
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   modalContainer: {
+    width: wp(320),
+    alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 24,
     paddingHorizontal: wp(24),
     paddingVertical: hp(32),
-    width: wp(320), 
-    alignItems: 'center',
-    
+
     ...Platform.select({
-        ios: {
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 10 },
-            shadowOpacity: 0.25,
-            shadowRadius: 10,
-        },
-        android: {
-            elevation: 10,
-        },
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.25,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 10,
+      },
     }),
   },
+
   successIconWrapper: {
     marginBottom: hp(16),
   },
+
   modalTitle: {
     textAlign: 'center',
-    marginBottom: hp(8),
     fontSize: 22,
+    marginBottom: hp(8),
   },
+
   modalDescription: {
     textAlign: 'center',
     lineHeight: 22,

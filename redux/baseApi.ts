@@ -8,28 +8,44 @@ const baseQuery = fetchBaseQuery({
   baseUrl: 'https://knx.up.railway.app',
   // baseUrl: 'http://10.10.20.46:7000',
   prepareHeaders: async (headers) => {
-    const token = await AsyncStorage.getItem('access_token');
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
-    }
+    // const token = await AsyncStorage.getItem('access_token');
+    // if (token) {
+    //   headers.set('Authorization', `Bearer ${token}`);
+    // }
     return headers;
   },
 });
 
 const baseQueryWithAuth = async (args: any, api: any, extraOptions: any) => {
-  const result = await baseQuery(args, api, extraOptions);
+
+  const token = await AsyncStorage.getItem('access_token');
+  console.log('🔑 Token:', token);
+  console.log('📍 URL:', typeof args === 'string' ? args : args?.url);
+
+  const modifiedArgs =
+    typeof args === 'string'
+      ? { url: args, headers: token ? { Authorization: `Bearer ${token}` } : {} }
+      : {
+        ...args,
+        headers: {
+          ...(args.headers || {}),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      };
+
+  const result = await baseQuery(modifiedArgs, api, extraOptions);
 
   if (result.error) {
     const status = (result.error as FetchBaseQueryError).status;
     const data = result.error.data as any;
     const message = data?.message || data?.error || getErrorMessage(status);
 
-    
     const url = typeof args === 'string' ? args : args?.url || '';
     const isAuthEndpoint =
       url.includes('/auth/login') ||
       url.includes('/auth/signup') ||
-      url.includes('/auth/forgot-password');
+      url.includes('/auth/forgot-password') ||
+      url.includes('/auth/onboarding');
 
     if (status === 401 && !isAuthEndpoint) {
       showToast('Session expired. Please login again.', 'error');
@@ -57,7 +73,7 @@ function getErrorMessage(status: number | string): string {
     case 500: return 'Server error. Try again later.';
     case 'FETCH_ERROR': return 'No internet connection.';
     case 'TIMEOUT_ERROR': return 'Request timed out.';
-    default:  return 'Something went wrong.';
+    default: return 'Something went wrong.';
   }
 }
 

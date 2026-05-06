@@ -12,7 +12,7 @@ export const authApi = baseApi.injectEndpoints({
       }),
     }),
 
-    // sign up
+    // Sign up
     signup: builder.mutation({
       query: (data) => ({
         url: '/auth/signup',
@@ -21,49 +21,54 @@ export const authApi = baseApi.injectEndpoints({
       }),
     }),
 
-    // onboarding start
+    // Onboarding — Profile
     updateProfile: builder.mutation({
       query: (data) => ({
-        url: "/auth/onboarding/profile",
-        method: "PUT",
-        body: data
-      })
+        url: '/auth/onboarding/profile',
+        method: 'PUT',
+        body: data,
+      }),
+      invalidatesTags: ['Auth'],
     }),
 
-    // Medical Information
+    // Onboarding — Medical
     updateMedical: builder.mutation({
       query: (data) => ({
         url: '/auth/onboarding/medical',
         method: 'PUT',
         body: data,
       }),
+      invalidatesTags: ['Auth'],
     }),
 
-    // Insurance Information
+    // Onboarding — Insurance
     updateInsurance: builder.mutation({
       query: (data) => ({
         url: '/auth/onboarding/insurance',
         method: 'PUT',
         body: data,
       }),
+      invalidatesTags: ['Auth'],
     }),
 
-    // Family Information
+    // Onboarding — Family
     updateFamily: builder.mutation({
       query: (data) => ({
         url: '/auth/onboarding/family',
         method: 'PUT',
         body: data,
       }),
+      invalidatesTags: ['Auth'],
     }),
 
-    // Photo Upload
+    // Onboarding — Photo
     uploadPhoto: builder.mutation({
       query: (formData) => ({
         url: '/auth/onboarding/photo',
         method: 'POST',
         body: formData,
       }),
+      invalidatesTags: ['Auth'],
     }),
 
     // Logout
@@ -74,16 +79,17 @@ export const authApi = baseApi.injectEndpoints({
       }),
     }),
 
-    // update family info
+    // Profile — Update Family (PATCH)
     updateFamilyPatch: builder.mutation({
       query: (data) => ({
         url: '/auth/profile/family',
         method: 'PATCH',
         body: data,
       }),
+      invalidatesTags: ['Auth'],
     }),
 
-    // forgot password
+    // Forgot Password
     forgotPassword: builder.mutation({
       query: (data) => ({
         url: '/auth/forgot_password',
@@ -92,30 +98,33 @@ export const authApi = baseApi.injectEndpoints({
       }),
     }),
 
-    // reset password
+    // Reset Password
+    // baseQueryWithAuth এ access_token automatically যায়,
+    // কিন্তু reset এ আলাদা reset token লাগে তাই manually override করা হচ্ছে
     resetPassword: builder.mutation({
       query: ({ access_token, new_password, confirm_password }) => ({
-        url: '/auth/change_password',  // ← এটা fix করুন
+        url: '/auth/change_password',
         method: 'POST',
         body: { new_password, confirm_password },
         headers: {
-          Authorization: `Bearer ${access_token}`,  // ← token header এ পাঠান
+          Authorization: `Bearer ${access_token}`,
         },
       }),
     }),
-
 
     // Get Profile
     getProfile: builder.query({
       query: () => '/auth/onboarding',
       providesTags: ['Auth'],
+      keepUnusedDataFor: 300, // 5 মিনিট cache
     }),
 
   }),
   overrideExisting: true,
 });
 
-export const { useLoginMutation,
+export const {
+  useLoginMutation,
   useSignupMutation,
   useLogoutMutation,
   useUpdateProfileMutation,

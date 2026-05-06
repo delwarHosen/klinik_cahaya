@@ -5,13 +5,9 @@ import { createApi, fetchBaseQuery, FetchBaseQueryError } from '@reduxjs/toolkit
 import { router } from 'expo-router';
 
 const baseQuery = fetchBaseQuery({
-  baseUrl: 'https://knx.up.railway.app',
-  // baseUrl: 'http://10.10.20.46:7000',
+  // baseUrl: 'https://knx.up.railway.app',
+  baseUrl: 'http://10.10.20.46:7000',
   prepareHeaders: async (headers) => {
-    // const token = await AsyncStorage.getItem('access_token');
-    // if (token) {
-    //   headers.set('Authorization', `Bearer ${token}`);
-    // }
     return headers;
   },
 });
@@ -26,12 +22,12 @@ const baseQueryWithAuth = async (args: any, api: any, extraOptions: any) => {
     typeof args === 'string'
       ? { url: args, headers: token ? { Authorization: `Bearer ${token}` } : {} }
       : {
-        ...args,
-        headers: {
-          ...(args.headers || {}),
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      };
+          ...args,
+          headers: {
+            ...(args.headers || {}),
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        };
 
   const result = await baseQuery(modifiedArgs, api, extraOptions);
 
@@ -80,6 +76,6 @@ function getErrorMessage(status: number | string): string {
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithAuth,
-  tagTypes: ['Auth', 'Patient', 'Admin'],
+  tagTypes: ['Auth', 'Patient', 'Admin', 'Appointments', 'Doctors', 'Queue'], 
   endpoints: () => ({}),
 });

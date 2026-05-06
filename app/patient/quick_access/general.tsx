@@ -1,12 +1,12 @@
 import SectionTitle from '@/components/shared/SectionTitle';
 import { Caption1, Caption4, H6 } from '@/components/typo/Typography';
-import { DOCTORS } from '@/constants/fakeData';
 import { Colors } from '@/constants/theme';
-import { getImageSource } from '@/utils/imageSource';
+import { useGetDoctorsQuery } from '@/redux/services/doctorsApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   StyleSheet,
@@ -17,7 +17,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function BookAppointmentScreen() {
   const router = useRouter();
-  const [expanded, setExpanded] = useState<boolean>(false);
+  const { data: doctorsData, isLoading } = useGetDoctorsQuery(undefined);
+  const doctors = doctorsData?.data ?? [];
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -25,55 +26,65 @@ export default function BookAppointmentScreen() {
         <SectionTitle title="General" />
       </View>
 
-      <FlatList
-        data={DOCTORS}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
-            activeOpacity={0.85}
-            onPress={() => router.push({ pathname: '/patient/doctors_info/doctor_details', params: { id: item.id } })}
-          >
-            <Image source={getImageSource(item.image)} style={styles.doctorImage} />
-            <View style={styles.cardInfo}>
-
-              {/* Name + Tier row */}
-              <TouchableOpacity onPress={() => setExpanded(!expanded)} activeOpacity={0.8}>
+      {isLoading ? (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color={Colors.BRAND_PRIMARY} />
+        </View>
+      ) : (
+        <FlatList
+          data={doctors}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.card}
+              activeOpacity={0.85}
+              onPress={() => router.push({
+                pathname: '/patient/doctors_info/doctor_details',
+                params: { doctorId: item.id },
+              })}
+            >
+              <Image source={{ uri: item.avatar_url }} style={styles.doctorImage} />
+              <View style={styles.cardInfo}>
                 <View style={styles.nameRow}>
-                  <H6 style={styles.doctorName} numberOfLines={expanded ? 0 : 1}>
-                    {item.name}
-                  </H6>
+                  <H6 style={styles.doctorName} numberOfLines={1}>{item.name}</H6>
                 </View>
-              </TouchableOpacity>
 
-              {/* Time badge */}
-              <View style={styles.timeBadge}>
-                <Caption4 style={styles.timeText} numberOfLines={1}>{item.time}</Caption4>
+                <View style={styles.timeBadge}>
+                  <Caption4 style={styles.timeText} numberOfLines={1}>
+                    {item.consultation_time}
+                  </Caption4>
+                </View>
+
+                <Caption1 style={styles.specialty} numberOfLines={2}>
+                  {item.specialization}
+                </Caption1>
               </View>
-
-              {/* Specialty */}
-              <Caption1 style={styles.specialty} numberOfLines={2}>{item.fullSpecialty}</Caption1>
-
-            </View>
-          </TouchableOpacity>
-        )}
-      />
+            </TouchableOpacity>
+          )}
+        />
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, backgroundColor: '#FFFFFF',
-    paddingHorizontal: wp(20)
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: wp(20),
   },
   header: {},
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   listContent: {
     paddingBottom: hp(100),
     paddingTop: hp(20),
-    gap: 14
+    gap: 14,
   },
   card: {
     flexDirection: 'row',
@@ -81,7 +92,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.BORDER_COLOR,
     overflow: 'hidden',
-    paddingBottom:hp(10)
+    paddingBottom: hp(10),
   },
   doctorImage: {
     width: wp(100),
@@ -92,13 +103,23 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginLeft: wp(10),
     marginTop: hp(10),
-    paddingBottom:(10)
   },
-  cardInfo: { flex: 1, paddingVertical: wp(12), paddingHorizontal: hp(12), justifyContent: 'center', gap: 6 },
+  cardInfo: {
+    flex: 1,
+    paddingVertical: wp(12),
+    paddingHorizontal: hp(12),
+    justifyContent: 'center',
+    gap: 6,
+  },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   doctorName: { color: Colors.BRAND_PRIMARY, flexShrink: 1 },
-  tierBadge: { paddingHorizontal: wp(10), paddingVertical: 3, borderRadius: 20, borderWidth: 1 },
-  timeBadge: { backgroundColor: Colors.ACCENT_YELLOW, alignSelf: 'flex-start', paddingHorizontal: wp(12), paddingVertical: hp(5), borderRadius: 20 },
+  timeBadge: {
+    backgroundColor: Colors.ACCENT_YELLOW,
+    alignSelf: 'flex-start',
+    paddingHorizontal: wp(12),
+    paddingVertical: hp(5),
+    borderRadius: 20,
+  },
   timeText: { color: '#1A1A1A', fontWeight: '700' },
   specialty: { color: Colors.PLACEHOLLDER_TEXT, lineHeight: 18 },
 });

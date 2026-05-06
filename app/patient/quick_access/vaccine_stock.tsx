@@ -1,57 +1,49 @@
-import { NotificationIcon } from '@/assets/icons/common_icon/Notification';
 import SectionTitle from '@/components/shared/SectionTitle';
 import { Body1, Body3, Caption1, Caption2, Caption4 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
+import { useGetVaccineStockQuery } from '@/redux/services/vaccinesApi';
 import { hp, wp } from '@/utils/responsiveDevice';
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
+  RefreshControl,
   StyleSheet,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// ─── Fake Data ───────────────────────────────────────────────────────────────
-
-const VACCINES = [
-  {
-    id: '1',
-    name: 'BCG (Bacillus Calmette–Guérin)',
-    price: 'RM 1200',
-    stock: 56,
-    expireDate: 'October 30, 2027',
-    restockDate: null,
-  },
-  {
-    id: '2',
-    name: 'Japanese Encephalitis (JE) Vaccine',
-    price: 'RM 1200',
-    stock: 6,
-    expireDate: 'October 30, 2027',
-    restockDate: null,
-  },
-  {
-    id: '3',
-    name: '6-in-1 Vaccine (Hexaxim)',
-    price: 'RM 1200',
-    stock: 0,
-    expireDate: null,
-    restockDate: 'October 30, 2026',
-  },
-];
-
 // ─── Status Helper ────────────────────────────────────────────────────────────
 
-function getStockStatus(stock: number) {
-  if (stock === 0) return 'stockout';
-  if (stock <= 10) return 'low';
+function getStockStatus(status: string) {
+  if (status === 'out_of_stock') return 'stockout';
+  if (status === 'low_stock') return 'low';
   return 'available';
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function VaccineStockScreen() {
+  const { data, isLoading, refetch, isFetching } = useGetVaccineStockQuery(undefined);
+  const vaccines = data ?? [];
+
+  const onRefresh = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <SectionTitle title="Vaccine Stock" />
+        </View>
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color={Colors.BRAND_PRIMARY} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
@@ -59,45 +51,46 @@ export default function VaccineStockScreen() {
       </View>
 
       <FlatList
-        data={VACCINES}
+        data={vaccines}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching}
+            onRefresh={onRefresh}
+            colors={[Colors.BRAND_PRIMARY]}
+            tintColor={Colors.BRAND_PRIMARY}
+          />
+        }
         renderItem={({ item }) => {
-          const status = getStockStatus(item.stock);
+          const status = getStockStatus(item.status);
           const isStockout = status === 'stockout';
           const isLow = status === 'low';
 
           return (
             <View style={styles.card}>
 
-             
-              {isStockout && (
-                <View style={styles.notifyRow}>
-                  <Caption2 style={styles.notifyText}>Notify me when available</Caption2>
-                  <TouchableOpacity style={styles.notifyIcon} activeOpacity={0.7}>
-                    <NotificationIcon size={16} color={Colors.BRAND_PRIMARY} />
-                  </TouchableOpacity>
-                </View>
-              )}
+              {/* Vaccine name & brand */}
+              <Body1 style={styles.vaccineName}>{item.vaccine_name}</Body1>
+              <Body3 style={styles.brandName}>{item.brand_name}</Body3>
 
-              {/* Vaccine name & price */}
-              <Body1 style={styles.vaccineName}>{item.name}</Body1>
-              <Body3 style={styles.price}>{item.price}</Body3>
+              {/* Price */}
+              <Body3 style={styles.price}>RM {item.price}</Body3>
 
-             
-              {isStockout && item.restockDate && (
-                <Caption2 style={styles.restockText}>
-                  Restock ETA date:{' '}
-                  <Caption1 style={styles.restockDateValue}>{item.restockDate}</Caption1>
+
+              {item.expiry_date && (
+                <Caption2 style={styles.expireText}>
+                  Expire Date:{' '}
+                  <Caption1 style={styles.expireDateValue}>{item.expiry_date}</Caption1>
                 </Caption2>
               )}
 
-             
-              {!isStockout && item.expireDate && (
-                <Caption2 style={styles.expireText}>
-                  Expire Date:{' '}
-                  <Caption1 style={styles.expireDateValue}>{item.expireDate}</Caption1>
+              {/* Stock count — stockout না হলে */}
+              {!isStockout && (
+                <Caption2 style={styles.stockCountText}>
+                  Available:{' '}
+                  <Caption1 style={styles.stockCountValue}>{item.available} units</Caption1>
                 </Caption2>
               )}
 
@@ -109,7 +102,7 @@ export default function VaccineStockScreen() {
                   </View>
                 ) : isLow ? (
                   <View style={[styles.stockBadge, styles.lowStockBadge]}>
-                    <Caption4 style={styles.lowStockText}>Low Stock: {item.stock} Units</Caption4>
+                    <Caption4 style={styles.lowStockText}>Low Stock: {item.available} Units</Caption4>
                   </View>
                 ) : (
                   <View style={[styles.stockBadge, styles.availableBadge]}>
@@ -137,10 +130,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: wp(20),
     paddingTop: hp(10),
   },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   listContent: {
     paddingHorizontal: wp(20),
     paddingTop: hp(16),
-    paddingBottom: hp(30),
+    paddingBottom: hp(60),
     gap: 14,
   },
   card: {
@@ -151,43 +149,27 @@ const styles = StyleSheet.create({
     gap: 6,
   },
 
-  // ── Notify row ──
-  notifyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: hp(3),
-  },
-  notifyText: {
-    color: Colors.BRAND_PRIMARY,
-    fontSize: 12,
-  },
-  notifyIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Colors.BRAND_PRIMARY,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
   // ── Vaccine info ──
   vaccineName: {
     color: Colors.TEXT_COLOR,
     fontWeight: '700',
   },
+  brandName: {
+    color: '#555555',
+    marginBottom: hp(2),
+  },
   price: {
-    color: '#888888',
+    color: Colors.BRAND_PRIMARY,
+    fontWeight: '600',
     marginBottom: hp(2),
   },
 
-  // ── Restock date ──
-  restockText: {
+  // ── Stock count ──
+  stockCountText: {
     color: '#AAAAAA',
     fontWeight: '500',
   },
-  restockDateValue: {
+  stockCountValue: {
     color: Colors.TEXT_COLOR,
     fontWeight: '600',
   },

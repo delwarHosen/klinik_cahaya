@@ -1,13 +1,13 @@
 import { CustomButton } from '@/components/shared/CustomButton';
 import SectionTitle from '@/components/shared/SectionTitle';
 import { Caption1, H3, SpecialText } from '@/components/typo/Typography';
-import { DOCTORS } from '@/constants/fakeData';
 import { Colors } from '@/constants/theme';
-import { getImageSource } from '@/utils/imageSource';
+import { useGetDoctorByIdQuery } from '@/redux/services/doctorsApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import {
+  ActivityIndicator,
   Image,
   ScrollView,
   StyleSheet,
@@ -17,17 +17,35 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function DoctorDetailsScreen() {
   const router = useRouter();
-
-  
   const { id, doctorId } = useLocalSearchParams<{ id: string; doctorId: string }>();
-  const DOCTOR = DOCTORS.find((d) => d.id === (doctorId ?? id)) ?? DOCTORS[0];
+  const resolvedId = doctorId ?? id;
+
+  const { data, isLoading } = useGetDoctorByIdQuery(resolvedId);
+  const doctor = data?.data ?? data;
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <SectionTitle title="Doctor Details" />
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color={Colors.BRAND_PRIMARY} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!doctor) return null;
+
+  const specialties = typeof doctor.specialties === 'string'
+    ? doctor.specialties.split('|')
+    : doctor.specialties ?? [];
+
+  const consultationDays = doctor.consultation_days ?? '';
+  const consultationTime = doctor.consultation_time ?? '';
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-
-      <View>
-        <SectionTitle title="Doctor Details" />
-      </View>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <SectionTitle title="Doctor Details" />
 
       <ScrollView
         style={styles.scroll}
@@ -36,12 +54,12 @@ export default function DoctorDetailsScreen() {
       >
         {/* Doctor Card */}
         <View style={styles.profileRow}>
-          <Image source={getImageSource(DOCTOR.image)} style={styles.doctorImage} />
+          <Image source={{ uri: doctor.avatar_url }} style={styles.doctorImage} />
           <View style={styles.profileInfo}>
             <View style={styles.nameRow}>
-              <H3 style={styles.doctorName} numberOfLines={1}>{DOCTOR.name}</H3>
+              <H3 style={styles.doctorName} numberOfLines={1}>{doctor.name}</H3>
             </View>
-            <Caption1 style={styles.specialty}>{DOCTOR.fullSpecialty}</Caption1>
+            <Caption1 style={styles.specialty}>{doctor.specialization}</Caption1>
           </View>
         </View>
 
@@ -50,18 +68,18 @@ export default function DoctorDetailsScreen() {
         <View style={styles.timeRow}>
           <View style={styles.timeDot} />
           <View>
-            <Caption1 style={styles.timeText}>{DOCTOR.consultationDays}</Caption1>
-            <Caption1 style={styles.timeText}>{DOCTOR.consultationTime}</Caption1>
+            <Caption1 style={styles.timeText}>{consultationDays}</Caption1>
+            <Caption1 style={styles.timeText}>{consultationTime}</Caption1>
           </View>
         </View>
 
         {/* About */}
         <SpecialText style={styles.sectionTitle}>About</SpecialText>
-        <Caption1 style={styles.aboutText}>{DOCTOR.about}</Caption1>
+        <Caption1 style={styles.aboutText}>{doctor.about}</Caption1>
 
         {/* Services */}
         <SpecialText style={styles.sectionTitle}>Services</SpecialText>
-        {DOCTOR.services.map((service, index) => (
+        {specialties.map((service: string, index: number) => (
           <View key={index} style={styles.serviceRow}>
             <View style={styles.bullet} />
             <Caption1 style={styles.serviceText}>{service}</Caption1>
@@ -72,14 +90,13 @@ export default function DoctorDetailsScreen() {
       {/* Bottom Bar */}
       <View style={styles.bottomBar}>
         <CustomButton
-          title='Book Appointment'
+          title="Book Appointment"
           height={54}
-          width={"100%"}
+          width="100%"
           borderRadius={16}
-          onPress={() => router.push("/patient/doctors_info/information")}
+          onPress={() => router.push('/patient/doctors_info/information')}
         />
       </View>
-
     </SafeAreaView>
   );
 }
@@ -89,6 +106,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: wp(20),
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scroll: { flex: 1 },
   scrollContent: {
@@ -106,7 +128,7 @@ const styles = StyleSheet.create({
     height: hp(100),
     backgroundColor: '#dfefee',
     borderWidth: 1,
-    borderColor: "#dbf0ef",
+    borderColor: '#dbf0ef',
     borderRadius: 16,
   },
   profileInfo: { flex: 1, gap: 6 },
@@ -132,8 +154,11 @@ const styles = StyleSheet.create({
     gap: wp(12),
   },
   timeDot: {
-    width: 14, height: 14, borderRadius: 7,
-    borderWidth: 3, borderColor: Colors.ACCENT_YELLOW,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 3,
+    borderColor: Colors.ACCENT_YELLOW,
     marginTop: hp(10),
   },
   timeText: { color: Colors.TEXT_COLOR, marginBottom: 2 },
@@ -145,7 +170,9 @@ const styles = StyleSheet.create({
     marginBottom: hp(8),
   },
   bullet: {
-    width: 8, height: 8, borderRadius: 4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: Colors.BRAND_PRIMARY,
   },
   serviceText: { color: '#0D0D0D' },
@@ -154,9 +181,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.BORDER_COLOR,
     paddingTop: hp(12),
-    paddingBottom: hp(24),
-    paddingHorizontal: wp(20),
+    paddingBottom: hp(12),
     marginHorizontal: wp(-20),
-    marginBottom: hp(20),
+    paddingHorizontal: wp(20),
   },
 });

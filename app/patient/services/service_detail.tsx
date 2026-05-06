@@ -1,23 +1,24 @@
+import { RightAngleIcon } from '@/assets/icons/common_icon/RightAngleIcon';
 import { AntenatalIcon } from '@/assets/icons/patient_icon/AntenatalIcon';
 import { GeneralIcon } from '@/assets/icons/patient_icon/GenaralIcon';
 import { PediatricIcon } from '@/assets/icons/patient_icon/PediatricIcon';
 import { VaccinesIcon } from '@/assets/icons/patient_icon/VaccinesIcon';
-import { CustomButton } from '@/components/shared/CustomButton';
 import SectionTitle from '@/components/shared/SectionTitle';
 import { Body2, Caption1, Caption2, H3, H6 } from '@/components/typo/Typography';
-import { DOCTORS, SERVICE_NAMES } from '@/constants/fakeData';
 import { Colors } from '@/constants/theme';
-import { getImageSource } from '@/utils/imageSource';
+import { useGetServiceByIdQuery } from '@/redux/services/servicesApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import {
+    ActivityIndicator,
     Image,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
     View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const SERVICE_ICONS: Record<string, React.ReactNode> = {
     '1': <GeneralIcon />,
@@ -28,16 +29,27 @@ const SERVICE_ICONS: Record<string, React.ReactNode> = {
     '6': <AntenatalIcon />,
 };
 
-import { SafeAreaView } from 'react-native-safe-area-context';
-
 export default function ServiceDetailScreen() {
     const router = useRouter();
     const { serviceId } = useLocalSearchParams<{ serviceId: string }>();
 
-    const service = SERVICE_NAMES.find(s => s.id === serviceId) ?? SERVICE_NAMES[0];
-    const relatedDoctors = DOCTORS.filter(d => service.doctorIds.includes(d.id));
+    const { data, isLoading } = useGetServiceByIdQuery(serviceId ?? '1');
 
-    const isFree = service.id === '6';
+    if (isLoading) {
+        return (
+            <SafeAreaView style={styles.container} edges={['top']}>
+                <SectionTitle title="Service Details" />
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color={Colors.BRAND_PRIMARY} />
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+    const service = data?.service;
+    const doctors: any[] = data?.doctors ?? [];
+
+    if (!service) return null;
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
@@ -50,10 +62,18 @@ export default function ServiceDetailScreen() {
                 {/* Hero Card */}
                 <View style={styles.heroCard}>
                     <View style={styles.heroIconWrapper}>
-                        {SERVICE_ICONS[service.id]}
+                        {service.image_url ? (
+                            <Image
+                                source={{ uri: service.image_url }}
+                                style={styles.heroImage}
+                                resizeMode="contain"
+                            />
+                        ) : (
+                            SERVICE_ICONS[String(service.id)] ?? <GeneralIcon />
+                        )}
                     </View>
                     <View style={styles.heroInfo}>
-                        <H3 style={styles.heroTitle}>{service.name}</H3>
+                        <H3 style={styles.heroTitle}>{service.title}</H3>
                         <Caption1 style={styles.heroSubtitle}>{service.subtitle}</Caption1>
                     </View>
                 </View>
@@ -61,25 +81,25 @@ export default function ServiceDetailScreen() {
                 {/* Price Badge */}
                 <View style={styles.priceRow}>
                     <View style={styles.priceBadge}>
-                        <Caption2 style={styles.priceLabel}>Anggaran Harga</Caption2>
+                        <Caption2 style={styles.priceLabel}>Price Range</Caption2>
                         <H6 style={styles.priceValue} color={Colors.BRAND_PRIMARY}>
-                            {service.price}
+                            {service.price_range}
                         </H6>
                     </View>
                 </View>
 
                 {/* Description */}
                 <View style={styles.section}>
-                    <H6 style={styles.sectionTitle}>Tentang Perkhidmatan</H6>
+                    <H6 style={styles.sectionTitle}>About Service</H6>
                     <Body2 style={styles.description}>{service.description}</Body2>
                 </View>
 
-                {/* Related Doctors */}
-                {relatedDoctors.length > 0 && (
+                {/* Doctors */}
+                {doctors.length > 0 && (
                     <View style={styles.section}>
-                        <H6 style={styles.sectionTitle}>Doktor Berkaitan</H6>
+                        <H6 style={styles.sectionTitle}>Available Doctors</H6>
                         <View style={styles.doctorsList}>
-                            {relatedDoctors.map(doctor => (
+                            {doctors.map((doctor: any) => (
                                 <TouchableOpacity
                                     key={doctor.id}
                                     style={styles.doctorCard}
@@ -90,7 +110,7 @@ export default function ServiceDetailScreen() {
                                     })}
                                 >
                                     <Image
-                                        source={getImageSource(doctor.image)}
+                                        source={{ uri: doctor.avatar_url }}
                                         style={styles.doctorImg}
                                     />
                                     <View style={styles.doctorInfo}>
@@ -103,49 +123,30 @@ export default function ServiceDetailScreen() {
                                         </Caption1>
                                         <Caption2
                                             color="#888"
-                                            numberOfLines={2}
+                                            numberOfLines={1}
                                             style={{ marginTop: 2 }}
                                         >
-                                            {doctor.fullSpecialty}
+                                            {doctor.specialization}
+                                        </Caption2>
+                                        <Caption2
+                                            color="#aaa"
+                                            numberOfLines={1}
+                                            style={{ marginTop: 2 }}
+                                        >
+                                            {doctor.consultation_days?.split(',').slice(0, 2).join(', ')}
+                                            {' · '}
+                                            {doctor.consultation_time}
                                         </Caption2>
                                     </View>
-                                    {/* <View style={styles.tierBadge}>
-                                        <Caption2 style={[
-                                            styles.tierText,
-                                            { color: doctor.tier === 'Tier 1' ? '#388E3C' : '#F57C00' }
-                                        ]}>
-                                            {doctor.tier}
-                                        </Caption2>
-                                    </View> */}
+                                    <RightAngleIcon color={Colors.BRAND_PRIMARY} />
                                 </TouchableOpacity>
                             ))}
                         </View>
                     </View>
                 )}
 
-                <View style={{ height: hp(100) }} />
+                <View style={{ height: hp(60) }} />
             </ScrollView>
-
-            {/* Bottom CTA */}
-            <View style={styles.bottomBar}>
-                {isFree ? (
-                    <CustomButton
-                        title="Baca Artikel"
-                        onPress={() => { }}
-                        width="100%"
-                        height={hp(54)}
-                        borderRadius={14}
-                    />
-                ) : (
-                    <CustomButton
-                        title="Select Doctors"
-                        onPress={() => router.push('/patient/booking_appointment/book_appointment' as any)}
-                        width="100%"
-                        height={hp(54)}
-                        borderRadius={14}
-                    />
-                )}
-            </View>
         </SafeAreaView>
     );
 }
@@ -160,8 +161,6 @@ const styles = StyleSheet.create({
         paddingTop: hp(16),
         paddingBottom: hp(20),
     },
-
-    // ── Hero ──
     heroCard: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -174,28 +173,20 @@ const styles = StyleSheet.create({
         marginBottom: hp(16),
     },
     heroIconWrapper: {
+        width: 56,
+        height: 56,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    heroEmoji: {
-        fontSize: 48,
+    heroImage: {
+        width: 56,
+        height: 56,
+        borderRadius: 10,
     },
-    heroInfo: {
-        flex: 1,
-    },
-    heroTitle: {
-        color: Colors.BRAND_PRIMARY,
-        fontWeight: '700',
-    },
-    heroSubtitle: {
-        color: '#888888',
-        marginTop: 4,
-    },
-
-    // ── Price ──
-    priceRow: {
-        marginBottom: hp(20),
-    },
+    heroInfo: { flex: 1 },
+    heroTitle: { color: Colors.BRAND_PRIMARY, fontWeight: '700' },
+    heroSubtitle: { color: '#888888', marginTop: 4 },
+    priceRow: { marginBottom: hp(20) },
     priceBadge: {
         backgroundColor: '#EBF6FA',
         borderRadius: 12,
@@ -206,29 +197,25 @@ const styles = StyleSheet.create({
     },
     priceLabel: {
         color: '#666',
-        marginBottom: 4,
+        marginBottom: 4
     },
     priceValue: {
-        fontWeight: '700',
+        fontWeight: '700'
     },
-
-    // ── Section ──
     section: {
-        marginBottom: hp(24),
+        marginBottom: hp(24)
     },
     sectionTitle: {
         color: '#1A1A1A',
         fontWeight: '700',
-        marginBottom: hp(12),
+        marginBottom: hp(12)
     },
     description: {
         color: '#444444',
-        lineHeight: 24,
+        lineHeight: 24
     },
-
-    // ── Doctors ──
     doctorsList: {
-        gap: hp(10),
+        gap: hp(10)
     },
     doctorCard: {
         flexDirection: 'row',
@@ -246,31 +233,5 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         backgroundColor: '#F0F0F0',
     },
-    doctorInfo: {
-        flex: 1,
-    },
-    tierBadge: {
-        backgroundColor: '#F5F5F5',
-        borderRadius: 8,
-        paddingHorizontal: wp(8),
-        paddingVertical: hp(4),
-    },
-    tierText: {
-        fontSize: 11,
-        fontWeight: '700',
-    },
-
-    // ── Bottom Bar ──
-    bottomBar: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: '#FFFFFF',
-        borderTopWidth: 1,
-        borderTopColor: Colors.BORDER_COLOR,
-        paddingHorizontal: wp(20),
-        paddingTop: hp(12),
-        paddingBottom: hp(40),
-    },
+    doctorInfo: { flex: 1 },
 });

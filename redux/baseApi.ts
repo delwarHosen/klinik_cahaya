@@ -6,7 +6,8 @@ import { router } from 'expo-router';
 
 const baseQuery = fetchBaseQuery({
   // baseUrl: 'https://knx.up.railway.app',
-  baseUrl: 'http://10.10.20.46:7000',
+  baseUrl: 'https://knx.up.railway.app',
+  // baseUrl: 'http://10.10.20.46:7000',
   prepareHeaders: async (headers) => {
     return headers;
   },
@@ -76,6 +77,6 @@ function getErrorMessage(status: number | string): string {
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithAuth,
-  tagTypes: ['Auth', 'Patient', 'Admin', 'Appointments', 'Doctors', 'Queue'], 
+  tagTypes: ['Auth','Profile', 'Patient', 'Admin', 'Appointments', 'Doctors', 'Queue'], 
   endpoints: () => ({}),
 });

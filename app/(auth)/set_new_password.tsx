@@ -43,9 +43,8 @@ export default function CreateNewPasswordScreen() {
     }
 
     try {
-      // AsyncStorage থেকে token নিন
-      const accessToken = await AsyncStorage.getItem('access_token');
-      console.log('🔑 Access token for reset:', accessToken);
+      const accessToken = await AsyncStorage.getItem('access_token'); // ← access_token
+      console.log('🔑 Token:', accessToken);
 
       if (!accessToken) {
         showToast('Session expired. Please request a new reset link.', 'error');
@@ -55,7 +54,7 @@ export default function CreateNewPasswordScreen() {
       await resetPassword({
         new_password: newPassword,
         confirm_password: confirmPassword,
-        access_token: accessToken, // ← token পাঠান
+        access_token: accessToken,
       }).unwrap();
 
       setShowSuccessModal(true);
@@ -122,7 +121,6 @@ export default function CreateNewPasswordScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      {/* Success Modal */}
       <Modal
         visible={showSuccessModal}
         transparent={true}
@@ -159,13 +157,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.APP_BACKGROUND,
   },
-
   header: {
     paddingHorizontal: wp(20),
     paddingTop: hp(20),
     paddingBottom: hp(5),
   },
-
   backButton: {
     width: 52,
     height: 52,
@@ -174,20 +170,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
   container: {
     flex: 1,
     paddingHorizontal: wp(20),
     paddingTop: hp(35),
   },
-
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-
   modalContainer: {
     width: wp(320),
     alignItems: 'center',
@@ -195,7 +188,6 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingHorizontal: wp(24),
     paddingVertical: hp(32),
-
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -208,17 +200,14 @@ const styles = StyleSheet.create({
       },
     }),
   },
-
   successIconWrapper: {
     marginBottom: hp(16),
   },
-
   modalTitle: {
     textAlign: 'center',
     fontSize: 22,
     marginBottom: hp(8),
   },
-
   modalDescription: {
     textAlign: 'center',
     lineHeight: 22,

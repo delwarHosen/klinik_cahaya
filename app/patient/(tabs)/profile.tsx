@@ -43,7 +43,7 @@ export default function ProfileScreen() {
     }
   }
 
-  // ✅ সব data mapping
+  
   const name = data?.name ?? '-'
   const icNumber = data?.ic_number ?? '-'
   const phone = data?.steps?.profile?.data?.phone ?? '-'

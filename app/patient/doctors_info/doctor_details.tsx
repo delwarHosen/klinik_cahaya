@@ -11,7 +11,7 @@ import {
   Image,
   ScrollView,
   StyleSheet,
-  View
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -22,6 +22,8 @@ export default function DoctorDetailsScreen() {
 
   const { data, isLoading } = useGetDoctorByIdQuery(resolvedId);
   const doctor = data?.data ?? data;
+
+  // console.log('Doctors', doctor);
 
   if (isLoading) {
     return (
@@ -36,9 +38,10 @@ export default function DoctorDetailsScreen() {
 
   if (!doctor) return null;
 
-  const specialties = typeof doctor.specialties === 'string'
-    ? doctor.specialties.split('|')
-    : doctor.specialties ?? [];
+  const specialties =
+    typeof doctor.specialties === 'string'
+      ? doctor.specialties.split('|')
+      : doctor.specialties ?? [];
 
   const consultationDays = doctor.consultation_days ?? '';
   const consultationTime = doctor.consultation_time ?? '';
@@ -57,14 +60,18 @@ export default function DoctorDetailsScreen() {
           <Image source={{ uri: doctor.avatar_url }} style={styles.doctorImage} />
           <View style={styles.profileInfo}>
             <View style={styles.nameRow}>
-              <H3 style={styles.doctorName} numberOfLines={1}>{doctor.name}</H3>
+              <H3 style={styles.doctorName} numberOfLines={1}>
+                {doctor.name}
+              </H3>
             </View>
             <Caption1 style={styles.specialty}>{doctor.specialization}</Caption1>
           </View>
         </View>
 
         {/* Consultation Time */}
-        <SpecialText style={styles.sectionTitle}>Appointment Consultation Time</SpecialText>
+        <SpecialText style={styles.sectionTitle}>
+          Appointment Consultation Time
+        </SpecialText>
         <View style={styles.timeRow}>
           <View style={styles.timeDot} />
           <View>
@@ -94,7 +101,15 @@ export default function DoctorDetailsScreen() {
           height={54}
           width="100%"
           borderRadius={16}
-          onPress={() => router.push('/patient/doctors_info/information')}
+          onPress={() =>
+            router.push({
+              pathname: '/patient/doctors_info/information' as any,
+              params: {
+                id: resolvedId,
+                consultationTime,
+              },
+            })
+          }
         />
       </View>
     </SafeAreaView>

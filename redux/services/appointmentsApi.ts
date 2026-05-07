@@ -5,11 +5,11 @@ export const appointmentsApi = baseApi.injectEndpoints({
 
     // GET /appointments/patient/phone?phone=xxx
     getAppointmentsByPhone: builder.query({
-      query: (phone: string) => `/appointments/patient/phone?phone=${phone}`,
-      providesTags: (result, error, phone) => [
-        { type: 'Appointments', id: phone },
-      ],
-      keepUnusedDataFor: 300, // 5 মিনিট cache
+      query: (phone: string) => `/approval/appointments/patient`,
+      // Use the generic 'Appointments' tag so createAppointment's
+      // invalidatesTags: ['Appointments'] triggers a refetch here
+      providesTags: ['Appointments'],
+      keepUnusedDataFor: 300,
     }),
 
   }),

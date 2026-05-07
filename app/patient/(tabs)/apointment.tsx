@@ -3,45 +3,123 @@ import SectionTitle from '@/components/shared/SectionTitle';
 import { Body1, Body2, Caption1, Caption3, H6 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
 import { useGetAppointmentsByPhoneQuery } from '@/redux/services/appointmentsApi';
+import { useGetProfileQuery } from '@/redux/services/authApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// TODO: replace with actual logged-in user's phone from auth context
-const PATIENT_PHONE = '60179224970';
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type TabType = 'Upcoming' | 'Completed' | 'Canceled';
 
-function mapStatus(apiStatus: string): string {
+interface Appointment {
+  id: string;
+  date: string;         // "2026-05-19"
+  time: string;         // "22:00"
+  doctor_name: string;
+  doctor_phone: number;
+  patient_name: string;
+  patient_phone: number;
+  reason: string;
+  status: string;       // "pending" | "confirmed" | "completed" | "cancelled"
+  created_at: string;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Maps API status → UI tab label.
+ * "pending" and "confirmed" both appear under Upcoming.
+ */
+function mapStatus(apiStatus: string): TabType {
   switch (apiStatus) {
-    case 'received': return 'Upcoming';
-    case 'confirmed': return 'Upcoming';
-    case 'completed': return 'Completed';
-    case 'cancelled': return 'Canceled';
-    default: return 'Upcoming';
+    case 'pending':
+    case 'received':
+    case 'confirmed':
+      return 'Upcoming';
+    case 'completed':
+      return 'Completed';
+    case 'cancelled':
+    case 'canceled':
+      return 'Canceled';
+    default:
+      return 'Upcoming';
   }
 }
+
+/** "2026-05-19" + "22:00" → "19 May 2026" and "10:00 PM" */
+function formatDateTime(date: string, time: string): { displayDate: string; displayTime: string } {
+  const [year, month, day] = date.split('-').map(Number);
+  const [hStr, mStr] = time.split(':');
+  const h    = parseInt(hStr, 10);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12  = h % 12 === 0 ? 12 : h % 12;
+
+  const dateObj    = new Date(year, month - 1, day);
+  const displayDate = dateObj.toLocaleDateString('en-MY', {
+    day: '2-digit', month: 'short', year: 'numeric',
+  });
+  const displayTime = `${String(h12).padStart(2, '0')}:${mStr} ${ampm}`;
+
+  return { displayDate, displayTime };
+}
+
+// ─── Status style helpers ─────────────────────────────────────────────────────
+
+const getStatusBg = (s: TabType) => {
+  if (s === 'Upcoming')  return Colors.ACCENT_YELLOW;
+  return 'transparent';
+};
+
+const getStatusBorderColor = (s: TabType) => {
+  if (s === 'Completed') return Colors.BRAND_PRIMARY;
+  if (s === 'Canceled')  return Colors.COLOR_DANGER;
+  return 'transparent';
+};
+
+const getStatusTextColor = (s: TabType) => {
+  if (s === 'Upcoming')  return '#000';
+  if (s === 'Completed') return Colors.BRAND_PRIMARY;
+  if (s === 'Canceled')  return Colors.COLOR_DANGER;
+  return '#666';
+};
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AppointmentScreen() {
   const [activeTab, setActiveTab] = useState<TabType>('Upcoming');
   const router = useRouter();
 
-  const { data, isLoading } = useGetAppointmentsByPhoneQuery(PATIENT_PHONE);
-  const appointments = data?.appointments ?? [];
+  // ── Profile → phone ────────────────────────────────────────────────────────
+  const { data: profileData, isLoading: profileLoading } = useGetProfileQuery({});
+  const phone = profileData?.steps?.profile?.data?.phone ?? '';
 
-  const filteredData = appointments.filter((item: any) => {
-    const mapped = mapStatus(item.status);
-    return mapped === activeTab;
+  // ── Appointments ───────────────────────────────────────────────────────────
+  const { data, isLoading: appointmentsLoading } = useGetAppointmentsByPhoneQuery(phone, {
+    skip: !phone,
   });
 
+  const isLoading    = profileLoading || appointmentsLoading;
+  const appointments: Appointment[] = data?.appointments ?? data ?? [];
+
+  const filteredData = appointments.filter(
+    (item) => mapStatus(item.status) === activeTab,
+  );
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.container}>
-      <PageLoader visible={isLoading} title="LOADING" subtitle="Fetching your appointments..." />
+      <PageLoader
+        visible={isLoading}
+        title="LOADING"
+        subtitle="Fetching your appointments..."
+      />
 
       <SectionTitle title="Appointments" />
 
+      {/* ── Tabs ── */}
       <View style={styles.tabContainer}>
         {(['Upcoming', 'Completed', 'Canceled'] as TabType[]).map((tab) => (
           <TouchableOpacity
@@ -56,48 +134,55 @@ export default function AppointmentScreen() {
         ))}
       </View>
 
+      {/* ── List ── */}
       <FlatList
         data={filteredData}
-        keyExtractor={(item: any) => String(item.id)}
-        renderItem={({ item }: { item: any }) => {
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => {
           const mapped = mapStatus(item.status);
-          const dateObj = new Date(item.start);
-          const date = dateObj.toLocaleDateString('en-MY', { day: '2-digit', month: 'short', year: 'numeric' });
-          const time = dateObj.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit', hour12: true });
-          const serviceName = item.services?.[0]?.name ?? '-';
+          const { displayDate, displayTime } = formatDateTime(item.date, item.time);
 
           return (
             <TouchableOpacity
               style={styles.card}
               activeOpacity={0.8}
-              onPress={() => router.push({
-                pathname: '/patient/booking_appointment/appointment_details' as any,
-                params: { appointmentId: item.id },
-              })}
+              onPress={() =>
+                router.push({
+                  pathname: '/patient/booking_appointment/appointment_details' as any,
+                  params: { appointmentId: item.id },
+                })
+              }
             >
               <View style={styles.cardContent}>
                 <View style={{ flex: 1 }}>
-                  <H6 color={Colors.TEXT_COLOR}>{item.provider?.name}</H6>
+                  {/* Doctor name */}
+                  <H6 color={Colors.TEXT_COLOR}>{item.doctor_name}</H6>
+
+                  {/* Reason */}
                   <Caption3 color="#818181" numberOfLines={1} style={{ marginTop: 5 }}>
-                    {serviceName}
+                    {item.reason}
                   </Caption3>
+
                   <View style={styles.infoRow}>
+                    {/* Patient name */}
                     <Body2 color="#0D0D0D" style={{ marginTop: hp(8) }} weight="regular">
-                      {item.lead?.name}
+                      {item.patient_name}
                     </Body2>
+                    {/* Date & Time */}
                     <Body1 weight="semiBold" color={Colors.TEXT_COLOR} numberOfLines={1}>
-                      {time} | {date}
+                      {displayTime} | {displayDate}
                     </Body1>
                   </View>
                 </View>
 
+                {/* Status badge */}
                 <View style={[
                   styles.statusBadge,
                   {
                     backgroundColor: getStatusBg(mapped),
-                    borderWidth: (mapped === 'Completed' || mapped === 'Canceled') ? 1 : 0,
+                    borderWidth: mapped !== 'Upcoming' ? 1 : 0,
                     borderColor: getStatusBorderColor(mapped),
-                  }
+                  },
                 ]}>
                   <Caption1 weight="regular" color={getStatusTextColor(mapped)}>
                     {mapped}
@@ -121,25 +206,7 @@ export default function AppointmentScreen() {
   );
 }
 
-const getStatusBg = (s: string) => {
-  if (s === 'Upcoming') return Colors.ACCENT_YELLOW;
-  if (s === 'Completed') return 'transparent';
-  if (s === 'Canceled') return 'transparent';
-  return '#F0F0F0';
-};
-
-const getStatusBorderColor = (s: string) => {
-  if (s === 'Completed') return Colors.BRAND_PRIMARY;
-  if (s === 'Canceled') return Colors.COLOR_DANGER;
-  return 'transparent';
-};
-
-const getStatusTextColor = (s: string) => {
-  if (s === 'Upcoming') return '#000';
-  if (s === 'Completed') return Colors.BRAND_PRIMARY;
-  if (s === 'Canceled') return Colors.COLOR_DANGER;
-  return '#666';
-};
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {

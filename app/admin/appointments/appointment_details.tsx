@@ -2,7 +2,6 @@ import { BookingConfirmedModal } from '@/components/appointment/BookingConfirmed
 import { ExpandableSection, InfoRow } from '@/components/appointment/ExpandableSection'
 import { RejectConfirmModal } from '@/components/appointment/RejectConfirmModal'
 import { RejectReasonModal } from '@/components/appointment/RejectReasonModal'
-import { DateTimePickerModal } from '@/components/booking/DateTimePickerModal'
 import { CustomButton } from '@/components/shared/CustomButton'
 import SectionTitle from '@/components/shared/SectionTitle'
 import { Caption1, Caption2, Caption4, H3, SpecialText } from '@/components/typo/Typography'
@@ -263,13 +262,13 @@ export default function AppointmentDetailsScreen() {
         onCancel={() => setShowRejectReason(false)}
         onSave={handleSaveReason}
       />
-      <DateTimePickerModal
+      {/* <DateTimePickerModal
         visible={rescheduleVisible}
         onClose={() => setRescheduleVisible(false)}
         onConfirm={handleRescheduleConfirm}
         disabledDates={['2026-05-10', '2026-05-15', '2026-05-18']}
         disabledTimes={['09:00 AM', '09:30 AM', '02:30 PM', '01:30 PM']}
-      />
+      /> */}
     </SafeAreaView>
   )
 }

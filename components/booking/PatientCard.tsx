@@ -3,7 +3,7 @@ import { Caption1, H6 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
 import { hp, wp } from '@/utils/responsiveDevice';
 import React from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface Props {
     patientName: string;
@@ -38,14 +38,14 @@ export function PatientCard({
             />
 
             {/* Details */}
-            <TextInput
+            {/* <TextInput
                 style={styles.textInput}
                 placeholder="write here details....."
                 placeholderTextColor="#999"
                 multiline
                 value={details}
                 onChangeText={onChangeDetails}
-            />
+            /> */}
 
             {/* Date & Time */}
             <TouchableOpacity style={styles.row} onPress={onPressDateTime}>

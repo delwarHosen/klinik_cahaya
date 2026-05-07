@@ -6,8 +6,8 @@ import { router } from 'expo-router';
 
 const baseQuery = fetchBaseQuery({
   // baseUrl: 'https://knx.up.railway.app',
-  baseUrl: 'https://knx.up.railway.app',
-  // baseUrl: 'http://10.10.20.46:7000',
+  // baseUrl: 'https://knx.up.railway.app',
+  baseUrl: 'http://10.10.20.46:7000',
   prepareHeaders: async (headers) => {
     return headers;
   },
@@ -16,8 +16,8 @@ const baseQuery = fetchBaseQuery({
 const baseQueryWithAuth = async (args: any, api: any, extraOptions: any) => {
 
   const token = await AsyncStorage.getItem('access_token');
-  console.log('🔑 Token:', token);
-  console.log('📍 URL:', typeof args === 'string' ? args : args?.url);
+  // console.log('🔑 Token:', token);
+  // console.log('📍 URL:', typeof args === 'string' ? args : args?.url);
 
   const modifiedArgs =
     typeof args === 'string'
@@ -77,6 +77,6 @@ function getErrorMessage(status: number | string): string {
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithAuth,
-  tagTypes: ['Auth','Profile', 'Patient', 'Admin', 'Appointments', 'Doctors', 'Queue'], 
+  tagTypes: ['Auth','Profile', 'Patient', 'Admin', 'Appointments', 'Doctors', 'Queue','DoctorAvailability','AppointmentMembers','AdminUpcoming', 'AdminBookingRequest', 'AdminBookingCount'], 
   endpoints: () => ({}),
 });

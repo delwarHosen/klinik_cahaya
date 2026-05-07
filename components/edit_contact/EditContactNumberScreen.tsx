@@ -1,17 +1,45 @@
 import { CustomButton } from '@/components/shared/CustomButton'
 import SectionTitle from '@/components/shared/SectionTitle'
 import { Colors } from '@/constants/theme'
+import { useUpdatePhoneMutation } from '@/redux/services/authApi'
 import { hp, wp } from '@/utils/responsiveDevice'
 import React, { useState } from 'react'
-import { StyleSheet, TextInput, View } from 'react-native'
+import { Alert, StyleSheet, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 interface Props {
   onSendOtp: (phone: string) => void
 }
 
+const toE164 = (input: string): string => {
+  const digits = input.replace(/\D/g, '')
+  if (input.trim().startsWith('+')) return `+${digits}`
+  if (digits.startsWith('0')) return `+880${digits.slice(1)}`
+  return `+880${digits}`
+}
+
 export function EditContactNumberScreen({ onSendOtp }: Props) {
-  const [phone, setPhone] = useState('+60 12 4523784')
+  const [phone, setPhone] = useState('')
+  const [updatePhone, { isLoading }] = useUpdatePhoneMutation()
+
+  const handleSendOtp = async () => {
+    if (!phone.trim()) {
+      Alert.alert('Error', 'Please enter a phone number.')
+      return
+    }
+
+    const formatted = toE164(phone)
+
+    try {
+      await updatePhone({ phone: formatted }).unwrap()
+      onSendOtp(formatted)
+    } catch (err: any) {
+      Alert.alert(
+        'Error',
+        err?.data?.detail?.msg ?? err?.data?.message ?? 'Failed to update phone number.'
+      )
+    }
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -20,6 +48,8 @@ export function EditContactNumberScreen({ onSendOtp }: Props) {
       <View style={styles.content}>
         <View style={styles.fieldBox}>
           <TextInput
+            placeholder="+8801XXXXXXXXX"
+            placeholderTextColor="#AAAAAA"
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
@@ -28,8 +58,9 @@ export function EditContactNumberScreen({ onSendOtp }: Props) {
         </View>
 
         <CustomButton
-          title="Send OTP"
-          onPress={() => onSendOtp(phone)}
+          title={isLoading ? 'Sending...' : 'Send OTP'}
+          onPress={handleSendOtp}
+          disabled={isLoading}
           height={64}
           width="100%"
           borderRadius={16}

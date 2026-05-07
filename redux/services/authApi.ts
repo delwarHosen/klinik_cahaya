@@ -99,8 +99,6 @@ export const authApi = baseApi.injectEndpoints({
     }),
 
     // Reset Password
-    // baseQueryWithAuth এ access_token automatically যায়,
-    // কিন্তু reset এ আলাদা reset token লাগে তাই manually override করা হচ্ছে
     resetPassword: builder.mutation({
       query: ({ access_token, new_password, confirm_password }) => ({
         url: '/auth/change_password',
@@ -112,11 +110,44 @@ export const authApi = baseApi.injectEndpoints({
       }),
     }),
 
+
+    // change password
+    changePassword: builder.mutation({
+      query: (data) => ({
+        url: '/auth/change_password',
+        method: 'POST',
+        body: data,
+      }),
+    }),
+
     // Get Profile
     getProfile: builder.query({
       query: () => '/auth/onboarding',
       providesTags: ['Auth'],
-      keepUnusedDataFor: 300, // 5 মিনিট cache
+      keepUnusedDataFor: 300,
+    }),
+
+    // Profile — Update Insurance (PATCH)
+    updateInsurancePatch: builder.mutation({
+      query: (body) => ({ url: '/auth/profile/insurance', method: 'PATCH', body }),
+      invalidatesTags: ['Auth'],
+    }),
+
+    // Profile — Update Photo
+    updatePhoto: builder.mutation({
+      query: (body) => ({ url: '/auth/profile/photo', method: 'POST', body }),
+      invalidatesTags: ['Auth'],
+    }),
+
+
+    // Edit phone
+    updatePhone: builder.mutation({
+      query: (data) => ({
+        url: '/auth/profile/phone',
+        method: 'PATCH',
+        body: data,
+      }),
+      invalidatesTags: ['Auth'],
     }),
 
   }),
@@ -136,4 +167,8 @@ export const {
   useGetProfileQuery,
   useForgotPasswordMutation,
   useResetPasswordMutation,
+  useChangePasswordMutation,
+  useUpdateInsurancePatchMutation,
+  useUpdatePhotoMutation,
+  useUpdatePhoneMutation 
 } = authApi;

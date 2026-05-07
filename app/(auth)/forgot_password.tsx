@@ -63,7 +63,7 @@ export default function ForgotPasswordScreen() {
     Keyboard.dismiss();
     handledRef.current = false;
 
-    // Register এর মতো — deep link এলে সাথে সাথে handle করো
+    
     const subscription = Linking.addEventListener('url', (event) => {
       tryNavigateWithToken(event.url);
     });

@@ -5,9 +5,8 @@ import { createApi, fetchBaseQuery, FetchBaseQueryError } from '@reduxjs/toolkit
 import { router } from 'expo-router';
 
 const baseQuery = fetchBaseQuery({
-  // baseUrl: 'https://knx.up.railway.app',
-  // baseUrl: 'https://knx.up.railway.app',
-  baseUrl: 'http://10.10.20.46:7000',
+  baseUrl: 'https://knx.up.railway.app',
+  // baseUrl: 'http://10.10.20.46:7000',
   prepareHeaders: async (headers) => {
     return headers;
   },

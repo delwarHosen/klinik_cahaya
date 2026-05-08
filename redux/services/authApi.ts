@@ -110,8 +110,7 @@ export const authApi = baseApi.injectEndpoints({
       }),
     }),
 
-
-    // change password
+    // Change Password
     changePassword: builder.mutation({
       query: (data) => ({
         url: '/auth/change_password',
@@ -139,7 +138,6 @@ export const authApi = baseApi.injectEndpoints({
       invalidatesTags: ['Auth'],
     }),
 
-
     // Edit phone
     updatePhone: builder.mutation({
       query: (data) => ({
@@ -147,6 +145,12 @@ export const authApi = baseApi.injectEndpoints({
         method: 'PATCH',
         body: data,
       }),
+      invalidatesTags: ['Auth'],
+    }),
+
+    // Profile — Update Medical (PATCH)
+    updateMedicalPatch: builder.mutation({
+      query: (body) => ({ url: '/auth/profile/medical', method: 'PATCH', body }),
       invalidatesTags: ['Auth'],
     }),
 
@@ -170,5 +174,6 @@ export const {
   useChangePasswordMutation,
   useUpdateInsurancePatchMutation,
   useUpdatePhotoMutation,
-  useUpdatePhoneMutation 
+  useUpdatePhoneMutation,
+  useUpdateMedicalPatchMutation,
 } = authApi;

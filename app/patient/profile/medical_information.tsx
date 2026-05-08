@@ -1,232 +1,332 @@
-import { DownArrowIcon } from '@/assets/icons/patient_icon/DownArrowIcon'
-import { UpArrowIcon } from '@/assets/icons/patient_icon/UpArrowIcon'
-import { CustomButton } from '@/components/shared/CustomButton'
-import SectionTitle from '@/components/shared/SectionTitle'
-import { Caption2, H6 } from '@/components/typo/Typography'
-import { Colors } from '@/constants/theme'
-import { hp, wp } from '@/utils/responsiveDevice'
-import { useRouter } from 'expo-router'
-import React, { useState } from 'react'
+import { DownArrowIcon } from '@/assets/icons/patient_icon/DownArrowIcon';
+import { UpArrowIcon } from '@/assets/icons/patient_icon/UpArrowIcon';
+import { FormInput } from '@/components/inputForm/inputForm';
+import { CustomButton } from '@/components/shared/CustomButton';
+import CustomLoader from '@/components/shared/CustomLoader';
+import SectionTitle from '@/components/shared/SectionTitle';
+import { showToast } from '@/components/shared/Toast';
+import { Body2, Body3 } from '@/components/typo/Typography';
+import { Colors } from '@/constants/theme';
+import { useGetProfileQuery, useUpdateMedicalPatchMutation } from '@/redux/services/authApi';
+import { hp, wp } from '@/utils/responsiveDevice';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  View
-} from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const ALLERGY_OPTIONS = [
-  'Insect Sting Allergies',
-  'Seasonal Allergies',
   'Food Allergies',
-  'Pet Allergies',
-  'Drug Allergies',
-]
+  'Seasonal Allergies',
+  'Animal Allergies',
+  'Dust Allergies',
+];
 
-const CONDITION_OPTIONS = [
-  'Hyper Tension',
-  'Asthma',
-  'Diabetes',
-  'Heart Disease',
-  'Arthritis',
-]
-
-const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-']
+const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 export default function MedicalInformationScreen() {
-  const [bloodGroup, setBloodGroup] = useState('A+')
-  const [selectedAllergies, setSelectedAllergies] = useState<string[]>([
-    'Insect Sting Allergies',
-    'Seasonal Allergies',
-  ])
-  const [selectedConditions, setSelectedConditions] = useState<string[]>([
-    'Hyper Tension',
-    'Asthma',
-  ])
-  const [showBloodDropdown, setShowBloodDropdown] = useState(false)
-  const [showAllergyDropdown, setShowAllergyDropdown] = useState(false)
   const router = useRouter();
+  const { data, isLoading: profileLoading } = useGetProfileQuery({});
+  const [updateMedical, { isLoading }] = useUpdateMedicalPatchMutation();
 
-  const toggleAllergy = (item: string) => {
+  const [bloodGroup, setBloodGroup] = useState('');
+  const [showBloodModal, setShowBloodModal] = useState(false);
+
+  const [selectedAllergies, setSelectedAllergies] = useState<string[]>([]);
+  const [showAllergyModal, setShowAllergyModal] = useState(false);
+
+  const [medicalCondition, setMedicalCondition] = useState('');
+  const [medication, setMedication] = useState('');
+
+  // Pre-fill existing data from profile
+  useEffect(() => {
+    const medicalData = data?.steps?.medical?.data;
+    if (!medicalData) return;
+
+    if (medicalData.blood_group) setBloodGroup(medicalData.blood_group);
+
+    if (medicalData.allergies?.length) {
+      const matched = medicalData.allergies
+        .map((a: any) => a.name)
+        .filter((name: string) => ALLERGY_OPTIONS.includes(name));
+      setSelectedAllergies(matched);
+    }
+
+    if (medicalData.medical_condition?.length) {
+      setMedicalCondition(medicalData.medical_condition.join(', '));
+    }
+
+    if (medicalData.medication?.length) {
+      setMedication(medicalData.medication.join(', '));
+    }
+  }, [data]);
+
+  const toggleAllergy = (allergy: string) => {
     setSelectedAllergies(prev =>
-      prev.includes(item) ? prev.filter(a => a !== item) : [...prev, item]
-    )
-  }
+      prev.includes(allergy) ? prev.filter(a => a !== allergy) : [...prev, allergy]
+    );
+  };
 
-  const toggleCondition = (item: string) => {
-    setSelectedConditions(prev =>
-      prev.includes(item) ? prev.filter(c => c !== item) : [...prev, item]
-    )
+  const handleSave = async () => {
+    try {
+      await updateMedical({
+        blood_group: bloodGroup || null,
+        allergies: selectedAllergies.length > 0
+          ? selectedAllergies.map(name => ({ name, type: null, severity: null }))
+          : null,
+        medical_condition: medicalCondition
+          ? medicalCondition.split(',').map(s => s.trim()).filter(Boolean)
+          : [],
+        medication: medication
+          ? medication.split(',').map(s => s.trim()).filter(Boolean)
+          : [],
+      }).unwrap();
+
+      showToast('Medical information updated!', 'success');
+      router.back();
+    } catch (err: any) {
+      showToast(err?.data?.detail?.msg || err?.data?.message || 'Failed to update medical info.', 'error');
+    }
+  };
+
+  const allergyDisplayText =
+    selectedAllergies.length > 0 ? selectedAllergies.join(', ') : '';
+
+  if (profileLoading) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { justifyContent: 'center', alignItems: 'center' }]}>
+        <CustomLoader size={60} strokeWidth={2} />
+      </SafeAreaView>
+    );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <SectionTitle title="Medical Information" />
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        {/* Header */}
+        <SectionTitle title="Medical Information" />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-
-        {/* Blood Group */}
-        <Caption2 style={styles.label}>Blood Group</Caption2>
-        <TouchableOpacity
-          style={styles.fieldBox}
-          activeOpacity={0.8}
-          onPress={() => setShowBloodDropdown(!showBloodDropdown)}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <H6 color={Colors.TEXT_COLOR}>{bloodGroup}</H6>
-          <H6>{showBloodDropdown ? <UpArrowIcon /> : <DownArrowIcon />}</H6>
-        </TouchableOpacity>
-        {showBloodDropdown && (
-          <View style={styles.dropdown}>
-            {BLOOD_GROUPS.map(bg => (
+          <View style={styles.container}>
+
+            {/* ── Blood Group Field ── */}
+            {!showBloodModal ? (
               <TouchableOpacity
-                key={bg}
-                style={[styles.dropdownItem, bloodGroup === bg && styles.dropdownItemSelected]}
-                onPress={() => { setBloodGroup(bg); setShowBloodDropdown(false) }}
+                style={styles.dropdownInput}
+                onPress={() => setShowBloodModal(true)}
+                activeOpacity={0.7}
               >
-                <Caption2 color={bloodGroup === bg ? Colors.BRAND_PRIMARY : '#333333'}>{bg}</Caption2>
+                <Body3
+                  color={bloodGroup ? Colors.TEXT_COLOR : '#8C88A3'}
+                  style={{ flex: 1 }}
+                >
+                  {bloodGroup || 'Blood Group'}
+                </Body3>
+                <DownArrowIcon />
               </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
-        {/* Allergies */}
-        <Caption2 style={styles.label}>Allergies</Caption2>
-        <TouchableOpacity
-          style={styles.fieldBox}
-          activeOpacity={0.8}
-          onPress={() => setShowAllergyDropdown(!showAllergyDropdown)}
-        >
-          <View style={styles.tagsRow}>
-            {selectedAllergies.map(a => (
-              <View key={a} style={styles.tag}>
-                <Caption2 color={Colors.TEXT_COLOR}>{a}</Caption2>
+            ) : (
+              <View style={styles.expandedContainer}>
+                <View style={styles.expandedHeader}>
+                  <Body2 color={Colors.TEXT_COLOR}>Select Blood Group</Body2>
+                  <TouchableOpacity onPress={() => setShowBloodModal(false)}>
+                    <UpArrowIcon />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.bloodGrid}>
+                  {BLOOD_GROUPS.map(group => (
+                    <TouchableOpacity
+                      key={group}
+                      style={[
+                        styles.bloodOption,
+                        bloodGroup === group && styles.optionSelected,
+                      ]}
+                      onPress={() => {
+                        setBloodGroup(group);
+                        setShowBloodModal(false);
+                      }}
+                    >
+                      <Body3 color={bloodGroup === group ? Colors.BRAND_PRIMARY : Colors.TEXT_COLOR}>
+                        {group}
+                      </Body3>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
-            ))}
-          </View>
-          <H6>{showAllergyDropdown ? <UpArrowIcon /> : <DownArrowIcon />}</H6>
-        </TouchableOpacity>
-        {showAllergyDropdown && (
-          <View style={styles.dropdown}>
-            {ALLERGY_OPTIONS.map(item => (
+            )}
+
+            {/* ── Allergies Field ── */}
+            {!showAllergyModal ? (
               <TouchableOpacity
-                key={item}
-                style={[styles.dropdownItem, selectedAllergies.includes(item) && styles.dropdownItemSelected]}
-                onPress={() => toggleAllergy(item)}
+                style={styles.dropdownInput}
+                onPress={() => setShowAllergyModal(true)}
+                activeOpacity={0.7}
               >
-                <Caption2 color={selectedAllergies.includes(item) ? Colors.BRAND_PRIMARY : ''}>
-                  {item}
-                </Caption2>
+                <Body3
+                  color={allergyDisplayText ? Colors.TEXT_COLOR : '#8C88A3'}
+                  style={{ flex: 1 }}
+                  numberOfLines={1}
+                >
+                  {allergyDisplayText || 'Allergies'}
+                </Body3>
+                <DownArrowIcon />
               </TouchableOpacity>
-            ))}
+            ) : (
+              <View style={styles.expandedContainer}>
+                <View style={styles.expandedHeader}>
+                  <Body2 color={Colors.TEXT_COLOR}>Choose Allergies</Body2>
+                  <TouchableOpacity onPress={() => setShowAllergyModal(false)}>
+                    <UpArrowIcon />
+                  </TouchableOpacity>
+                </View>
+                {ALLERGY_OPTIONS.map(allergy => {
+                  const selected = selectedAllergies.includes(allergy);
+                  return (
+                    <TouchableOpacity
+                      key={allergy}
+                      style={styles.listOption}
+                      onPress={() => toggleAllergy(allergy)}
+                    >
+                      <Body3 color={Colors.TEXT_COLOR}>{allergy}</Body3>
+                      <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
+                        {selected && (
+                          <Body3 color={Colors.BRAND_PRIMARY} style={{ fontSize: 12 }}>✓</Body3>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+
+            {/* Medical Condition */}
+            <FormInput
+              value={medicalCondition}
+              onChangeText={setMedicalCondition}
+              placeholder="Medical Condition"
+            />
+
+            {/* Medication */}
+            <FormInput
+              value={medication}
+              onChangeText={setMedication}
+              placeholder="Medication"
+            />
+
+            {isLoading ? (
+              <View style={{ alignItems: 'center', marginTop: hp(12) }}>
+                <CustomLoader size={50} strokeWidth={3} />
+              </View>
+            ) : (
+              <CustomButton
+                title="Save Changes"
+                onPress={handleSave}
+                width="100%"
+                height={hp(70)}
+                borderRadius={16}
+                style={{ marginTop: hp(12) }}
+              />
+            )}
           </View>
-        )}
-
-        {/* Medical Conditions */}
-        <Caption2 style={styles.label}>Medical Conditions</Caption2>
-        <View style={styles.fieldBox}>
-          <View style={styles.tagsRow}>
-            {selectedConditions.map(c => (
-              <TouchableOpacity
-                key={c}
-                style={styles.tag}
-                onPress={() => toggleCondition(c)}
-              >
-                <Caption2 color="#444444">{c}</Caption2>
-              </TouchableOpacity>
-            ))}
-            {CONDITION_OPTIONS.filter(o => !selectedConditions.includes(o)).map(o => (
-              <TouchableOpacity
-                key={o}
-                style={[styles.tag, styles.tagInactive]}
-                onPress={() => toggleCondition(o)}
-              >
-                <Caption2 color="#AAAAAA">{o}</Caption2>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Save Button */}
-
-        <CustomButton
-          title='Save'
-          onPress={() => router.back()}
-          height={64}
-          width={"100%"}
-          borderRadius={16}
-          style={{ marginTop: 10 }}
-        />
-
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: Colors.APP_BACKGROUND,
-    paddingHorizontal: wp(20)
   },
-  scrollContent: { paddingBottom: hp(40) },
-
-  label: {
-    color: Colors.TEXT_COLOR,
-    marginBottom: hp(6),
-    marginTop: hp(16)
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: wp(20),
+    paddingBottom: hp(40),
   },
-
-  fieldBox: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingHorizontal: wp(16),
-    paddingVertical: hp(20),
-    borderWidth: 1,
-    borderColor: Colors.CARD_BORDER,
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  tagsRow: {
+  container: {
     flex: 1,
+    paddingTop: hp(20),
+  },
+  dropdownInput: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  tag: {
-    backgroundColor: '#EEEEEE',
-    borderRadius: 20,
-    paddingHorizontal: wp(12),
-    paddingVertical: hp(4),
+    alignItems: 'center',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.CARD_BORDER,
+    borderColor: Colors.BORDER_COLOR,
+    paddingHorizontal: wp(16),
+    paddingVertical: hp(24),
+    backgroundColor: 'transparent',
+    marginBottom: hp(12),
   },
-  tagInactive: {
-    backgroundColor: '#FAFAFA',
-    borderColor: '#EEEEEE',
-  },
-  dropdown: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+  expandedContainer: {
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.CARD_BORDER,
-    marginTop: 4,
-    overflow: 'hidden',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-  },
-  dropdownItem: {
+    borderColor: Colors.BORDER_COLOR,
     paddingHorizontal: wp(16),
     paddingVertical: hp(14),
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    backgroundColor: '#fff',
+    marginBottom: hp(12),
+    gap: hp(8),
   },
-  dropdownItemSelected: { backgroundColor: `${Colors.BRAND_PRIMARY}15` },
-
-
-})
+  expandedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: hp(10),
+  },
+  bloodGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: wp(10),
+  },
+  bloodOption: {
+    width: wp(65),
+    height: hp(45),
+    backgroundColor: '#F5F5F5',
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  listOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 10,
+    paddingHorizontal: wp(16),
+    paddingVertical: hp(12),
+  },
+  optionSelected: {
+    borderColor: Colors.BRAND_PRIMARY,
+    backgroundColor: '#E8F4FD',
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: '#ccc',
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxSelected: {
+    borderColor: Colors.BRAND_PRIMARY,
+    backgroundColor: '#E8F4FD',
+  },
+});

@@ -2,75 +2,78 @@
 import { PlusButtonIcon } from '@/assets/icons/patient_icon/PlusButtonIcon'
 import { ProfileCard } from '@/components/shared/ProfileCard'
 import SectionTitle from '@/components/shared/SectionTitle'
-import { ADMIN_APPOINTMENTS } from '@/constants/adminData'
 import { Colors } from '@/constants/theme'
-import { getImageSource } from '@/utils/imageSource'
+import { useGetAllDoctorsQuery } from '@/redux/services/adminDoctors'
 import { hp, wp } from '@/utils/responsiveDevice'
 import { useRouter } from 'expo-router'
 import React from 'react'
 import {
+    ActivityIndicator,
     Image,
     ScrollView,
     StyleSheet,
+    Text,
     View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-const doctorMap = new Map<string, { doctorId: string; doctorName: string; doctorImage: string | number; doctorSpecialty: string }>()
-ADMIN_APPOINTMENTS.forEach(a => {
-    if (!doctorMap.has(a.doctorId)) {
-        doctorMap.set(a.doctorId, {
-            doctorId: a.doctorId,
-            doctorName: a.doctorName,
-            doctorImage: a.doctorImage,
-            doctorSpecialty: a.doctorSpecialty,
-        })
-    }
-})
-const DOCTORS = Array.from(doctorMap.values())
-
 export default function ManageDoctors() {
     const router = useRouter()
+    const { data, isLoading, isError } = useGetAllDoctorsQuery()
 
     return (
         <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-            <SectionTitle title="Menage Doctors" />
+            <SectionTitle title="Manage Doctors" />
 
-            <ScrollView
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
-            >
-                <View style={styles.menuSection}>
-                    {DOCTORS.map(doctor => (
-                        <ProfileCard
-                            key={doctor.doctorId}
-                            icon={
-                                <Image
-                                    source={getImageSource(doctor.doctorImage)}
-                                    style={styles.avatar}
-                                />
-                            }
-                            label={doctor.doctorName}
-                            iconBG={`${Colors.BRAND_PRIMARY}1A`}
-                            onPress={() =>
-                                router.push({
-                                    pathname: '/admin/profile/edit_profile' as any,
-                                    params: { doctorId: doctor.doctorId },
-                                })
-                            }
-                        />
-                    ))}
+            {isLoading && (
+                <View style={styles.centered}>
+                    <ActivityIndicator color={Colors.BRAND_PRIMARY} />
                 </View>
-                <ProfileCard
-                    icon={<PlusButtonIcon size={16} color={Colors.BRAND_PRIMARY} />}
-                    label="Add Doctor"
-                    iconBG={`${Colors.COLOR_DANGER}1A`}
-                    textColor={Colors.BRAND_PRIMARY}
-                    // borderColor={`${Colors.COLOR_DANGER}33`}
-                    rightAngleColor={Colors.BRAND_PRIMARY}
-                    onPress={() => router.push('/admin/profile/add_doctor' as any)}
-                />
-            </ScrollView>
+            )}
+
+            {isError && (
+                <View style={styles.centered}>
+                    <Text style={styles.errorText}>Failed to load doctors.</Text>
+                </View>
+            )}
+
+            {!isLoading && !isError && (
+                <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.scrollContent}
+                >
+                    <View style={styles.menuSection}>
+                        {data?.results.map(doctor => (
+                            <ProfileCard
+                                key={doctor.id}
+                                icon={
+                                    <Image
+                                        source={{ uri: doctor.avatar_url }}
+                                        style={styles.avatar}
+                                    />
+                                }
+                                label={doctor.name ?? doctor.full_name}
+                                iconBG={`${Colors.BRAND_PRIMARY}1A`}
+                                onPress={() =>
+                                    router.push({
+                                        pathname: '/admin/profile/edit_profile' as any,
+                                        params: { doctorId: doctor.id },
+                                    })
+                                }
+                            />
+                        ))}
+                    </View>
+
+                    <ProfileCard
+                        icon={<PlusButtonIcon size={16} color={Colors.BRAND_PRIMARY} />}
+                        label="Add Doctor"
+                        iconBG={`${Colors.COLOR_DANGER}1A`}
+                        textColor={Colors.BRAND_PRIMARY}
+                        rightAngleColor={Colors.BRAND_PRIMARY}
+                        onPress={() => router.push('/admin/profile/add_doctor' as any)}
+                    />
+                </ScrollView>
+            )}
         </SafeAreaView>
     )
 }
@@ -90,5 +93,14 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
+    },
+    centered: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    errorText: {
+        color: Colors.COLOR_DANGER,
+        fontSize: 14,
     },
 })

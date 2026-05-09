@@ -21,6 +21,24 @@ export const authApi = baseApi.injectEndpoints({
       }),
     }),
 
+    // Verify OTP (after signup)
+    verifyOtp: builder.mutation({
+      query: (data: { email: string; otp: string }) => ({
+        url: '/auth/signup/verify-otp',
+        method: 'POST',
+        body: data,
+      }),
+    }),
+
+    // Resend OTP
+    resendOtp: builder.mutation({
+      query: (data: { email: string }) => ({
+        url: '/auth/signup/resend-otp',
+        method: 'POST',
+        body: data,
+      }),
+    }),
+
     // Onboarding — Profile
     updateProfile: builder.mutation({
       query: (data) => ({
@@ -161,6 +179,8 @@ export const authApi = baseApi.injectEndpoints({
 export const {
   useLoginMutation,
   useSignupMutation,
+  useVerifyOtpMutation,
+  useResendOtpMutation,
   useLogoutMutation,
   useUpdateProfileMutation,
   useUpdateMedicalMutation,

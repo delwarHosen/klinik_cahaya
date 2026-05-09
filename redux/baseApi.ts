@@ -6,7 +6,8 @@ import { router } from 'expo-router';
 
 const baseQuery = fetchBaseQuery({
   // baseUrl: 'https://v0d7xzkk-7000.inc1.devtunnels.ms',
-  baseUrl: 'http://10.10.20.46:7000',
+  // baseUrl: 'http://10.10.20.46:7000',
+  baseUrl: 'https://knx.up.railway.app',
   prepareHeaders: async (headers) => {
     return headers;
   },
@@ -15,8 +16,6 @@ const baseQuery = fetchBaseQuery({
 const baseQueryWithAuth = async (args: any, api: any, extraOptions: any) => {
 
   const token = await AsyncStorage.getItem('access_token');
-  // console.log('🔑 Token:', token);
-  // console.log('📍 URL:', typeof args === 'string' ? args : args?.url);
 
   const modifiedArgs =
     typeof args === 'string'
@@ -39,7 +38,7 @@ const baseQueryWithAuth = async (args: any, api: any, extraOptions: any) => {
     const url = typeof args === 'string' ? args : args?.url || '';
     const isAuthEndpoint =
       url.includes('/auth/login') ||
-      url.includes('/auth/signup') ||
+      url.includes('/auth/signup') ||       // signup + verify-otp + resend-otp সব cover করে
       url.includes('/auth/forgot-password') ||
       url.includes('/auth/onboarding');
 
@@ -76,6 +75,6 @@ function getErrorMessage(status: number | string): string {
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithAuth,
-  tagTypes: ['Auth','Profile', 'Patient', 'Admin', 'Appointments', 'Doctors', 'Queue','DoctorAvailability','AppointmentMembers','AdminUpcoming', 'AdminBookingRequest', 'AdminBookingCount','AdminFilteredBookings','AdminFilteredAppointments'], 
+  tagTypes: ['Auth','Profile', 'Patient', 'Admin', 'Appointments', 'Doctors', 'Queue','DoctorAvailability','AppointmentMembers','AdminUpcoming', 'AdminBookingRequest', 'AdminBookingCount','AdminFilteredBookings','AdminFilteredAppointments','Doctors'], 
   endpoints: () => ({}),
 });

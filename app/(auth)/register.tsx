@@ -2,82 +2,29 @@ import { AuthHeading } from '@/components/auth/AuthHeading';
 import { FormInput } from '@/components/inputForm/inputForm';
 import { CustomButton } from '@/components/shared/CustomButton';
 import CustomLoader from '@/components/shared/CustomLoader';
-import PageLoader from '@/components/shared/PageLoader';
 import { showToast } from '@/components/shared/Toast';
 import { Caption2 } from '@/components/typo/Typography';
 import { FORM_FIELDS } from '@/components/ui/form';
 import { IMAGE_COMPONENTS } from '@/constants/image.index';
 import { Colors } from '@/constants/theme';
 import { useForm } from '@/hooks/useForm';
-import { useLoginMutation, useSignupMutation } from '@/redux/services/authApi';
+import { useSignupMutation } from '@/redux/services/authApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { validateEmail, validateName, validatePassword, validatePhoneNumber } from '@/utils/validation';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import {
-  Keyboard, KeyboardAvoidingView,
+  KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const [signup, { isLoading: signupLoading }] = useSignupMutation();
-  const [login, { isLoading: loginLoading }] = useLoginMutation();
-  const isLoading = signupLoading || loginLoading;
-
-  const [waitingVerification, setWaitingVerification] = useState(false);
-  const userEmailRef = useRef('');
-  const userPasswordRef = useRef('');
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const tryAutoLogin = async () => {
-    try {
-      const loginRes = await login({
-        email: userEmailRef.current,
-        password: userPasswordRef.current,
-      }).unwrap();
-
-      // console.log(' Login response:', JSON.stringify(loginRes));
-
-      if (loginRes?.access_token) {
-        await AsyncStorage.setItem('access_token', loginRes.access_token);
-        if (loginRes?.refresh_token) {
-          await AsyncStorage.setItem('refresh_token', loginRes.refresh_token);
-        }
-        clearInterval(intervalRef.current!);
-        setWaitingVerification(false);
-        router.push('/(auth)/personal_information');
-      }
-    } catch {
-      console.log(' Not verified yet, still waiting...');
-    }
-  };
-
-  useEffect(() => {
-    if (!waitingVerification) return;
-
-    if (waitingVerification) {
-      Keyboard.dismiss();
-    }
-
-    const subscription = Linking.addEventListener('url', () => {
-      tryAutoLogin();
-    });
-
-
-    intervalRef.current = setInterval(tryAutoLogin, 4000);
-
-    return () => {
-      subscription.remove();
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [waitingVerification]);
+  const [signup, { isLoading }] = useSignupMutation();
 
   const { values, errors, touched, handleChange, handleSubmit } = useForm({
     initialValues: {
@@ -104,11 +51,16 @@ export default function RegisterScreen() {
           confirm_password: values[FORM_FIELDS.CONFIRM_PASSWORD],
         }).unwrap();
 
-        userEmailRef.current = values[FORM_FIELDS.EMAIL].trim().toLowerCase();
-        userPasswordRef.current = values[FORM_FIELDS.PASSWORD];
+        showToast('Check your email for the OTP code.', 'success');
 
-        showToast('Check your email to verify your account.', 'success');
-        setWaitingVerification(true);
+        // Navigate to OTP verification page, passing email & password
+        router.push({
+          pathname: '/(auth)/email_verify',
+          params: {
+            email: values[FORM_FIELDS.EMAIL].trim().toLowerCase(),
+            password: values[FORM_FIELDS.PASSWORD],
+          },
+        });
       } catch (err: any) {
         console.log('Signup error:', JSON.stringify(err));
         showToast(err?.data?.detail?.msg || err?.data?.message || 'Register failed.', 'error');
@@ -117,100 +69,92 @@ export default function RegisterScreen() {
   });
 
   return (
-    <>
-      <PageLoader
-        visible={waitingVerification}
-        title="VERIFYING"
-        subtitle={"Please verify your email first.\nCheck your inbox and click the confirm link."}
-      />
-
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bounces={true}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          bounces={true}
-        >
-          <View style={styles.container}>
-            <View style={{ width: '100%', maxWidth: 500 }}>
-              <AuthHeading
-                imageSource={IMAGE_COMPONENTS.logo}
-                title="Register"
-                style={{ marginBottom: hp(30) }}
-                description="Hello! Register to get started"
+        <View style={styles.container}>
+          <View style={{ width: '100%', maxWidth: 500 }}>
+            <AuthHeading
+              imageSource={IMAGE_COMPONENTS.logo}
+              title="Register"
+              style={{ marginBottom: hp(30) }}
+              description="Hello! Register to get started"
+            />
+
+            <View style={styles.form}>
+              <FormInput
+                value={values[FORM_FIELDS.FULL_NAME]}
+                onChangeText={(text) => handleChange(FORM_FIELDS.FULL_NAME, text)}
+                placeholder="Enter Your Name"
+                error={errors[FORM_FIELDS.FULL_NAME]}
+                touched={touched[FORM_FIELDS.FULL_NAME]}
+              />
+              <FormInput
+                value={values[FORM_FIELDS.EMAIL]}
+                onChangeText={(text) => handleChange(FORM_FIELDS.EMAIL, text)}
+                type="email"
+                placeholder="Enter Your Email Address"
+                error={errors[FORM_FIELDS.EMAIL]}
+                touched={touched[FORM_FIELDS.EMAIL]}
+              />
+              <FormInput
+                value={values[FORM_FIELDS.CONTACT_NO]}
+                onChangeText={(text) => handleChange(FORM_FIELDS.CONTACT_NO, text)}
+                type="number"
+                placeholder="IC Number"
+                error={errors[FORM_FIELDS.CONTACT_NO]}
+                touched={touched[FORM_FIELDS.CONTACT_NO]}
+              />
+              <FormInput
+                value={values[FORM_FIELDS.PASSWORD]}
+                onChangeText={(text) => handleChange(FORM_FIELDS.PASSWORD, text)}
+                placeholder="Enter Your Password"
+                type="password"
+                error={errors[FORM_FIELDS.PASSWORD]}
+                touched={touched[FORM_FIELDS.PASSWORD]}
+              />
+              <FormInput
+                value={values[FORM_FIELDS.CONFIRM_PASSWORD]}
+                onChangeText={(text) => handleChange(FORM_FIELDS.CONFIRM_PASSWORD, text)}
+                placeholder="Confirm Password"
+                type="password"
+                error={errors[FORM_FIELDS.CONFIRM_PASSWORD]}
+                touched={touched[FORM_FIELDS.CONFIRM_PASSWORD]}
               />
 
-              <View style={styles.form}>
-                <FormInput
-                  value={values[FORM_FIELDS.FULL_NAME]}
-                  onChangeText={(text) => handleChange(FORM_FIELDS.FULL_NAME, text)}
-                  placeholder="Enter Your Name"
-                  error={errors[FORM_FIELDS.FULL_NAME]}
-                  touched={touched[FORM_FIELDS.FULL_NAME]}
+              {isLoading ? (
+                <View style={{ alignItems: 'center', marginTop: hp(12) }}>
+                  <CustomLoader size={50} strokeWidth={1} />
+                </View>
+              ) : (
+                <CustomButton
+                  title="Sign Up"
+                  onPress={handleSubmit}
+                  width="100%"
+                  height={hp(70)}
+                  borderRadius={16}
+                  style={{ marginTop: hp(12) }}
                 />
-                <FormInput
-                  value={values[FORM_FIELDS.EMAIL]}
-                  onChangeText={(text) => handleChange(FORM_FIELDS.EMAIL, text)}
-                  type="email"
-                  placeholder="Enter Your Email Address"
-                  error={errors[FORM_FIELDS.EMAIL]}
-                  touched={touched[FORM_FIELDS.EMAIL]}
-                />
-                <FormInput
-                  value={values[FORM_FIELDS.CONTACT_NO]}
-                  onChangeText={(text) => handleChange(FORM_FIELDS.CONTACT_NO, text)}
-                  type="number"
-                  placeholder="IC Number"
-                  error={errors[FORM_FIELDS.CONTACT_NO]}
-                  touched={touched[FORM_FIELDS.CONTACT_NO]}
-                />
-                <FormInput
-                  value={values[FORM_FIELDS.PASSWORD]}
-                  onChangeText={(text) => handleChange(FORM_FIELDS.PASSWORD, text)}
-                  placeholder="Enter Your Password"
-                  type="password"
-                  error={errors[FORM_FIELDS.PASSWORD]}
-                  touched={touched[FORM_FIELDS.PASSWORD]}
-                />
-                <FormInput
-                  value={values[FORM_FIELDS.CONFIRM_PASSWORD]}
-                  onChangeText={(text) => handleChange(FORM_FIELDS.CONFIRM_PASSWORD, text)}
-                  placeholder="Confirm Password"
-                  type="password"
-                  error={errors[FORM_FIELDS.CONFIRM_PASSWORD]}
-                  touched={touched[FORM_FIELDS.CONFIRM_PASSWORD]}
-                />
+              )}
+            </View>
 
-                {isLoading ? (
-                  <View style={{ alignItems: 'center', marginTop: hp(12) }}>
-                    <CustomLoader size={50} strokeWidth={1} />
-                  </View>
-                ) : (
-                  <CustomButton
-                    title="Sign Up"
-                    onPress={handleSubmit}
-                    width="100%"
-                    height={hp(70)}
-                    borderRadius={16}
-                    style={{ marginTop: hp(12) }}
-                  />
-                )}
-              </View>
-
-              <View style={styles.footer}>
-                <Caption2 color={Colors.TEXT_COLOR}>Already have an account?</Caption2>
-                <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
-                  <Caption2 color={Colors.BRAND_PRIMARY}> Sign in</Caption2>
-                </TouchableOpacity>
-              </View>
+            <View style={styles.footer}>
+              <Caption2 color={Colors.TEXT_COLOR}>Already have an account?</Caption2>
+              <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
+                <Caption2 color={Colors.BRAND_PRIMARY}> Sign in</Caption2>
+              </TouchableOpacity>
             </View>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

@@ -1,25 +1,64 @@
 import { ExpandableSection, InfoRow } from '@/components/appointment/ExpandableSection'
 import SectionTitle from '@/components/shared/SectionTitle'
 import { Caption1, Caption2, Caption4, H3, SpecialText } from '@/components/typo/Typography'
-import { ADMIN_APPOINTMENTS } from '@/constants/adminData'
 import { Colors } from '@/constants/theme'
+import { useGetBookingLookupMutation } from '@/redux/services/adminApi'
 import { hp, wp } from '@/utils/responsiveDevice'
 import { useLocalSearchParams } from 'expo-router'
-import React from 'react'
-import { Image, ImageSourcePropType, ScrollView, StyleSheet, View } from 'react-native'
+import React, { useEffect } from 'react'
+import {
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-const getImageSource = (img?: string | number): ImageSourcePropType => {
-  if (!img) return { uri: '' }
-  return typeof img === 'string' ? { uri: img } : (img as ImageSourcePropType)
+const formatDate = (dateStr: string) => {
+  try {
+    return new Date(dateStr).toLocaleDateString('en-GB', {
+      day: 'numeric', month: 'long', year: 'numeric',
+    })
+  } catch { return dateStr }
+}
+
+const formatTime = (timeStr: string) => {
+  try {
+    const [h, m] = timeStr.split(':')
+    const hour = parseInt(h)
+    const ampm = hour >= 12 ? 'PM' : 'AM'
+    return `${hour % 12 || 12}:${m} ${ampm}`
+  } catch { return timeStr }
 }
 
 export default function CanceledAppointmentDetailsScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>()
+  const { bookingId, id } = useLocalSearchParams<{ bookingId?: string; id?: string }>()
+  const resolvedId = bookingId ?? id ?? ''
 
-  // ✅ id দিয়ে সঠিক appointment খোঁজা
-  const appt = ADMIN_APPOINTMENTS.find(a => a.id === String(id)) ?? ADMIN_APPOINTMENTS[0]
-  const isFamily = appt.patientType === 'Family Member'
+  const [getBookingLookup, { data, isLoading }] = useGetBookingLookupMutation()
+
+  useEffect(() => {
+    if (resolvedId) {
+      getBookingLookup({ booking_id: resolvedId })
+    }
+  }, [resolvedId])
+
+  if (isLoading || !data) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <View style={styles.headerWrapper}>
+          <SectionTitle title="Reject Details" />
+        </View>
+        <View style={styles.loadingBox}>
+          <ActivityIndicator color={Colors.BRAND_PRIMARY} size="large" />
+        </View>
+      </SafeAreaView>
+    )
+  }
+
+  const { booking, doctor, patient } = data
+  const patientInfo = patient.requested_patient
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -33,11 +72,15 @@ export default function CanceledAppointmentDetailsScreen() {
       >
         {/* ── Doctor Row ── */}
         <View style={styles.doctorRow}>
-          <Image source={getImageSource(appt.doctorImage)} style={styles.doctorImage} />
+          {doctor.avatar_url ? (
+            <Image source={{ uri: doctor.avatar_url }} style={styles.doctorImage} />
+          ) : (
+            <View style={[styles.doctorImage, { backgroundColor: '#dfefee' }]} />
+          )}
           <View style={styles.doctorInfo}>
-            <H3 style={styles.doctorName}>{appt.doctorName}</H3>
+            <H3 style={styles.doctorName}>{doctor.full_name || doctor.name}</H3>
             <Caption1 style={styles.doctorSpecialty} numberOfLines={4}>
-              {appt.doctorSpecialty}
+              {doctor.specialization}
             </Caption1>
           </View>
         </View>
@@ -47,35 +90,39 @@ export default function CanceledAppointmentDetailsScreen() {
 
         <Caption1 style={styles.label}>Status</Caption1>
 
-        {/* ✅ Status row — Canceled badge + date right side */}
+        {/* Status row */}
         <View style={styles.statusRow}>
           <View style={styles.canceledBadge}>
             <Caption1 style={styles.canceledBadgeText}>Canceled</Caption1>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
-            <Caption2 style={styles.dateText}>{appt.date}</Caption2>
-            <Caption2 style={styles.dateText}>{appt.time}</Caption2>
+            <Caption2 style={styles.dateText}>{formatDate(booking.appt_date)}</Caption2>
+            <Caption2 style={styles.dateText}>{formatTime(booking.appt_time)}</Caption2>
           </View>
         </View>
 
-        {/* ✅ Rejected Info Box */}
+        {/* ── Rejected Info Box ── */}
         <View style={styles.rejectedBox}>
           <View style={styles.rejectedBoxRow}>
             {/* Left — Rejected By */}
             <View style={{ flex: 1 }}>
               <Caption4 style={styles.rejectedBoxLabel}>Rejected By</Caption4>
-              <Caption2 style={styles.rejectedBoxValue}>Jacob Jones</Caption2>
-              <Caption4 style={styles.rejectedBoxMeta}>ID: {appt.patientIC}</Caption4>
+              <Caption2 style={styles.rejectedBoxValue}>
+                {booking.approved_by ?? 'Admin'}
+              </Caption2>
               <Caption4 style={styles.rejectedBoxMeta}>
-                10 March, 2026 09:00 AM
+                ID: {patientInfo?.ic ?? booking.patient_ic}
+              </Caption4>
+              <Caption4 style={styles.rejectedBoxMeta}>
+                {booking.approved_at
+                  ? `${formatDate(booking.approved_at)} ${formatTime(booking.approved_at.split('T')[1] ?? '')}`
+                  : formatDate(booking.appt_date)}
               </Caption4>
             </View>
             {/* Right — Reason */}
             <View style={{ alignItems: 'flex-end' }}>
               <Caption4 style={styles.rejectedBoxLabelRed}>Reason</Caption4>
-              <Caption2 style={styles.rejectedReasonText}>
-                {appt.canceledReason ?? 'False Information'}
-              </Caption2>
+              <Caption2 style={styles.rejectedReasonText}>—</Caption2>
             </View>
           </View>
 
@@ -83,7 +130,7 @@ export default function CanceledAppointmentDetailsScreen() {
           <View style={styles.rejectedNoteBox}>
             <Caption4 style={styles.rejectedBoxLabel}>Note</Caption4>
             <Caption2 style={styles.rejectedNoteText}>
-              Appointment Request Has Been Declined Due To Inaccurate Or False Information Provided.
+              Appointment request has been declined.
             </Caption2>
           </View>
         </View>
@@ -92,94 +139,33 @@ export default function CanceledAppointmentDetailsScreen() {
         <Caption2 weight='regular' style={[styles.label, { marginTop: hp(20) }]}>
           Visit Reason
         </Caption2>
-        <Caption2 weight='semiBold' style={styles.boldValue}>{appt.visitReason}</Caption2>
-        <Caption2 weight='regular' style={styles.detailText}>{appt.details}</Caption2>
+        <Caption2 weight='semiBold' style={styles.boldValue}>{booking.reason}</Caption2>
 
-        {/* ── Patients ── */}
-        <Caption2 style={[styles.label, { marginTop: hp(20) }]}>
-          Patients{' '}
-          <Caption1 style={{ color: Colors.PLACEHOLLDER_TEXT }}>
-            ({appt.patientType === 'Family Member' ? 'Brother' : 'Own Self'})
-          </Caption1>
-        </Caption2>
+        {/* ── Patient ── */}
+        <Caption2 style={[styles.label, { marginTop: hp(20) }]}>Patient</Caption2>
 
-        {isFamily ? (
-          <>
-            {/* ✅ Family — patient name bold, then expandable, then Booked By */}
-            <Caption1 style={styles.boldValue}>{appt.patientName}</Caption1>
-
-            <ExpandableSection title="Medical Information">
-              <InfoRow label="Blood Group" value={appt.medicalInfo.bloodGroup} />
-              <InfoRow label="Allergies" value={appt.medicalInfo.allergies} />
-              <InfoRow label="Medical Condition" value={appt.medicalInfo.medicalCondition} />
-              <InfoRow label="Medication" value={appt.medicalInfo.medication} />
-            </ExpandableSection>
-
-            <ExpandableSection title="Insurance Information">
-              <InfoRow label="Provider" value={appt.insuranceInfo.provider} />
-              <InfoRow label="Plan Type" value={appt.insuranceInfo.planType} />
-              <InfoRow label="Member ID" value={appt.insuranceInfo.memberId} />
-            </ExpandableSection>
-
-            {/* Booked By */}
-            <Caption2 weight='semiBold' style={[styles.label, { marginTop: hp(16), fontSize: 15 }]}>
-              Booked By
+        <View style={styles.personCard}>
+          <View style={styles.personAvatar} />
+          <View style={styles.personInfo}>
+            <Caption2 weight='semiBold'>
+              {patientInfo?.name ?? booking.patient_name}
             </Caption2>
-            <View style={styles.personCard}>
-              <Image
-                source={getImageSource(appt.bookedByImage)}
-                style={styles.personAvatar}
-              />
-              <View style={styles.personInfo}>
-                <Caption2 weight='semiBold'>
-                  {appt.bookedByName}{' '}
-                  <Caption1 style={{ color: '#888' }}>(Male)</Caption1>
-                </Caption2>
-                <Caption4 style={styles.personIC}>IC: {appt.bookedByIC}</Caption4>
-                <Caption4 style={styles.personMeta}>
-                  {appt.bookedByDOB}{' '}
-                  <Caption4>({appt.bookedByAge})</Caption4>
-                </Caption4>
-                <Caption4 weight='semiBold' color={Colors.TEXT_COLOR}>
-                  {appt.bookedByPhone}
-                </Caption4>
-              </View>
-            </View>
-          </>
-        ) : (
-          <>
-            {/* ✅ Own Self — patient card */}
-            <View style={styles.personCard}>
-              <Image source={getImageSource(appt.patientImage)} style={styles.personAvatar} />
-              <View style={styles.personInfo}>
-                <Caption2 weight='semiBold'>
-                  {appt.patientName}{' '}
-                  <Caption1 style={{ color: '#0D0D0D4D' }}>({appt.patientGender})</Caption1>
-                </Caption2>
-                <Caption4 style={styles.personIC}>IC: {appt.patientIC}</Caption4>
-                <Caption4 style={styles.personMeta}>
-                  {appt.patientDOB}{' '}
-                  <Caption4>({appt.patientAge})</Caption4>
-                </Caption4>
-                <Caption4 weight='semiBold' color={Colors.TEXT_COLOR}>
-                  {appt.patientPhone}
-                </Caption4>
-              </View>
-            </View>
+            <Caption4 style={styles.personIC}>
+              IC: {patientInfo?.ic ?? booking.patient_ic}
+            </Caption4>
+            <Caption4 weight='semiBold' color={Colors.TEXT_COLOR}>
+              +{String(patientInfo?.phone ?? booking.patient_phone)}
+            </Caption4>
+          </View>
+        </View>
 
-            <ExpandableSection title="Medical Information">
-              <InfoRow label="Blood Group" value={appt.medicalInfo.bloodGroup} />
-              <InfoRow label="Allergies" value={appt.medicalInfo.allergies} />
-              <InfoRow label="Medical Condition" value={appt.medicalInfo.medicalCondition} />
-              <InfoRow label="Medication" value={appt.medicalInfo.medication} />
-            </ExpandableSection>
-
-            <ExpandableSection title="Insurance Information">
-              <InfoRow label="Provider" value={appt.insuranceInfo.provider} />
-              <InfoRow label="Plan Type" value={appt.insuranceInfo.planType} />
-              <InfoRow label="Member ID" value={appt.insuranceInfo.memberId} />
-            </ExpandableSection>
-          </>
+        {/* ── Consultation Info ── */}
+        {doctor.consultation_days && (
+          <ExpandableSection title="Consultation Info">
+            <InfoRow label="Days"  value={doctor.consultation_days} />
+            <InfoRow label="Hours" value={doctor.consultation_time} />
+            <InfoRow label="About" value={doctor.about} />
+          </ExpandableSection>
         )}
 
       </ScrollView>
@@ -193,6 +179,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.APP_BACKGROUND,
     paddingHorizontal: wp(20),
   },
+  loadingBox: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   headerWrapper: {
     paddingTop: hp(4),
     marginBottom: hp(8),
@@ -203,20 +194,20 @@ const styles = StyleSheet.create({
 
   // ── Doctor Row ──
   doctorRow: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
-    gap: wp(14),
+    gap: hp(10),
     marginBottom: hp(24),
     marginTop: hp(8),
   },
   doctorImage: {
-    width: wp(80),
-    height: hp(80),
+    width: wp(100),
+    height: hp(100),
     borderRadius: 16,
     backgroundColor: '#dfefee',
   },
   doctorInfo: {
-    flex: 1,
+    alignItems: 'center',
     gap: 4,
   },
   doctorName: {
@@ -226,6 +217,8 @@ const styles = StyleSheet.create({
   doctorSpecialty: {
     color: '#818181',
     lineHeight: 18,
+    fontWeight: '700',
+    textAlign: 'center',
   },
 
   // ── Section Title ──
@@ -319,11 +312,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 14,
     marginBottom: hp(8),
-  },
-  detailText: {
-    color: '#333',
-    lineHeight: 22,
-    marginBottom: hp(6),
   },
 
   // ── Person Card ──

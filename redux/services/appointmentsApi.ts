@@ -3,11 +3,13 @@ import { baseApi } from '@/redux/baseApi';
 export const appointmentsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
 
-    // GET /appointments/patient/phone?phone=xxx
+    // GET /appointments/patient/appointment?phone=xxx
     getAppointmentsByPhone: builder.query({
-      query: (phone: string) => `/approval/appointments/patient`,
-      // Use the generic 'Appointments' tag so createAppointment's
-      // invalidatesTags: ['Appointments'] triggers a refetch here
+      query: (phone: string) => ({
+        url: '/appointments/patient/appointment',
+        method: 'GET',
+        params: { phone },
+      }),
       providesTags: ['Appointments'],
       keepUnusedDataFor: 300,
     }),

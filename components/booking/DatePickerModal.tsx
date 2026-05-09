@@ -20,6 +20,8 @@ interface Props {
     onClose: () => void;
     onConfirm: (date: string) => void;
     disabledDates?: string[];
+    // ── NEW: set to true to allow selecting past dates (e.g. for filter) ──
+    allowPastDates?: boolean;
 }
 
 export function DatePickerModal({
@@ -28,6 +30,7 @@ export function DatePickerModal({
     onClose,
     onConfirm,
     disabledDates = [],
+    allowPastDates = false,   // default: keep old behaviour (past = disabled)
 }: Props) {
     const [currentYear, setCurrentYear] = useState(TODAY.getFullYear());
     const [currentMonth, setCurrentMonth] = useState(TODAY.getMonth());
@@ -45,13 +48,16 @@ export function DatePickerModal({
     const isDisabledDate = (day: number): boolean => {
         const thisDate = new Date(currentYear, currentMonth, day);
         thisDate.setHours(0, 0, 0, 0);
-        if (thisDate < TODAY) return true;
+        // Only block past dates when allowPastDates is false
+        if (!allowPastDates && thisDate < TODAY) return true;
         const mm = String(currentMonth + 1).padStart(2, '0');
         const dd = String(day).padStart(2, '0');
         return disabledDates.includes(`${currentYear}-${mm}-${dd}`);
     };
 
+    // When allowPastDates = true, we can navigate to any past month freely
     const canGoPrev = () => {
+        if (allowPastDates) return true;
         const firstOfPrev = new Date(
             currentMonth === 0 ? currentYear - 1 : currentYear,
             currentMonth === 0 ? 11 : currentMonth - 1,

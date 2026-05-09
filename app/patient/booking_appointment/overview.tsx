@@ -5,7 +5,10 @@ import SectionTitle from '@/components/shared/SectionTitle';
 import { showToast } from '@/components/shared/Toast';
 import { Caption1, H6 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
-import { useCreateAppointmentMutation } from '@/redux/services/bookingApi';
+import {
+  useCreateAppointmentMutation,
+  useGetAppointmentMembersQuery,
+} from '@/redux/services/bookingApi';
 import { useGetDoctorByIdQuery } from '@/redux/services/doctorsApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -56,6 +59,10 @@ export default function OverviewScreen() {
   );
   const doctor = doctorData?.data ?? doctorData;
 
+  // Get members to find self member_id
+  const { data: membersData } = useGetAppointmentMembersQuery();
+  const selfMember = membersData?.members?.find((m: any) => m.type === 'self');
+
   const [createAppointment, { isLoading: isBooking }] = useCreateAppointmentMutation();
 
   // ── Local state ────────────────────────────────────────────────────────────
@@ -65,21 +72,25 @@ export default function OverviewScreen() {
   const displayDate = useMemo(() => (date ? formatDisplayDate(date) : ''), [date]);
   const displayTime = useMemo(() => (time ? formatDisplayTime(time) : ''), [time]);
 
-  // ── Actions ────────────────────────────────────────────────────────────────
+  const isSelf = memberName === 'null';
 
+  // ── Actions ────────────────────────────────────────────────────────────────
   const handleBookNow = async () => {
     if (!doctorId || !date || !time || !reason) return;
 
-    // CreateAppointmentPayload এ শুধু এই ৫টা field — member_name: null = self booking
+    // self booking → member_id, family booking → member_name
     const payload = {
       date,
       time,
       doctor_id: doctorId,
-      member_name: memberName === 'null' ? null : memberName,
       reason,
+      ...(isSelf
+        ? { member_id: selfMember?.id ?? null }
+        : { member_name: memberName }
+      ),
     };
 
-    console.log('📤 Booking payload:', JSON.stringify(payload, null, 2));
+    console.log('📦 Booking payload:', JSON.stringify(payload, null, 2));
 
     try {
       const result = await createAppointment(payload).unwrap();
@@ -87,7 +98,7 @@ export default function OverviewScreen() {
       setShowSuccess(true);
     } catch (err: any) {
       console.log('❌ Booking failed:', JSON.stringify(err, null, 2));
-      showToast('Booking Failed, Something went wrong. Please try again.');
+      showToast('Booking Failed. Something went wrong. Please try again.');
     }
   };
 
@@ -100,7 +111,6 @@ export default function OverviewScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
 
-      {/* Loader while doctor info is fetching */}
       <PageLoader
         visible={doctorLoading}
         title="LOADING"
@@ -188,11 +198,11 @@ export default function OverviewScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: { paddingHorizontal: wp(20), paddingTop: hp(10) },
-  scroll: { paddingHorizontal: wp(20), paddingTop: hp(20), paddingBottom: hp(20) },
+  header:    { paddingHorizontal: wp(20), paddingTop: hp(10) },
+  scroll:    { paddingHorizontal: wp(20), paddingTop: hp(20), paddingBottom: hp(20) },
 
-  doctorName: { fontWeight: '700', color: '#1A1A1A', marginBottom: hp(4) },
-  specialty:  { color: '#888888', lineHeight: 20 },
+  doctorName:   { fontWeight: '700', color: '#1A1A1A', marginBottom: hp(4) },
+  specialty:    { color: '#888888', lineHeight: 20 },
 
   divider: { height: 1, backgroundColor: '#F0F0F0', marginVertical: hp(16) },
 
@@ -202,9 +212,6 @@ const styles = StyleSheet.create({
   patientValue: { color: '#1A1A1A', marginTop: hp(4) },
   reasonValue:  { color: '#1A1A1A', marginTop: hp(4) },
   detailText:   { color: '#333333', lineHeight: 22 },
-
-  costLabel: { color: '#1A1A1A', fontWeight: '600', marginBottom: hp(4) },
-  costValue:  { color: '#1A1A1A' },
 
   bottomBar: {
     backgroundColor: '#FFFFFF',

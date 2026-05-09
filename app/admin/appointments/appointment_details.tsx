@@ -5,48 +5,87 @@ import { RejectReasonModal } from '@/components/appointment/RejectReasonModal'
 import { CustomButton } from '@/components/shared/CustomButton'
 import SectionTitle from '@/components/shared/SectionTitle'
 import { Caption1, Caption2, Caption4, H3, SpecialText } from '@/components/typo/Typography'
-import { ADMIN_APPOINTMENTS } from '@/constants/adminData'
 import { Colors } from '@/constants/theme'
+import { useGetBookingLookupMutation } from '@/redux/services/adminApi'
 import { hp, wp } from '@/utils/responsiveDevice'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import React, { useState } from 'react'
-import { Image, ImageSourcePropType, ScrollView, StyleSheet, View } from 'react-native'
+import React, { useEffect, useState } from 'react'
+import {
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-const STATUS_CONFIG = {
-  Upcoming: { label: 'Upcoming', color: '#1A1A1A', bg: '#F0F0F0', border: '#CCCCCC' },
-  Pending: { label: 'Pending', color: '#1A1A1A', bg: '#D4F000', border: '#D4F000' },
-  Completed: { label: 'Completed', color: '#FFFFFF', bg: Colors.BRAND_PRIMARY, border: Colors.BRAND_PRIMARY },
-  Canceled: { label: 'Canceled', color: '#FFFFFF', bg: '#FF383C', border: '#FF383C' },
+// ─── Status badge config ───────────────────────────────────────────────────────
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  confirmed:  { label: 'Upcoming',  color: '#1A1A1A', bg: '#F0F0F0',            border: '#CCCCCC' },
+  pending:    { label: 'Pending',   color: '#1A1A1A', bg: '#D4F000',            border: '#D4F000' },
+  completed:  { label: 'Completed', color: '#FFFFFF', bg: Colors.BRAND_PRIMARY, border: Colors.BRAND_PRIMARY },
+  canceled:   { label: 'Canceled',  color: '#FFFFFF', bg: '#FF383C',            border: '#FF383C' },
+  rejected:   { label: 'Canceled',  color: '#FFFFFF', bg: '#FF383C',            border: '#FF383C' },
+  expired:    { label: 'Expired',   color: '#FFFFFF', bg: '#AAAAAA',            border: '#AAAAAA' },
+  rescheduled:{ label: 'Rescheduled',color:'#FFFFFF', bg: Colors.BRAND_PRIMARY, border: Colors.BRAND_PRIMARY },
 }
 
-const getImageSource = (img?: string | number): ImageSourcePropType => {
-  if (!img) return { uri: '' }
-  return typeof img === 'string' ? { uri: img } : (img as ImageSourcePropType)
+const formatDate = (dateStr: string) => {
+  try {
+    return new Date(dateStr).toLocaleDateString('en-GB', {
+      day: 'numeric', month: 'long', year: 'numeric',
+    })
+  } catch { return dateStr }
+}
+
+const formatTime = (timeStr: string) => {
+  try {
+    const [h, m] = timeStr.split(':')
+    const hour = parseInt(h)
+    const ampm = hour >= 12 ? 'PM' : 'AM'
+    return `${hour % 12 || 12}:${m} ${ampm}`
+  } catch { return timeStr }
 }
 
 export default function AppointmentDetailsScreen() {
   const router = useRouter()
-  const { id } = useLocalSearchParams<{ id: string }>()
-  const appt = ADMIN_APPOINTMENTS.find(a => a.id === id) ?? ADMIN_APPOINTMENTS[0]
+  // Accept bookingId (from new list) OR id (from old fake data paths)
+  const { bookingId, id } = useLocalSearchParams<{ bookingId?: string; id?: string }>()
+  const resolvedId = bookingId ?? id ?? ''
 
-  // Local override for status after action
-  const [currentStatus, setCurrentStatus] = useState(appt.status)
-  const [rejectedBy, setRejectedBy] = useState('')
-  const [rejectedReason, setRejectedReason] = useState('')
-  const [rejectedNote, setRejectedNote] = useState('')
-  const [rejectedDate, setRejectedDate] = useState('')
-
-  const cfg = STATUS_CONFIG[currentStatus]
+  const [getBookingLookup, { data, isLoading }] = useGetBookingLookupMutation()
 
   const [showRejectConfirm, setShowRejectConfirm] = useState(false)
-  const [showRejectReason, setShowRejectReason] = useState(false)
-  const [showConfirmed, setShowConfirmed] = useState(false)
-  const [rescheduleVisible, setRescheduleVisible] = useState(false)
+  const [showRejectReason, setShowRejectReason]   = useState(false)
+  const [showConfirmed, setShowConfirmed]         = useState(false)
 
-  const isPending = currentStatus === 'Pending'
-  const isCanceled = currentStatus === 'Canceled'
-  const isFamily = appt.patientType === 'Family Member'
+  useEffect(() => {
+    if (resolvedId) {
+      getBookingLookup({ booking_id: resolvedId })
+    }
+  }, [resolvedId])
+
+  if (isLoading || !data) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <View style={styles.headerWrapper}>
+          <SectionTitle title="Appointment Details" />
+        </View>
+        <View style={styles.loadingBox}>
+          <ActivityIndicator color={Colors.BRAND_PRIMARY} size="large" />
+        </View>
+      </SafeAreaView>
+    )
+  }
+
+  const { booking, doctor, patient } = data
+  const cfg = STATUS_CONFIG[booking.status] ?? STATUS_CONFIG['confirmed']
+
+  const isPending  = booking.status === 'pending'
+  const isCanceled = booking.status === 'rejected' || booking.status === 'canceled'
+
+  // Patient info — from requested_patient (most common in this API)
+  const patientInfo = patient.requested_patient
 
   const handleAccept = () => {
     setShowConfirmed(true)
@@ -61,29 +100,19 @@ export default function AppointmentDetailsScreen() {
     setShowRejectReason(true)
   }
 
-  const handleSaveReason = (reason: string, note: string) => {
+  // After reject reason saved → go to canceled details page
+  const handleSaveReason = (_reason: string, _note: string) => {
     setShowRejectReason(false)
-    // Update local state to show rejected info on same page
-    setCurrentStatus('Canceled')
-    setRejectedBy('Admin')
-    setRejectedReason(reason)
-    setRejectedNote(note)
-    const now = new Date()
-    setRejectedDate(
-      `${now.getDate()} ${now.toLocaleString('default', { month: 'long' })}, ${now.getFullYear()} ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`
-    )
-  }
-
-  const handleRescheduleConfirm = (_date: string, _time: string) => {
-    setRescheduleVisible(false)
-    router.push({ pathname: '/admin/(tabs)/apointment' as any, params: { activeTab: 'Upcoming' } })
+    router.replace({
+      pathname: '/admin/appointments/canceled_appointment_details' as any,
+      params: { bookingId: resolvedId },
+    })
   }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-
       <View style={styles.headerWrapper}>
-        <SectionTitle title="Appointment Details" />
+        <SectionTitle title="Appointment Detail" />
       </View>
 
       <ScrollView
@@ -93,11 +122,15 @@ export default function AppointmentDetailsScreen() {
       >
         {/* ── Doctor Row ── */}
         <View style={styles.doctorRow}>
-          <Image source={getImageSource(appt.doctorImage)} style={styles.doctorImage} />
+          {doctor.avatar_url ? (
+            <Image source={{ uri: doctor.avatar_url }} style={styles.doctorImage} />
+          ) : (
+            <View style={[styles.doctorImage, { backgroundColor: '#dfefee' }]} />
+          )}
           <View style={styles.doctorInfo}>
-            <H3 style={styles.doctorName}>{appt.doctorName}</H3>
+            <H3 style={styles.doctorName}>{doctor.full_name || doctor.name}</H3>
             <Caption1 style={styles.doctorSpecialty} numberOfLines={4}>
-              {appt.doctorSpecialty}
+              {doctor.specialization}
             </Caption1>
           </View>
         </View>
@@ -111,102 +144,62 @@ export default function AppointmentDetailsScreen() {
             <Caption1 style={[styles.statusText, { color: cfg.color }]}>{cfg.label}</Caption1>
           </View>
           <View>
-            <Caption2 style={styles.dateText}>{appt.date}</Caption2>
-            <Caption2 style={styles.dateText}>{appt.time}</Caption2>
+            <Caption2 style={styles.dateText}>{formatDate(booking.appt_date)}</Caption2>
+            <Caption2 style={styles.dateText}>{formatTime(booking.appt_time)}</Caption2>
           </View>
         </View>
 
-        {/* ── Rejected Info Box (shows after reject or if already canceled) ── */}
-        {isCanceled && (rejectedBy || appt.canceledReason) && (
+        {/* ── Canceled Info Box ── */}
+        {isCanceled && (
           <View style={styles.rejectedBox}>
             <View style={styles.rejectedBoxRow}>
               <View style={{ flex: 1 }}>
                 <Caption4 style={styles.rejectedBoxLabel}>Rejected By</Caption4>
                 <Caption2 style={styles.rejectedBoxValue}>
-                  {rejectedBy || 'Admin'}
+                  {booking.approved_by ?? 'Admin'}
                 </Caption2>
+                <Caption4 style={styles.rejectedBoxMeta}>ID: {patientInfo?.ic}</Caption4>
                 <Caption4 style={styles.rejectedBoxMeta}>
-                  ID: {appt.patientIC}
-                </Caption4>
-                <Caption4 style={styles.rejectedBoxMeta}>
-                  {rejectedDate || appt.date} {appt.time}
+                  {booking.approved_at ? formatDate(booking.approved_at) : booking.appt_date}
                 </Caption4>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
                 <Caption4 style={styles.rejectedBoxLabel}>Reason</Caption4>
-                <Caption2 style={styles.rejectedReasonText}>
-                  {rejectedReason || appt.canceledReason || '—'}
-                </Caption2>
+                <Caption2 style={styles.rejectedReasonText}>—</Caption2>
               </View>
             </View>
-            {rejectedNote ? (
-              <View style={styles.rejectedNoteBox}>
-                <Caption4 style={styles.rejectedBoxLabel}>Note</Caption4>
-                <Caption2 style={styles.rejectedNoteText}>{rejectedNote}</Caption2>
-              </View>
-            ) : null}
           </View>
         )}
 
-        <Caption2 weight='regular' style={[styles.label, { marginTop: hp(20) }]}>Visit Reason</Caption2>
-        <Caption2 weight='semiBold' style={styles.boldValue}>{appt.visitReason}</Caption2>
-        <Caption2 weight='regular' style={styles.detailText}>{appt.details}</Caption2>
-
-        <Caption2 style={[styles.label, { marginTop: hp(20) }]}>
-          Patients{' '}
-          <Caption1 style={{ color: Colors.PLACEHOLLDER_TEXT }}>({appt.patientType})</Caption1>
+        {/* ── Visit Reason ── */}
+        <Caption2 weight='regular' style={[styles.label, { marginTop: hp(20) }]}>
+          Visit Reason
         </Caption2>
+        <Caption2 weight='semiBold' style={styles.boldValue}>{booking.reason}</Caption2>
 
         {/* ── Patient Info ── */}
-        {!isFamily ? (
-          <>
-            <View style={styles.personCard}>
-              <Image source={getImageSource(appt.patientImage)} style={styles.personAvatar} />
-              <View style={styles.personInfo}>
-                <Caption2 weight='semiBold'>
-                  {appt.patientName}{' '}
-                  <Caption1 style={{ color: '#0D0D0D4D' }}>({appt.patientGender})</Caption1>
-                </Caption2>
-                <Caption4 style={styles.personIC}>IC: {appt.patientIC}</Caption4>
-                <Caption4 style={styles.personMeta}>
-                  {appt.patientDOB} <Caption4>({appt.patientAge})</Caption4>
-                </Caption4>
-                <Caption4 weight='semiBold' color={Colors.TEXT_COLOR}>{appt.patientPhone}</Caption4>
-              </View>
-            </View>
+        <Caption2 style={[styles.label, { marginTop: hp(20) }]}>Patient</Caption2>
 
-            <ExpandableSection title="Medical Information">
-              <InfoRow label="Blood Group" value={appt.medicalInfo.bloodGroup} />
-              <InfoRow label="Allergies" value={appt.medicalInfo.allergies} />
-              <InfoRow label="Medical Condition" value={appt.medicalInfo.medicalCondition} />
-              <InfoRow label="Medication" value={appt.medicalInfo.medication} />
-            </ExpandableSection>
+        <View style={styles.personCard}>
+          <View style={styles.personAvatar} />
+          <View style={styles.personInfo}>
+            <Caption2 weight='semiBold'>
+              {patientInfo?.name ?? booking.patient_name}
+            </Caption2>
+            <Caption4 style={styles.personIC}>IC: {patientInfo?.ic ?? booking.patient_ic}</Caption4>
+            <Caption4 weight='semiBold' color={Colors.TEXT_COLOR}>
+              +{String(patientInfo?.phone ?? booking.patient_phone)}
+            </Caption4>
+          </View>
+        </View>
 
-            <ExpandableSection title="Insurance Information">
-              <InfoRow label="Provider" value={appt.insuranceInfo.provider} />
-              <InfoRow label="Plan Type" value={appt.insuranceInfo.planType} />
-              <InfoRow label="Member ID" value={appt.insuranceInfo.memberId} />
-            </ExpandableSection>
-          </>
-        ) : (
-          <>
-            <Caption1 style={styles.boldValue}>{appt.patientName}</Caption1>
-            <Caption2 style={[styles.label, { marginTop: hp(16) }]}>Booked By</Caption2>
-            <View style={styles.personCard}>
-              <Image source={getImageSource(appt.bookedByImage)} style={styles.personAvatar} />
-              <View style={styles.personInfo}>
-                <Caption1 style={styles.personName}>
-                  {appt.bookedByName}{' '}
-                  <Caption1 style={{ color: '#888' }}>(Male)</Caption1>
-                </Caption1>
-                <Caption4 style={styles.personIC}>IC: {appt.bookedByIC}</Caption4>
-                <Caption4 style={styles.personMeta}>
-                  {appt.bookedByDOB} <Caption4>({appt.bookedByAge})</Caption4>
-                </Caption4>
-                <Caption4 color={Colors.TEXT_COLOR}>{appt.bookedByPhone}</Caption4>
-              </View>
-            </View>
-          </>
+        {/* ── Doctor Consultation Info ── */}
+        {doctor.consultation_days && (
+          <ExpandableSection title="Consultation Info">
+            <InfoRow label="Days"    value={doctor.consultation_days} />
+            <InfoRow label="Hours"   value={doctor.consultation_time} />
+            <InfoRow label="About"   value={doctor.about} />
+          </ExpandableSection>
         )}
 
         {/* ── Action Buttons (Pending only) ── */}
@@ -234,7 +227,7 @@ export default function AppointmentDetailsScreen() {
             </View>
             <CustomButton
               title='Reschedule'
-              onPress={() => setRescheduleVisible(true)}
+              onPress={() => {}}
               backgroundColor={Colors.APP_BACKGROUND}
               borderColor={Colors.BORDER_COLOR}
               borderRadius={12}
@@ -254,7 +247,7 @@ export default function AppointmentDetailsScreen() {
       />
       <BookingConfirmedModal
         visible={showConfirmed}
-        doctorName={appt.doctorName}
+        doctorName={doctor.full_name || doctor.name}
         onClose={() => setShowConfirmed(false)}
       />
       <RejectReasonModal
@@ -262,13 +255,6 @@ export default function AppointmentDetailsScreen() {
         onCancel={() => setShowRejectReason(false)}
         onSave={handleSaveReason}
       />
-      {/* <DateTimePickerModal
-        visible={rescheduleVisible}
-        onClose={() => setRescheduleVisible(false)}
-        onConfirm={handleRescheduleConfirm}
-        disabledDates={['2026-05-10', '2026-05-15', '2026-05-18']}
-        disabledTimes={['09:00 AM', '09:30 AM', '02:30 PM', '01:30 PM']}
-      /> */}
     </SafeAreaView>
   )
 }
@@ -281,6 +267,11 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
   },
   flex: { flex: 1 },
+  loadingBox: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   headerWrapper: {
     paddingTop: hp(4),
     marginBottom: hp(16),
@@ -346,8 +337,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 2,
   },
-
-  // ── Rejected Info Box ──
   rejectedBox: {
     backgroundColor: '#FFF0F0',
     borderRadius: 12,
@@ -387,17 +376,11 @@ const styles = StyleSheet.create({
     color: Colors.TEXT_COLOR,
     lineHeight: 20,
   },
-
   boldValue: {
     color: Colors.TEXT_COLOR,
     fontWeight: '700',
     fontSize: 14,
     marginBottom: hp(8),
-  },
-  detailText: {
-    color: '#333',
-    lineHeight: 22,
-    marginBottom: hp(6),
   },
   personCard: {
     flexDirection: 'row',
@@ -420,9 +403,6 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 3,
   },
-  personName: {
-    color: Colors.TEXT_COLOR,
-  },
   personIC: {
     color: Colors.BRAND_PRIMARY,
   },
@@ -436,8 +416,5 @@ const styles = StyleSheet.create({
   rejectAcceptRow: {
     flexDirection: 'row',
     gap: hp(12),
-  },
-  section: {
-    marginBottom: hp(20),
   },
 })

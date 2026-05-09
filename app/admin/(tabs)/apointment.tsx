@@ -2,17 +2,21 @@ import { FilterIcon } from '@/assets/icons/admin_icon/FilterIcon'
 import { DatePickerModal } from '@/components/booking/DatePickerModal'
 import SectionTitle from '@/components/shared/SectionTitle'
 import { Body2, Caption1, Caption2, Caption4 } from '@/components/typo/Typography'
-import { ADMIN_APPOINTMENTS } from '@/constants/adminData'
-import { DOCTORS } from '@/constants/fakeData'
 import { Colors } from '@/constants/theme'
+import {
+  AppointmentFilterParams,
+  AppointmentItem,
+  useGetFilteredAppointmentsQuery,
+} from '@/redux/services/adminApi'
 import { hp, wp } from '@/utils/responsiveDevice'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
 import {
-  FlatList,
+  ActivityIndicator,
   Keyboard,
   Modal,
+  ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -21,67 +25,189 @@ import {
 } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
-type Tab = 'Upcoming' | 'Completed' 
-const STATUS_OPTIONS: Tab[] = ['Upcoming', 'Completed']
+// ─── Doctors (provider_id) ────────────────────────────────────────────────────
+const DOCTORS = [
+  { id: 'dr_faiz', name: 'Dr. Faiz', provider_id: 3849 },
+  { id: 'dr_liyana_ramli', name: 'Dr. Noor Liyana Binti Ramli', provider_id: 3949 },
+  { id: 'dr_liyana_yusoff', name: 'Dr. Liyana Yusoff', provider_id: 3798 },
+  { id: 'dr_mimi', name: 'Dr. Mimi', provider_id: 6505 },
+  { id: 'dr_sourav', name: 'Dr. Sourav', provider_id: 8451 },
+  { id: 'dr_anis', name: 'Dr. Anis Effendi', provider_id: 3797 },
+]
 
+// ─── Category Tabs ────────────────────────────────────────────────────────────
+type Category = 'upcoming' | 'completed' | 'cancelled'
+
+const CATEGORIES: { label: string; value: Category }[] = [
+  { label: 'Upcoming', value: 'upcoming' },
+  { label: 'Completed', value: 'completed' },
+  { label: 'Cancelled', value: 'cancelled' },
+]
+
+// ─── Status display map ───────────────────────────────────────────────────────
+const STATUS_COLOR: Record<string, { color: string; bg: string }> = {
+  received: { color: Colors.BRAND_PRIMARY, bg: '#E8F7F6' },
+  absent: { color: '#888888', bg: '#F0F0F0' },
+  cancelled: { color: '#FF383C', bg: '#FFF0F0' },
+  cancel: { color: '#FF383C', bg: '#FFF0F0' },
+  reject: { color: '#FF383C', bg: '#FFF0F0' },
+  pending: { color: '#1A1A1A', bg: '#D4F000' },
+  new: { color: Colors.BRAND_PRIMARY, bg: '#E8F7F6' },
+  completed: { color: '#FFFFFF', bg: Colors.BRAND_PRIMARY },
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const formatDate = (iso: string | null) => {
+  if (!iso) return '—'
+  try {
+    return new Date(iso).toLocaleDateString('en-GB', {
+      day: 'numeric', month: 'short', year: 'numeric',
+    })
+  } catch { return iso }
+}
+
+const formatTime = (iso: string | null) => {
+  if (!iso) return ''
+  try {
+    const d = new Date(iso)
+    const h = d.getHours()
+    const m = String(d.getMinutes()).padStart(2, '0')
+    const ampm = h >= 12 ? 'PM' : 'AM'
+    return `${h % 12 || 12}:${m} ${ampm}`
+  } catch { return '' }
+}
+
+// DatePickerModal display string → YYYY-MM-DD
+const parseToYMD = (dateStr: string): string => {
+  if (!dateStr) return ''
+  try {
+    const clean = dateStr.replace(/\s*\(.*?\)/, '').trim()
+    const d = new Date(clean)
+    if (!isNaN(d.getTime())) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    }
+  } catch { }
+  return ''
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function AdminAppointmentScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
-  const params = useLocalSearchParams<{ activeTab: string }>()
+  const params = useLocalSearchParams<{ activeTab?: string }>()
 
-  const [activeTab, setActiveTab]= useState<Tab>((params.activeTab as Tab) || 'Upcoming')
-  const [search, setSearch]             = useState('')
+  // ── Active category (applied) ──────────────────────────────────────────────
+  const [activeCategory, setActiveCategory] = useState<Category>(
+    (params.activeTab?.toLowerCase() as Category) ?? 'upcoming'
+  )
+
+  // ── Search ─────────────────────────────────────────────────────────────────
+  const [search, setSearch] = useState('')
+
+  // ── Filter modal visibility ────────────────────────────────────────────────
   const [filterVisible, setFilterVisible] = useState(false)
 
-  // Filter state
-  const [selectedStatus, setSelectedStatus] = useState<Tab>(activeTab)
-  const [selectedDoctors, setSelectedDoctors] = useState<string[]>(DOCTORS.map(d => d.name))
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate]     = useState('')
+  // ── Applied filter state (drives API call) ─────────────────────────────────
+  const [appliedProviderIds, setAppliedProviderIds] = useState<number[]>(
+    DOCTORS.map(d => d.provider_id)
+  )
+  const [appliedStartDate, setAppliedStartDate] = useState('')
+  const [appliedEndDate, setAppliedEndDate] = useState('')
 
-  // Date picker
+  // ── Temp filter state (inside modal) ──────────────────────────────────────
+  const [tempCategory, setTempCategory] = useState<Category>(activeCategory)
+  const [tempProviderIds, setTempProviderIds] = useState<number[]>(DOCTORS.map(d => d.provider_id))
+  const [tempStartDate, setTempStartDate] = useState('')
+  const [tempEndDate, setTempEndDate] = useState('')
+
+  // ── Date picker ────────────────────────────────────────────────────────────
   const [datePickerVisible, setDatePickerVisible] = useState(false)
-  const [datePickerFor, setDatePickerFor]         = useState<'start' | 'end'>('start')
+  const [datePickerFor, setDatePickerFor] = useState<'start' | 'end'>('start')
 
+  // ── Sync tab from route params ─────────────────────────────────────────────
   useEffect(() => {
     if (params.activeTab) {
-      setActiveTab(params.activeTab as Tab)
-      setSelectedStatus(params.activeTab as Tab)
+      const cat = params.activeTab.toLowerCase() as Category
+      setActiveCategory(cat)
+      setTempCategory(cat)
     }
   }, [params.activeTab])
 
-  const toggleDoctor = (name: string) => {
-    setSelectedDoctors(prev =>
-      prev.includes(name) ? prev.filter(x => x !== name) : [...prev, name]
+  // ── Build API params ───────────────────────────────────────────────────────
+  const allSelected = appliedProviderIds.length === DOCTORS.length
+
+  const filterParams: AppointmentFilterParams = {
+    category: activeCategory,
+    ...(!allSelected && { doctor_ids: appliedProviderIds.join(',') }),
+    ...(appliedStartDate && { start_date: appliedStartDate }),
+    ...(appliedEndDate && { end_date: appliedEndDate }),
+  }
+
+  const { data, isLoading, isFetching } = useGetFilteredAppointmentsQuery(filterParams)
+
+  const isLoadingData = isLoading || isFetching
+  const allResults: AppointmentItem[] = (data?.results ?? []) as AppointmentItem[]
+
+  // ── Client-side search filter ──────────────────────────────────────────────
+  const filtered = allResults.filter(item => {
+    if (!search.trim()) return true
+    const q = search.toLowerCase()
+    return (
+      item.provider.name.toLowerCase().includes(q) ||
+      item.lead.name.toLowerCase().includes(q)
     )
+  })
+
+  // ── Modal handlers ─────────────────────────────────────────────────────────
+  const handleOpenFilter = () => {
+    setTempCategory(activeCategory)
+    setTempProviderIds([...appliedProviderIds])
+    setTempStartDate(appliedStartDate)
+    setTempEndDate(appliedEndDate)
+    setFilterVisible(true)
   }
 
-  const openDatePicker = (type: 'start' | 'end') => {
-    setDatePickerFor(type)
-    setDatePickerVisible(true)
-  }
-
-  const handleDateConfirm = (date: string) => {
-    if (datePickerFor === 'start') setStartDate(date)
-    else setEndDate(date)
-    setDatePickerVisible(false)
-  }
-
-  const handleFind = () => {
-    setActiveTab(selectedStatus)
+  const handleApplyFilter = () => {
+    setActiveCategory(tempCategory)
+    setAppliedProviderIds([...tempProviderIds])
+    setAppliedStartDate(parseToYMD(tempStartDate) || tempStartDate)
+    setAppliedEndDate(parseToYMD(tempEndDate) || tempEndDate)
     setFilterVisible(false)
   }
 
-  const data = ADMIN_APPOINTMENTS.filter(a => {
-    const matchTab    = a.status === activeTab
-    const matchSearch = a.doctorName.toLowerCase().includes(search.toLowerCase())
-    const matchDoctor = selectedDoctors.includes(a.doctorName)
-    return matchTab && matchSearch && matchDoctor
-  })
+  const handleResetFilter = () => {
+    setTempCategory('upcoming')
+    setTempProviderIds(DOCTORS.map(d => d.provider_id))
+    setTempStartDate('')
+    setTempEndDate('')
+  }
 
+  const toggleTempDoctor = (providerId: number) => {
+    setTempProviderIds(prev =>
+      prev.includes(providerId)
+        ? prev.filter(x => x !== providerId)
+        : [...prev, providerId]
+    )
+  }
+
+  const handleDateConfirm = (dateDisplay: string) => {
+    if (datePickerFor === 'start') setTempStartDate(dateDisplay)
+    else setTempEndDate(dateDisplay)
+    setDatePickerVisible(false)
+  }
+
+  // ── Navigation ─────────────────────────────────────────────────────────────
+  const handleCardPress = (item: AppointmentItem) => {
+    router.push({
+      pathname: '/admin/appointments/appintment_status_details' as any, 
+      params: { appointmentId: String(item.id) },
+    })
+  }
+
+  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
+      <View style={{ marginTop: hp(10) }}>
         <SectionTitle title="Appointments" showBackButton={false} />
       </View>
 
@@ -91,78 +217,97 @@ export default function AdminAppointmentScreen() {
           <Ionicons name="search-outline" size={18} color="#AAAAAA" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search"
+            placeholder="Search doctor or patient"
             placeholderTextColor="#AAAAAA"
             value={search}
             onChangeText={setSearch}
           />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch('')}>
+              <Ionicons name="close-circle" size={18} color="#AAAAAA" />
+            </TouchableOpacity>
+          )}
         </View>
-        <TouchableOpacity
-          style={styles.filterBtn}
-          onPress={() => setFilterVisible(true)}
-          activeOpacity={0.8}
-        >
+        <TouchableOpacity style={styles.filterBtn} onPress={handleOpenFilter} activeOpacity={0.8}>
           <FilterIcon />
         </TouchableOpacity>
       </View>
 
-      {/* Section Label */}
-      <Caption1 style={styles.sectionLabel}>{activeTab}</Caption1>
+
+
+      {/* Count */}
+      {!isLoadingData && (
+        <Caption4 style={styles.countText}>
+          {filtered.length} result{filtered.length !== 1 ? 's' : ''}
+        </Caption4>
+      )}
 
       {/* List */}
-      <FlatList
-        data={data}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ItemSeparatorComponent={() => <View style={{ height: hp(10) }} />}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
-            activeOpacity={0.8}
-            onPress={() =>
-              router.push({
-                pathname: '/admin/appointments/appointment_details' as any,
-                params: { id: item.id },
-              })
-            }
-          >
-            <View style={styles.cardLeft}>
-              <Caption1
-                weight='semiBold'
-                style={styles.doctorName}
-                numberOfLines={1}
-              >
-                {item.doctorName}
-              </Caption1>
-              <Caption2
-                weight='semiBold'
-                // style={styles.doctorName}
-                numberOfLines={1}
-              >
-                {item.displayDate}
-              </Caption2>
-             
+      {isLoadingData ? (
+        <View style={styles.loadingBox}>
+          <ActivityIndicator color={Colors.BRAND_PRIMARY} size="large" />
+        </View>
+      ) : (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: insets.bottom + hp(20) }}
+        >
+          {filtered.length === 0 ? (
+            <View style={styles.empty}>
+              <Caption1 style={{ color: '#aaa' }}>No appointments found.</Caption1>
             </View>
+          ) : (
+            filtered.map(item => {
+              const statusKey = item.status?.toLowerCase() ?? ''
+              const statusCfg = STATUS_COLOR[statusKey] ?? STATUS_COLOR['received']
 
-            <View style={styles.verticalDivider} />
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.card}
+                  activeOpacity={0.8}
+                  onPress={() => handleCardPress(item)}
+                >
+                  {/* Left */}
+                  <View style={styles.cardLeft}>
+                    <Caption1 weight="semiBold" style={styles.doctorName} numberOfLines={1}>
+                      {item.provider.name}
+                    </Caption1>
+                    <Caption4 style={styles.metaText}>
+                      {formatTime(item.start)}
+                      {item.start ? '  ·  ' : ''}
+                      {formatDate(item.start)}
+                    </Caption4>
+                    {item.lead.remarks ? (
+                      <Caption4 style={styles.remarkText} numberOfLines={1}>
+                        {item.lead.remarks}
+                      </Caption4>
+                    ) : null}
+                  </View>
 
-            <View style={styles.cardRight}>
-              <Caption4 style={styles.patientLabel}>Patient</Caption4>
-              <Caption2 style={styles.patientName} numberOfLines={1}>
-                {item.patientName}
-              </Caption2>
-            </View>
-          </TouchableOpacity>
-        )}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Caption1 style={{ color: '#aaa' }}>No appointments found.</Caption1>
-          </View>
-        }
-      />
+                  {/* Divider */}
+                  <View style={styles.verticalDivider} />
 
-      {/* Filter Modal */}
+                  {/* Right */}
+                  <View style={styles.cardRight}>
+                    <Caption4 style={styles.patientLabel}>Patient</Caption4>
+                    <Caption2 style={styles.patientName} numberOfLines={2}>
+                      {item.lead.name}
+                    </Caption2>
+                    <View style={[styles.statusBadge, { backgroundColor: statusCfg.bg }]}>
+                      <Caption4 style={[styles.statusText, { color: statusCfg.color }]}>
+                        {item.status}
+                      </Caption4>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              )
+            })
+          )}
+        </ScrollView>
+      )}
+
+      {/* ── Filter Modal ──────────────────────────────────────────────────── */}
       <Modal
         visible={filterVisible}
         transparent
@@ -175,115 +320,120 @@ export default function AdminAppointmentScreen() {
               <View style={[styles.bottomSheet, { paddingBottom: Math.max(insets.bottom, hp(24)) }]}>
                 <View style={styles.sheetHandle} />
 
-                <FlatList
-                  data={[]}
-                  renderItem={null}
-                  showsVerticalScrollIndicator={false}
-                  ListHeaderComponent={
-                    <>
-                      {/* Status — Radio */}
-                      <Body2 style={styles.filterSectionLabel}>Status</Body2>
-                      {STATUS_OPTIONS.map(opt => {
-                        const selected = selectedStatus === opt
-                        return (
-                          <TouchableOpacity
-                            key={opt}
-                            style={styles.filterRow}
-                            onPress={() => setSelectedStatus(opt)}
-                            activeOpacity={0.7}
-                          >
-                            <Caption1 style={styles.filterRowText}>{opt}</Caption1>
-                            <View style={[styles.radio, selected && styles.radioSelected]}>
-                              {selected && <View style={styles.radioInner} />}
-                            </View>
-                          </TouchableOpacity>
-                        )
-                      })}
+                {/* Header */}
+                <View style={styles.sheetHeader}>
+                  <Body2 style={styles.sheetTitle}>Filter</Body2>
+                  <TouchableOpacity onPress={handleResetFilter} activeOpacity={0.7}>
+                    <Caption1 style={styles.resetText}>Reset</Caption1>
+                  </TouchableOpacity>
+                </View>
 
-                      {/* Doctor — Checkbox */}
-                      <Body2 style={styles.filterSectionLabel}>Doctor</Body2>
-                      {DOCTORS.map(doc => {
-                        const checked = selectedDoctors.includes(doc.name)
-                        return (
-                          <TouchableOpacity
-                            key={doc.id}
-                            style={styles.filterRow}
-                            onPress={() => toggleDoctor(doc.name)}
-                            activeOpacity={0.7}
-                          >
-                            <Caption1 style={styles.filterRowText}>{doc.name}</Caption1>
-                            <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
-                              {checked && <Ionicons name="checkmark" size={14} color="#fff" />}
-                            </View>
-                          </TouchableOpacity>
-                        )
-                      })}
+                <ScrollView showsVerticalScrollIndicator={false}>
 
-                      {/* Date */}
-                      <Body2 style={styles.filterSectionLabel}>Date</Body2>
-
+                  {/* Category */}
+                  <Body2 style={styles.filterSectionLabel}>Category</Body2>
+                  {CATEGORIES.map(cat => {
+                    const selected = tempCategory === cat.value
+                    return (
                       <TouchableOpacity
+                        key={cat.value}
                         style={styles.filterRow}
+                        onPress={() => setTempCategory(cat.value)}
                         activeOpacity={0.7}
-                        onPress={() => openDatePicker('start')}
                       >
-                        <Caption1 style={styles.filterRowText}>Start date</Caption1>
-                        {startDate ? (
-                          <Caption1 style={styles.selectedDateText}>{startDate}</Caption1>
-                        ) : null}
+                        <Caption1 style={styles.filterRowText}>{cat.label}</Caption1>
+                        <View style={[styles.radio, selected && styles.radioSelected]}>
+                          {selected && <View style={styles.radioInner} />}
+                        </View>
                       </TouchableOpacity>
+                    )
+                  })}
 
+                  {/* Doctor */}
+                  <Body2 style={styles.filterSectionLabel}>Doctor</Body2>
+                  {DOCTORS.map(doc => {
+                    const checked = tempProviderIds.includes(doc.provider_id)
+                    return (
                       <TouchableOpacity
+                        key={doc.id}
                         style={styles.filterRow}
+                        onPress={() => toggleTempDoctor(doc.provider_id)}
                         activeOpacity={0.7}
-                        onPress={() => openDatePicker('end')}
                       >
-                        <Caption1 style={styles.filterRowText}>End Date</Caption1>
-                        {endDate ? (
-                          <Caption1 style={styles.selectedDateText}>{endDate}</Caption1>
-                        ) : null}
+                        <Caption1 style={styles.filterRowText}>{doc.name}</Caption1>
+                        <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+                          {checked && <Ionicons name="checkmark" size={14} color="#fff" />}
+                        </View>
                       </TouchableOpacity>
+                    )
+                  })}
 
-                      {/* Find Button */}
-                      <TouchableOpacity
-                        style={styles.findBtn}
-                        onPress={handleFind}
-                        activeOpacity={0.85}
-                      >
-                        <Caption1 style={styles.findBtnText}>Find</Caption1>
-                      </TouchableOpacity>
-                    </>
-                  }
-                />
+                  {/* Date Range — allowPastDates for historical filtering */}
+                  <Body2 style={styles.filterSectionLabel}>Date Range</Body2>
+                  <TouchableOpacity
+                    style={styles.filterRow}
+                    activeOpacity={0.7}
+                    onPress={() => { setDatePickerFor('start'); setDatePickerVisible(true) }}
+                  >
+                    <Caption1 style={styles.filterRowText}>Start Date</Caption1>
+                    <Caption1 style={tempStartDate ? styles.selectedDateText : styles.placeholderText}>
+                      {tempStartDate || 'Select'}
+                    </Caption1>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.filterRow}
+                    activeOpacity={0.7}
+                    onPress={() => { setDatePickerFor('end'); setDatePickerVisible(true) }}
+                  >
+                    <Caption1 style={styles.filterRowText}>End Date</Caption1>
+                    <Caption1 style={tempEndDate ? styles.selectedDateText : styles.placeholderText}>
+                      {tempEndDate || 'Select'}
+                    </Caption1>
+                  </TouchableOpacity>
+
+                  {/* Apply */}
+                  <TouchableOpacity
+                    style={styles.findBtn}
+                    onPress={handleApplyFilter}
+                    activeOpacity={0.85}
+                  >
+                    <Caption1 style={styles.findBtnText}>Apply Filter</Caption1>
+                  </TouchableOpacity>
+
+                </ScrollView>
               </View>
             </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
       </Modal>
 
-      {/* Date Picker Modal */}
+      {/* Date Picker */}
       <DatePickerModal
         visible={datePickerVisible}
         title={datePickerFor === 'start' ? 'Select Start Date' : 'Select End Date'}
         onClose={() => setDatePickerVisible(false)}
         onConfirm={handleDateConfirm}
+        allowPastDates={true}
       />
     </SafeAreaView>
   )
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.APP_BACKGROUND,
     paddingHorizontal: wp(20),
   },
-  header: {
-    paddingTop: hp(10),
-    paddingBottom: hp(4),
+  loadingBox: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
-  // ── Search ──
+  // Search
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -315,69 +465,101 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // ── Section Label ──
-  sectionLabel: {
-    color: Colors.TEXT_COLOR,
-    fontWeight: '600',
+  // Category tabs
+  tabRow: {
+    flexDirection: 'row',
+    gap: wp(8),
+    marginBottom: hp(12),
+  },
+  tabPill: {
+    paddingHorizontal: wp(16),
+    paddingVertical: hp(8),
+    borderRadius: 20,
+    backgroundColor: '#F0F0F0',
+  },
+  tabPillActive: {
+    backgroundColor: Colors.BRAND_PRIMARY,
+  },
+  tabText: {
+    color: '#888888',
+    fontSize: 13,
+  },
+  tabTextActive: {
+    color: '#FFFFFF',
+  },
+
+  countText: {
+    color: '#888888',
     marginBottom: hp(10),
   },
 
-  // ── List ──
-  listContent: {
-    paddingBottom: hp(120),
-  },
-
-  // ── Card ──
+  // Cards
   card: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
     borderWidth: 1,
     borderColor: Colors.BORDER_COLOR,
     borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    marginBottom: hp(10),
     overflow: 'hidden',
-    backgroundColor: Colors.APP_BACKGROUND,
-    paddingVertical: hp(15),
   },
   cardLeft: {
     flex: 1,
     paddingHorizontal: wp(14),
-    paddingVertical: hp(12),
+    paddingVertical: hp(14),
+    justifyContent: 'center',
   },
   verticalDivider: {
     width: 1,
-    alignSelf: 'stretch',
     backgroundColor: Colors.BORDER_COLOR,
   },
   cardRight: {
     width: wp(130),
-    paddingHorizontal: wp(14),
-    paddingVertical: hp(12),
+    paddingHorizontal: wp(12),
+    paddingVertical: hp(14),
     alignItems: 'flex-end',
+    justifyContent: 'center',
+    gap: hp(6),
   },
   doctorName: {
     color: Colors.BRAND_PRIMARY,
-    fontWeight: '600',
-    marginBottom: hp(5),
+    marginBottom: hp(4),
   },
-  meta: {
+  metaText: {
     color: '#666666',
-    marginTop: 3,
+    marginBottom: hp(2),
+  },
+  remarkText: {
+    color: '#999999',
+    fontStyle: 'italic',
+    marginTop: hp(2),
   },
   patientLabel: {
-    color: '#666666',
-    marginBottom: hp(8),
+    color: '#888888',
   },
   patientName: {
     color: Colors.TEXT_COLOR,
     fontWeight: '600',
     textAlign: 'right',
   },
+  statusBadge: {
+    paddingHorizontal: wp(8),
+    paddingVertical: hp(3),
+    borderRadius: 8,
+    marginTop: hp(2),
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
   empty: {
     marginTop: hp(60),
     alignItems: 'center',
   },
 
-  // ── Filter Modal ──
+  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.3)',
@@ -397,13 +579,29 @@ const styles = StyleSheet.create({
     backgroundColor: '#E0E0E0',
     borderRadius: 2,
     alignSelf: 'center',
-    marginBottom: hp(20),
+    marginBottom: hp(12),
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: hp(8),
+  },
+  sheetTitle: {
+    color: Colors.TEXT_COLOR,
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  resetText: {
+    color: '#FF383C',
+    fontWeight: '600',
+    fontSize: 13,
   },
   filterSectionLabel: {
     color: Colors.TEXT_COLOR,
     fontWeight: '600',
     marginBottom: hp(10),
-    marginTop: hp(8),
+    marginTop: hp(12),
   },
   filterRow: {
     flexDirection: 'row',
@@ -422,9 +620,12 @@ const styles = StyleSheet.create({
   selectedDateText: {
     color: Colors.BRAND_PRIMARY,
     fontSize: 12,
+    fontWeight: '500',
   },
-
-  // ── Radio ──
+  placeholderText: {
+    color: '#AAAAAA',
+    fontSize: 12,
+  },
   radio: {
     width: 22,
     height: 22,
@@ -444,8 +645,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: Colors.BRAND_PRIMARY,
   },
-
-  // ── Checkbox ──
   checkbox: {
     width: 22,
     height: 22,
@@ -460,7 +659,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.BRAND_PRIMARY,
     borderColor: Colors.BRAND_PRIMARY,
   },
-
   findBtn: {
     backgroundColor: Colors.BRAND_PRIMARY,
     borderRadius: 14,

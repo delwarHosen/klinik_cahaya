@@ -14,99 +14,143 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 type TabType = 'Upcoming' | 'Completed' | 'Canceled';
 
-interface Appointment {
+interface DoctorInfo {
   id: string;
-  date: string;         // "2026-05-19"
-  time: string;         // "22:00"
+  name: string;
+  full_name: string;
+  avatar_url: string;
+  specialization: string;
+}
+
+interface Appointment {
+  id: string | number;
+  date: string;
+  time: string;
   doctor_name: string;
   doctor_phone: number;
   patient_name: string;
-  patient_phone: number;
-  reason: string;
-  status: string;       // "pending" | "confirmed" | "completed" | "cancelled"
+  patient_phone: number | string;
+  reason: string | null;
+  status: string;
   created_at: string;
+  source: string;
+  doctor_id: string;
+  doctor_info?: DoctorInfo;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+const TODAY = new Date()
+TODAY.setHours(0, 0, 0, 0)
+
 /**
- * Maps API status → UI tab label.
- * "pending" and "confirmed" both appear under Upcoming.
+ * Maps API status + date → UI tab.
+ * Upcoming  = future date AND active status (new/received/pending/confirmed)
+ * Completed = received/completed with past date
+ * Canceled  = cancelled/canceled
  */
-function mapStatus(apiStatus: string): TabType {
-  switch (apiStatus) {
-    case 'pending':
-    case 'received':
-    case 'confirmed':
-      return 'Upcoming';
-    case 'completed':
-      return 'Completed';
-    case 'cancelled':
-    case 'canceled':
-      return 'Canceled';
-    default:
-      return 'Upcoming';
+function mapStatus(apiStatus: string, dateStr: string): TabType {
+  const s = apiStatus?.toLowerCase()
+
+  // Canceled always goes to Canceled tab regardless of date
+  if (s === 'cancelled' || s === 'canceled' || s === 'rejected' || s === 'reject') {
+    return 'Canceled'
+  }
+
+  // Completed
+  if (s === 'completed') return 'Completed'
+
+  // For active statuses — check date
+  if (s === 'new' || s === 'pending' || s === 'received' || s === 'confirmed') {
+    const apptDate = new Date(dateStr)
+    apptDate.setHours(0, 0, 0, 0)
+    if (apptDate >= TODAY) return 'Upcoming'
+    // Past date with received → treat as Completed
+    return 'Completed'
+  }
+
+  // Default future
+  return 'Upcoming'
+}
+
+/** "2026-05-19" + "22:00:00" → displayDate and displayTime */
+function formatDateTime(date: string, time: string): { displayDate: string; displayTime: string } {
+  try {
+    const [year, month, day] = date.split('-').map(Number)
+    const [hStr, mStr] = time.split(':')
+    const h = parseInt(hStr, 10)
+    const ampm = h >= 12 ? 'PM' : 'AM'
+    const h12 = h % 12 === 0 ? 12 : h % 12
+
+    const dateObj = new Date(year, month - 1, day)
+    const displayDate = dateObj.toLocaleDateString('en-MY', {
+      day: '2-digit', month: 'short', year: 'numeric',
+    })
+    const displayTime = `${String(h12).padStart(2, '0')}:${mStr} ${ampm}`
+    return { displayDate, displayTime }
+  } catch {
+    return { displayDate: date, displayTime: time }
   }
 }
 
-/** "2026-05-19" + "22:00" → "19 May 2026" and "10:00 PM" */
-function formatDateTime(date: string, time: string): { displayDate: string; displayTime: string } {
-  const [year, month, day] = date.split('-').map(Number);
-  const [hStr, mStr] = time.split(':');
-  const h    = parseInt(hStr, 10);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const h12  = h % 12 === 0 ? 12 : h % 12;
-
-  const dateObj    = new Date(year, month - 1, day);
-  const displayDate = dateObj.toLocaleDateString('en-MY', {
-    day: '2-digit', month: 'short', year: 'numeric',
-  });
-  const displayTime = `${String(h12).padStart(2, '0')}:${mStr} ${ampm}`;
-
-  return { displayDate, displayTime };
-}
-
-// ─── Status style helpers ─────────────────────────────────────────────────────
+// ─── Status badge style helpers ───────────────────────────────────────────────
 
 const getStatusBg = (s: TabType) => {
-  if (s === 'Upcoming')  return Colors.ACCENT_YELLOW;
-  return 'transparent';
-};
+  if (s === 'Upcoming') return Colors.ACCENT_YELLOW
+  return 'transparent'
+}
 
 const getStatusBorderColor = (s: TabType) => {
-  if (s === 'Completed') return Colors.BRAND_PRIMARY;
-  if (s === 'Canceled')  return Colors.COLOR_DANGER;
-  return 'transparent';
-};
+  if (s === 'Completed') return Colors.BRAND_PRIMARY
+  if (s === 'Canceled') return Colors.COLOR_DANGER
+  return 'transparent'
+}
 
 const getStatusTextColor = (s: TabType) => {
-  if (s === 'Upcoming')  return '#000';
-  if (s === 'Completed') return Colors.BRAND_PRIMARY;
-  if (s === 'Canceled')  return Colors.COLOR_DANGER;
-  return '#666';
-};
+  if (s === 'Upcoming') return '#000'
+  if (s === 'Completed') return Colors.BRAND_PRIMARY
+  if (s === 'Canceled') return Colors.COLOR_DANGER
+  return '#666'
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AppointmentScreen() {
-  const [activeTab, setActiveTab] = useState<TabType>('Upcoming');
-  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<TabType>('Upcoming')
+  const router = useRouter()
 
   // ── Profile → phone ────────────────────────────────────────────────────────
-  const { data: profileData, isLoading: profileLoading } = useGetProfileQuery({});
-  const phone = profileData?.steps?.profile?.data?.phone ?? '';
+  const { data: profileData, isLoading: profileLoading } = useGetProfileQuery({})
+  const phone = profileData?.steps?.profile?.data?.phone ?? ''
 
   // ── Appointments ───────────────────────────────────────────────────────────
   const { data, isLoading: appointmentsLoading } = useGetAppointmentsByPhoneQuery(phone, {
     skip: !phone,
-  });
+  })
 
-  const isLoading    = profileLoading || appointmentsLoading;
-  const appointments: Appointment[] = data?.appointments ?? data ?? [];
 
+  const isLoading = profileLoading || appointmentsLoading
+
+  // Safely extract appointments array from any response shape
+  const appointments: Appointment[] = Array.isArray(data?.appointments)
+    ? data.appointments
+    : Array.isArray(data?.results)
+      ? data.results
+      : Array.isArray(data)
+        ? data
+        : []
+
+  // Filter by tab — date-aware
   const filteredData = appointments.filter(
-    (item) => mapStatus(item.status) === activeTab,
-  );
+    (item) => mapStatus(item.status, item.date) === activeTab
+  )
+
+  // Sort upcoming by date ascending, others descending
+  const sortedData = [...filteredData].sort((a, b) => {
+    const da = new Date(`${a.date}T${a.time}`).getTime()
+    const db = new Date(`${b.date}T${b.time}`).getTime()
+    return activeTab === 'Upcoming' ? da - db : db - da
+  })
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -127,7 +171,10 @@ export default function AppointmentScreen() {
             style={[styles.tab, activeTab === tab && styles.activeTab]}
             onPress={() => setActiveTab(tab)}
           >
-            <Caption1 weight="medium" color={activeTab === tab ? Colors.TEXT_WHITE : '#666'}>
+            <Caption1
+              weight="medium"
+              color={activeTab === tab ? Colors.TEXT_WHITE : '#666'}
+            >
               {tab}
             </Caption1>
           </TouchableOpacity>
@@ -136,11 +183,11 @@ export default function AppointmentScreen() {
 
       {/* ── List ── */}
       <FlatList
-        data={filteredData}
-        keyExtractor={(item) => item.id}
+        data={sortedData}
+        keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => {
-          const mapped = mapStatus(item.status);
-          const { displayDate, displayTime } = formatDateTime(item.date, item.time);
+          const mapped = mapStatus(item.status, item.date)
+          const { displayDate, displayTime } = formatDateTime(item.date, item.time)
 
           return (
             <TouchableOpacity
@@ -149,19 +196,23 @@ export default function AppointmentScreen() {
               onPress={() =>
                 router.push({
                   pathname: '/patient/booking_appointment/appointment_details' as any,
-                  params: { appointmentId: item.id },
+                  params: { appointmentId: String(item.id), source: item.source },
                 })
               }
             >
               <View style={styles.cardContent}>
                 <View style={{ flex: 1 }}>
                   {/* Doctor name */}
-                  <H6 color={Colors.TEXT_COLOR}>{item.doctor_name}</H6>
+                  <H6 color={Colors.TEXT_COLOR}>
+                    {item.doctor_info?.full_name || item.doctor_name}
+                  </H6>
 
                   {/* Reason */}
-                  <Caption3 color="#818181" numberOfLines={1} style={{ marginTop: 5 }}>
-                    {item.reason}
-                  </Caption3>
+                  {item.reason ? (
+                    <Caption3 color="#818181" numberOfLines={1} style={{ marginTop: 5 }}>
+                      {item.reason}
+                    </Caption3>
+                  ) : null}
 
                   <View style={styles.infoRow}>
                     {/* Patient name */}
@@ -169,7 +220,11 @@ export default function AppointmentScreen() {
                       {item.patient_name}
                     </Body2>
                     {/* Date & Time */}
-                    <Body1 weight="semiBold" color={Colors.TEXT_COLOR} numberOfLines={1}>
+                    <Body1
+                      weight="semiBold"
+                      color={Colors.TEXT_COLOR}
+                      numberOfLines={1}
+                    >
                       {displayTime} | {displayDate}
                     </Body1>
                   </View>
@@ -190,7 +245,7 @@ export default function AppointmentScreen() {
                 </View>
               </View>
             </TouchableOpacity>
-          );
+          )
         }}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
@@ -203,7 +258,7 @@ export default function AppointmentScreen() {
         }
       />
     </SafeAreaView>
-  );
+  )
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -263,4 +318,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: hp(100),
   },
-});
+})

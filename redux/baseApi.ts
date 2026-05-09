@@ -5,8 +5,8 @@ import { createApi, fetchBaseQuery, FetchBaseQueryError } from '@reduxjs/toolkit
 import { router } from 'expo-router';
 
 const baseQuery = fetchBaseQuery({
-  baseUrl: 'https://knx.up.railway.app',
-  // baseUrl: 'http://10.10.20.46:7000',
+  // baseUrl: 'https://v0d7xzkk-7000.inc1.devtunnels.ms',
+  baseUrl: 'http://10.10.20.46:7000',
   prepareHeaders: async (headers) => {
     return headers;
   },
@@ -76,6 +76,6 @@ function getErrorMessage(status: number | string): string {
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithAuth,
-  tagTypes: ['Auth','Profile', 'Patient', 'Admin', 'Appointments', 'Doctors', 'Queue','DoctorAvailability','AppointmentMembers','AdminUpcoming', 'AdminBookingRequest', 'AdminBookingCount'], 
+  tagTypes: ['Auth','Profile', 'Patient', 'Admin', 'Appointments', 'Doctors', 'Queue','DoctorAvailability','AppointmentMembers','AdminUpcoming', 'AdminBookingRequest', 'AdminBookingCount','AdminFilteredBookings','AdminFilteredAppointments'], 
   endpoints: () => ({}),
 });

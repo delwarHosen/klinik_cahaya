@@ -45,11 +45,12 @@ export interface DoctorAvailabilityResponse {
 }
 
 export interface CreateAppointmentPayload {
-  date: string;        // "2026-05-07"
-  time: string;        // "20:00"
+  date: string;            // "2026-05-07"
+  time: string;            // "20:00"
   doctor_id: string;
-  member_name: string | null;
   reason: string;
+  member_id?: string | null;    // self booking → member_id
+  member_name?: string | null;  // family booking → member_name
 }
 
 export interface CreateAppointmentResponse {
@@ -73,10 +74,8 @@ export const bookingApi = baseApi.injectEndpoints({
     // GET /fresh/doctors/:doctor_id/availability
     getDoctorAvailability: builder.query<DoctorAvailabilityResponse, string>({
       query: (doctorId) => `/fresh/doctors/${doctorId}/availability`,
-      // Tag includes doctorId so invalidation is precise
       providesTags: (result, error, doctorId) => [
         { type: 'DoctorAvailability', id: doctorId },
-        // Also provide a generic tag so a wildcard invalidation works too
         'DoctorAvailability',
       ],
       keepUnusedDataFor: 120,
@@ -89,11 +88,10 @@ export const bookingApi = baseApi.injectEndpoints({
         method: 'POST',
         body,
       }),
-      // Invalidate both the specific doctor's availability AND all appointments
       invalidatesTags: (result, error, arg) => [
-        { type: 'DoctorAvailability', id: arg.doctor_id }, // refetch this doctor's slots
-        'DoctorAvailability',                               // catch-all
-        'Appointments',                                     // refetch appointment list
+        { type: 'DoctorAvailability', id: arg.doctor_id },
+        'DoctorAvailability',
+        'Appointments',  // apointment list refetch হবে
       ],
     }),
 

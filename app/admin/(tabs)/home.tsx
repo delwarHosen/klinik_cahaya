@@ -116,8 +116,8 @@ export default function AdminHomeScreen() {
                 activeOpacity={0.75}
                 onPress={() =>
                   router.push({
-                    pathname: '/admin/appointments/appointment_details' as any,
-                    params: { id: item.id },
+                    pathname: '/admin/appointments/appintment_status_details' as any,
+                    params: { appointmentId: item.id },
                   })
                 }
               >
@@ -125,7 +125,7 @@ export default function AdminHomeScreen() {
                   <Caption1 weight='semiBold' style={styles.apptDoctor} numberOfLines={1}>
                     {item.provider?.name ?? '-'}
                   </Caption1>
-                  {/* ✅ Time + smart date label — design unchanged */}
+                 
                   <Caption4 style={styles.apptMeta}>
                     {`${formatTime(item.start)} | ${smartDateLabel(item.start)}`}
                   </Caption4>

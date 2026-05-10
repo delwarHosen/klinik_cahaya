@@ -1,5 +1,7 @@
 // app/admin/profile/add_doctor.tsx
 import { PhotoIcon } from '@/assets/icons/common_icon/PhotoIcon'
+import { DayPickerModal } from '@/components/admin/DayPickerModal'
+import { TimePickerModal } from '@/components/admin/Timepickermodal'
 import { CustomButton } from '@/components/shared/CustomButton'
 import SectionTitle from '@/components/shared/SectionTitle'
 import { showToast } from '@/components/shared/Toast'
@@ -22,33 +24,61 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+// ─── Helper: extract readable message from FastAPI 422 errors ─────────────────
+function extractErrorMessage(err: any): string {
+    const detail = err?.data?.detail
+    if (Array.isArray(detail) && detail.length > 0) {
+        return detail.map((d: any) => `${d.loc?.slice(-1)[0]}: ${d.msg}`).join('\n')
+    }
+    if (typeof detail === 'string') return detail
+    return err?.data?.message ?? err?.data ?? 'Failed to add doctor.'
+}
+
 export default function AddDoctorProfileScreen() {
     const router = useRouter()
     const [addDoctor, { isLoading }] = useAddDoctorMutation()
 
+    // Avatar
     const [photo, setPhoto] = useState<string | null>(null)
     const [photoAsset, setPhotoAsset] = useState<ImagePicker.ImagePickerAsset | null>(null)
 
+    // Basic fields
     const [id, setId] = useState('')
     const [name, setName] = useState('')
     const [fullName, setFullName] = useState('')
     const [designation, setDesignation] = useState('')
     const [specialization, setSpecialization] = useState('')
     const [tier, setTier] = useState('')
-    const [consultationDays, setConsultationDays] = useState('')
-    const [consultationTime, setConsultationTime] = useState('')
     const [doctorPhone, setDoctorPhone] = useState('')
     const [about, setAbout] = useState('')
     const [specialties, setSpecialties] = useState('')
     const [yezzaProviderId, setYezzaProviderId] = useState('')
     const [yezzaServiceId, setYezzaServiceId] = useState('')
 
+    // ── Consultation Days & Time (same as consultation_time.tsx) ──────────────
+    const [selectedDays, setSelectedDays] = useState<string[]>([])
+    const [startTime, setStartTime] = useState('08:00 AM')
+    const [endTime, setEndTime] = useState('01:00 PM')
+    const [showDayPicker, setShowDayPicker] = useState(false)
+    const [showStartPicker, setShowStartPicker] = useState(false)
+    const [showEndPicker, setShowEndPicker] = useState(false)
+
+    const dayLabel =
+        selectedDays.length === 0
+            ? 'Select Days'
+            : selectedDays.length === 7
+                ? 'Everyday'
+                : `${selectedDays[0]} - ${selectedDays[selectedDays.length - 1]}`
+
+    const timeLabel = `${startTime} - ${endTime}`
+
+    // ─── Image Picker ──────────────────────────────────────────────────────────
     const handlePickImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
         if (status !== 'granted') return
 
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ['images'],
+            mediaTypes: 'images',
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.8,
@@ -60,22 +90,32 @@ export default function AddDoctorProfileScreen() {
         }
     }
 
+    // ─── Save ─────────────────────────────────────────────────────────────────
     const handleSave = async () => {
+        if (!id.trim() || !fullName.trim()) {
+            showToast('Doctor ID and Full Name are required.', 'error')
+            return
+        }
+
         try {
             const formData = new FormData()
 
-            formData.append('id', id)
-            formData.append('name', name)
-            formData.append('full_name', fullName)
-            formData.append('designation', designation)
-            formData.append('specialization', specialization)
+            formData.append('id', id.trim())
+            formData.append('name', name.trim())
+            formData.append('full_name', fullName.trim())
+            formData.append('designation', designation.trim())
+            formData.append('specialization', specialization.trim())
             formData.append('tier', tier)
             formData.append('active', 'true')
-            formData.append('consultation_days', consultationDays)
-            formData.append('consultation_time', consultationTime)
-            formData.append('doctor_phone', doctorPhone)
-            formData.append('about', about)
-            formData.append('specialties', specialties)
+
+            // consultation_days: send as comma-separated string (server/backend handles it)
+            formData.append('consultation_days', selectedDays.join(','))
+            // consultation_time: "08:00 AM - 01:00 PM"
+            formData.append('consultation_time', timeLabel)
+
+            formData.append('doctor_phone', doctorPhone.trim())
+            formData.append('about', about.trim())
+            formData.append('specialties', specialties.trim())
             formData.append('yezza_provider_id', yezzaProviderId)
             formData.append('yezza_service_id', yezzaServiceId)
 
@@ -87,16 +127,13 @@ export default function AddDoctorProfileScreen() {
                 } as any)
             }
 
-            await addDoctor(formData).unwrap()
+           const res= await addDoctor(formData).unwrap()
+           console.log("add Doctor ", res)
             showToast('Doctor added successfully!', 'success')
             router.back()
         } catch (err: any) {
-            const message =
-                err?.data?.detail?.msg ||
-                err?.data?.message ||
-                err?.data ||
-                'Failed to add doctor.'
-            showToast(typeof message === 'string' ? message : 'Server error occurred.', 'error')
+            console.log('Add doctor error:', JSON.stringify(err, null, 2))
+            showToast(extractErrorMessage(err), 'error')
         }
     }
 
@@ -116,7 +153,7 @@ export default function AddDoctorProfileScreen() {
                     contentContainerStyle={styles.scrollContent}
                     keyboardShouldPersistTaps="handled"
                 >
-                    {/* Avatar */}
+                    {/* ── Avatar ── */}
                     <View style={styles.avatarSection}>
                         <TouchableOpacity
                             style={styles.avatar}
@@ -131,7 +168,7 @@ export default function AddDoctorProfileScreen() {
                         </TouchableOpacity>
                     </View>
 
-                    {/* Doctor ID */}
+                    {/* ── Doctor ID ── */}
                     <Caption1 weight='medium' style={styles.label}>Doctor ID</Caption1>
                     <View style={styles.inputBox}>
                         <TextInput
@@ -140,10 +177,11 @@ export default function AddDoctorProfileScreen() {
                             value={id}
                             onChangeText={setId}
                             style={styles.input}
+                            autoCapitalize="none"
                         />
                     </View>
 
-                    {/* Name */}
+                    {/* ── Name ── */}
                     <Caption1 weight='medium' style={styles.label}>Name</Caption1>
                     <View style={styles.inputBox}>
                         <TextInput
@@ -155,7 +193,7 @@ export default function AddDoctorProfileScreen() {
                         />
                     </View>
 
-                    {/* Full Name */}
+                    {/* ── Full Name ── */}
                     <Caption1 weight='medium' style={styles.label}>Full Name</Caption1>
                     <View style={styles.inputBox}>
                         <TextInput
@@ -167,7 +205,7 @@ export default function AddDoctorProfileScreen() {
                         />
                     </View>
 
-                    {/* Designation */}
+                    {/* ── Designation ── */}
                     <Caption1 weight='medium' style={styles.label}>Designation</Caption1>
                     <View style={styles.inputBox}>
                         <TextInput
@@ -179,7 +217,7 @@ export default function AddDoctorProfileScreen() {
                         />
                     </View>
 
-                    {/* Specialization */}
+                    {/* ── Specialization ── */}
                     <Caption1 weight='medium' style={styles.label}>Specialization</Caption1>
                     <View style={styles.inputBox}>
                         <TextInput
@@ -191,7 +229,7 @@ export default function AddDoctorProfileScreen() {
                         />
                     </View>
 
-                    {/* Tier */}
+                    {/* ── Tier ── */}
                     <Caption1 weight='medium' style={styles.label}>Tier</Caption1>
                     <View style={styles.inputBox}>
                         <TextInput
@@ -204,31 +242,29 @@ export default function AddDoctorProfileScreen() {
                         />
                     </View>
 
-                    {/* Consultation Days */}
+                    {/* ── Consultation Days (picker) ── */}
                     <Caption1 weight='medium' style={styles.label}>Consultation Days</Caption1>
-                    <View style={styles.inputBox}>
-                        <TextInput
-                            placeholder="e.g. Monday,Wednesday,Friday"
-                            placeholderTextColor={Colors.PLACEHOLLDER_TEXT}
-                            value={consultationDays}
-                            onChangeText={setConsultationDays}
-                            style={styles.input}
-                        />
-                    </View>
+                    <TouchableOpacity
+                        style={styles.navRow}
+                        activeOpacity={0.8}
+                        onPress={() => setShowDayPicker(true)}
+                    >
+                        <Caption1 style={[styles.navText, selectedDays.length === 0 && styles.placeholder]}>
+                            {dayLabel}
+                        </Caption1>
+                    </TouchableOpacity>
 
-                    {/* Consultation Time */}
+                    {/* ── Consultation Time (picker) ── */}
                     <Caption1 weight='medium' style={styles.label}>Consultation Time</Caption1>
-                    <View style={styles.inputBox}>
-                        <TextInput
-                            placeholder="e.g. 9:00 AM - 5:00 PM"
-                            placeholderTextColor={Colors.PLACEHOLLDER_TEXT}
-                            value={consultationTime}
-                            onChangeText={setConsultationTime}
-                            style={styles.input}
-                        />
-                    </View>
+                    <TouchableOpacity
+                        style={styles.navRow}
+                        activeOpacity={0.8}
+                        onPress={() => setShowStartPicker(true)}
+                    >
+                        <Caption1 style={styles.navText}>{timeLabel}</Caption1>
+                    </TouchableOpacity>
 
-                    {/* Doctor Phone */}
+                    {/* ── Doctor Phone ── */}
                     <Caption1 weight='medium' style={styles.label}>Doctor Phone</Caption1>
                     <View style={styles.inputBox}>
                         <TextInput
@@ -241,7 +277,7 @@ export default function AddDoctorProfileScreen() {
                         />
                     </View>
 
-                    {/* About */}
+                    {/* ── About ── */}
                     <Caption1 weight='medium' style={styles.label}>About</Caption1>
                     <View style={[styles.inputBox, { minHeight: hp(120) }]}>
                         <TextInput
@@ -254,7 +290,7 @@ export default function AddDoctorProfileScreen() {
                         />
                     </View>
 
-                    {/* Specialties */}
+                    {/* ── Specialties ── */}
                     <Caption1 weight='medium' style={styles.label}>Specialties</Caption1>
                     <View style={styles.inputBox}>
                         <TextInput
@@ -266,7 +302,7 @@ export default function AddDoctorProfileScreen() {
                         />
                     </View>
 
-                    {/* Yezza Provider ID */}
+                    {/* ── Yezza Provider ID ── */}
                     <Caption1 weight='medium' style={styles.label}>Yezza Provider ID</Caption1>
                     <View style={styles.inputBox}>
                         <TextInput
@@ -279,7 +315,7 @@ export default function AddDoctorProfileScreen() {
                         />
                     </View>
 
-                    {/* Yezza Service ID */}
+                    {/* ── Yezza Service ID ── */}
                     <Caption1 weight='medium' style={styles.label}>Yezza Service ID</Caption1>
                     <View style={styles.inputBox}>
                         <TextInput
@@ -303,6 +339,36 @@ export default function AddDoctorProfileScreen() {
                     />
                 </ScrollView>
             </KeyboardAvoidingView>
+
+            {/* ── Day Picker Modal ── */}
+            <DayPickerModal
+                visible={showDayPicker}
+                selectedDays={selectedDays}
+                onClose={() => setShowDayPicker(false)}
+                onConfirm={(days) => { setSelectedDays(days); setShowDayPicker(false) }}
+            />
+
+            {/* ── Start Time Picker ── */}
+            <TimePickerModal
+                visible={showStartPicker}
+                title="Starting Time"
+                initialTime={startTime}
+                onClose={() => setShowStartPicker(false)}
+                onConfirm={(t) => {
+                    setStartTime(t)
+                    setShowStartPicker(false)
+                    setShowEndPicker(true)
+                }}
+            />
+
+            {/* ── End Time Picker ── */}
+            <TimePickerModal
+                visible={showEndPicker}
+                title="Ending Time"
+                initialTime={endTime}
+                onClose={() => setShowEndPicker(false)}
+                onConfirm={(t) => { setEndTime(t); setShowEndPicker(false) }}
+            />
         </SafeAreaView>
     )
 }
@@ -351,14 +417,12 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins_400Regular',
     },
     navRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
         borderWidth: 1,
         borderColor: '#E8E8E8',
         borderRadius: 12,
         paddingHorizontal: wp(16),
         paddingVertical: hp(18),
     },
-    navText: { flex: 1, color: Colors.PLACEHOLLDER_TEXT },
+    navText: { color: Colors.TEXT_COLOR, fontSize: 16 },
+    placeholder: { color: Colors.PLACEHOLLDER_TEXT },
 })

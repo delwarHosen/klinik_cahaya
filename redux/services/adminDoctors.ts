@@ -35,38 +35,30 @@ export type UpdateDoctorBody = {
     specialization?: string | null;
     tier?: number | null;
     active?: boolean | null;
-    consultation_days?: string | null;
+    consultation_days?: string[] | null;
     consultation_time?: string;
     about?: string | null;
     specialties?: string | null;
     avatar_url?: string;
     yezza_provider_id?: number | null;
     yezza_service_id?: number;
-    doctor_phone?: number | null;
+    doctor_phone?: string | null;
 }
 
 export const adminDoctorsApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
 
-        // GET all doctors
         getAllDoctors: builder.query<GetAllDoctorsResponse, void>({
-            query: () => ({
-                url: '/admin/doctors',
-                method: 'GET',
-            }),
+            query: () => ({ url: '/admin/doctors', method: 'GET' }),
             providesTags: ['Doctors'],
+            keepUnusedDataFor: 0,
         }),
 
-        // GET single doctor by ID
         getDoctorById: builder.query<GetSingleDoctorResponse, string>({
-            query: (doctorId) => ({
-                url: `/doctors/doctors/${doctorId}`,
-                method: 'GET',
-            }),
+            query: (doctorId) => ({ url: `/doctors/doctors/${doctorId}`, method: 'GET' }),
             providesTags: (result, error, id) => [{ type: 'Doctors' as const, id }],
         }),
 
-        // POST add new doctor (form-data for image)
         addDoctor: builder.mutation<any, FormData>({
             query: (formData) => ({
                 url: '/admin/doctors',
@@ -77,17 +69,25 @@ export const adminDoctorsApi = baseApi.injectEndpoints({
             invalidatesTags: ['Doctors'],
         }),
 
-        // PATCH update doctor (JSON body)
-        updateDoctorProfile: builder.mutation<any, { doctorId: string; body: UpdateDoctorBody }>({
-            query: ({ doctorId, body }) => ({
+        // PATCH — sends FormData so avatar_file can be included alongside JSON fields
+        updateDoctorProfile: builder.mutation<any, { doctorId: string; formData: any }>({
+            query: ({ doctorId, formData }) => ({
                 url: `/admin/doctors/${doctorId}`,
                 method: 'PATCH',
-                body,
+                body: formData,
             }),
             invalidatesTags: (result, error, { doctorId }) => [
                 'Doctors',
                 { type: 'Doctors' as const, id: doctorId },
             ],
+        }),
+
+        deleteDoctor: builder.mutation<any, string>({
+            query: (doctorId) => ({
+                url: `/admin/doctors/${doctorId}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: ['Doctors'],
         }),
 
     }),
@@ -99,4 +99,5 @@ export const {
     useGetDoctorByIdQuery,
     useAddDoctorMutation,
     useUpdateDoctorProfileMutation,
+    useDeleteDoctorMutation,
 } = adminDoctorsApi;

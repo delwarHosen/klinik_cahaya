@@ -9,7 +9,6 @@ import { Body3, H2 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
 import { useResetPasswordMutation } from '@/redux/services/authApi';
 import { hp, wp } from '@/utils/responsiveDevice';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -43,25 +42,12 @@ export default function CreateNewPasswordScreen() {
     }
 
     try {
-      const accessToken = await AsyncStorage.getItem('access_token'); // ← access_token
-      console.log('🔑 Token:', accessToken);
-
-      if (!accessToken) {
-        showToast('Session expired. Please request a new reset link.', 'error');
-        return;
-      }
-
-      await resetPassword({
-        new_password: newPassword,
-        confirm_password: confirmPassword,
-        access_token: accessToken,
-      }).unwrap();
-
+      await resetPassword({ new_password: newPassword }).unwrap();
       setShowSuccessModal(true);
     } catch (err: any) {
       console.log('Reset password error:', JSON.stringify(err));
       showToast(
-        err?.data?.detail?.msg || err?.data?.message || 'Failed to reset password.',
+        err?.data?.detail?.[0]?.msg || err?.data?.message || 'Failed to reset password.',
         'error'
       );
     }
@@ -76,7 +62,10 @@ export default function CreateNewPasswordScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <LeftAngleIcon />
@@ -86,7 +75,7 @@ export default function CreateNewPasswordScreen() {
         <View style={styles.container}>
           <AuthHeading
             title="Set New Password"
-            description="Create your New Password"
+            description="Create your new password"
             style={{ marginBottom: hp(30) }}
           />
 
@@ -101,7 +90,7 @@ export default function CreateNewPasswordScreen() {
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             type="password"
-            placeholder="Confirm Password"
+            placeholder="Confirm New Password"
           />
 
           {isLoading ? (
@@ -153,64 +142,26 @@ export default function CreateNewPasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.APP_BACKGROUND,
-  },
-  header: {
-    paddingHorizontal: wp(20),
-    paddingTop: hp(20),
-    paddingBottom: hp(5),
-  },
+  safeArea: { flex: 1, backgroundColor: Colors.APP_BACKGROUND },
+  header: { paddingHorizontal: wp(20), paddingTop: hp(20), paddingBottom: hp(5) },
   backButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#F8F8F8',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: '#F8F8F8', justifyContent: 'center', alignItems: 'center',
   },
-  container: {
-    flex: 1,
-    paddingHorizontal: wp(20),
-    paddingTop: hp(35),
-  },
+  container: { flex: 1, paddingHorizontal: wp(20), paddingTop: hp(35) },
   modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center', alignItems: 'center',
   },
   modalContainer: {
-    width: wp(320),
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    paddingHorizontal: wp(24),
-    paddingVertical: hp(32),
+    width: wp(320), alignItems: 'center', backgroundColor: '#fff',
+    borderRadius: 24, paddingHorizontal: wp(24), paddingVertical: hp(32),
     ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.25,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 10,
-      },
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.25, shadowRadius: 10 },
+      android: { elevation: 10 },
     }),
   },
-  successIconWrapper: {
-    marginBottom: hp(16),
-  },
-  modalTitle: {
-    textAlign: 'center',
-    fontSize: 22,
-    marginBottom: hp(8),
-  },
-  modalDescription: {
-    textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: wp(10),
-  },
+  successIconWrapper: { marginBottom: hp(16) },
+  modalTitle: { textAlign: 'center', fontSize: 22, marginBottom: hp(8) },
+  modalDescription: { textAlign: 'center', lineHeight: 22, paddingHorizontal: wp(10) },
 });

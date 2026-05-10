@@ -1,7 +1,5 @@
 import { baseApi } from '@/redux/baseApi';
 
-// ─── Existing Types ────────────────────────────────────────────────────────────
-
 export interface AdminAppointment {
   id: number;
   start: string;
@@ -74,17 +72,13 @@ export interface BookingCountResponse {
   };
 }
 
-// ─── Booking Filter Params ─────────────────────────────────────────────────────
-
+// doctor_phone সরানো হয়েছে
 export interface AdvancedFilterParams {
   status?: string;
   doctor_ids?: string;
-  doctor_phone?: string;
   start_date?: string;
   end_date?: string;
 }
-
-// ─── Booking Lookup ────────────────────────────────────────────────────────────
 
 export interface BookingLookupRequest {
   booking_id: string;
@@ -120,8 +114,6 @@ export interface BookingLookupResponse {
   };
 }
 
-// ─── Appointment Fetch All ───────────────────────────────────────────────
-
 export interface AppointmentFilterParams {
   category?: 'all' | 'upcoming' | 'completed' | 'cancelled';
   doctor_ids?: string;
@@ -137,7 +129,7 @@ export interface AppointmentLead {
   name: string;
   taggings: any[];
   remarks: string | null;
-  ic?: string; 
+  ic?: string;
   email?: string;
 }
 
@@ -178,8 +170,6 @@ export interface AppointmentFetchAllResponse {
   results: AppointmentItem[];
 }
 
-// ─── Appointment Lookup (Slightly Updated to handle UI logic) ────────────────
-
 export interface AppointmentLookupRequest {
   appointment_id: string;
 }
@@ -216,7 +206,7 @@ export interface AppointmentLookupResponse {
     reason: string | null;
     doctor_name: string;
     patient_name: string;
-    patient_for?: string; 
+    patient_for?: string;
     visit_reason_detail?: string | null;
   };
   doctor: {
@@ -256,10 +246,22 @@ export interface AppointmentLookupResponse {
   };
 }
 
-// ─── API Implementation ────────────────────────────────────────────────────────
+export interface StatusChangeRequest {
+  booking_id: string;
+  status: 'confirmed' | 'rejected';
+}
+
+
+export interface RescheduleRequest {
+  booking_id: string;
+  appt_date: string;        // "YYYY-MM-DD"
+  appt_time: string;        // "HH:MM"
+  reschedule_suggestion: string;
+}
 
 export const adminApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+
     getUpcomingAppointments: builder.query<FetchUpcomingResponse, void>({
       query: () => '/admin/fetch_upcoming',
       providesTags: ['AdminUpcoming'],
@@ -283,15 +285,28 @@ export const adminApi = baseApi.injectEndpoints({
         url: '/admin/booking_fetch_all/advanced_filter',
         method: 'GET',
         params: {
+
           ...(params.status && { status: params.status }),
           ...(params.doctor_ids && { doctor_ids: params.doctor_ids }),
-          ...(params.doctor_phone && { doctor_phone: params.doctor_phone }),
           ...(params.start_date && { start_date: params.start_date }),
           ...(params.end_date && { end_date: params.end_date }),
         },
       }),
       providesTags: ['AdminFilteredBookings'],
-      keepUnusedDataFor: 60,
+      keepUnusedDataFor: 0,
+      forceRefetch: () => true,
+    }),
+
+    getBookingLookupQuery: builder.query<BookingLookupResponse, string>({
+      query: (booking_id) => ({
+        url: '/admin/booking/Lookup',
+        method: 'POST',
+        body: { booking_id },
+      }),
+      providesTags: (result, error, booking_id) => [
+        { type: 'AdminBookingRequest' as const, id: booking_id },
+      ],
+      keepUnusedDataFor: 300,
     }),
 
     getBookingLookup: builder.mutation<BookingLookupResponse, BookingLookupRequest>({
@@ -314,7 +329,8 @@ export const adminApi = baseApi.injectEndpoints({
         },
       }),
       providesTags: ['AdminFilteredAppointments'],
-      keepUnusedDataFor: 60,
+      keepUnusedDataFor: 0,
+      forceRefetch: () => true,
     }),
 
     getAppointmentLookup: builder.mutation<AppointmentLookupResponse, AppointmentLookupRequest>({
@@ -324,6 +340,26 @@ export const adminApi = baseApi.injectEndpoints({
         body,
       }),
     }),
+
+    // status changes
+    getStatusChanges: builder.mutation<any, StatusChangeRequest>({
+      query: (body) => ({
+        url: '/admin/booking',
+        method: 'PATCH',
+        body,
+      }),
+    }),
+
+    // reschedule
+    rescheduleBooking: builder.mutation<any, RescheduleRequest>({
+      query: (body) => ({
+        url: '/admin/reschedule',
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: ['AdminBookingRequest', 'AdminFilteredBookings'],
+    }),
+
   }),
   overrideExisting: false,
 });
@@ -333,7 +369,13 @@ export const {
   useGetBookingRequestsQuery,
   useGetBookingCountQuery,
   useGetFilteredBookingsQuery,
+  useGetBookingLookupQueryQuery,
   useGetBookingLookupMutation,
   useGetFilteredAppointmentsQuery,
   useGetAppointmentLookupMutation,
+  useGetStatusChangesMutation,
+  useRescheduleBookingMutation
 } = adminApi;
+
+
+

@@ -5,27 +5,33 @@ import { createApi, fetchBaseQuery, FetchBaseQueryError } from '@reduxjs/toolkit
 import { router } from 'expo-router';
 
 const baseQuery = fetchBaseQuery({
-  // baseUrl: 'https://v0d7xzkk-7000.inc1.devtunnels.ms',
-  // baseUrl: 'http://10.10.20.46:7000',
   baseUrl: 'https://knx.up.railway.app',
+  // baseUrl: 'http://10.10.20.46:7000',
   prepareHeaders: async (headers) => {
     return headers;
   },
 });
 
 const baseQueryWithAuth = async (args: any, api: any, extraOptions: any) => {
-
   const token = await AsyncStorage.getItem('access_token');
+  const isFormData = typeof args === 'object' && args?.body instanceof FormData;
 
   const modifiedArgs =
     typeof args === 'string'
-      ? { url: args, headers: token ? { Authorization: `Bearer ${token}` } : {} }
+      ? {
+          url: args,
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }
       : {
           ...args,
-          headers: {
-            ...(args.headers || {}),
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
+          headers: isFormData
+            ? {
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              }
+            : {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
         };
 
   const result = await baseQuery(modifiedArgs, api, extraOptions);
@@ -38,7 +44,7 @@ const baseQueryWithAuth = async (args: any, api: any, extraOptions: any) => {
     const url = typeof args === 'string' ? args : args?.url || '';
     const isAuthEndpoint =
       url.includes('/auth/login') ||
-      url.includes('/auth/signup') ||       // signup + verify-otp + resend-otp সব cover করে
+      url.includes('/auth/signup') ||
       url.includes('/auth/forgot-password') ||
       url.includes('/auth/onboarding');
 
@@ -75,6 +81,22 @@ function getErrorMessage(status: number | string): string {
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithAuth,
-  tagTypes: ['Auth','Profile', 'Patient', 'Admin', 'Appointments', 'Doctors', 'Queue','DoctorAvailability','AppointmentMembers','AdminUpcoming', 'AdminBookingRequest', 'AdminBookingCount','AdminFilteredBookings','AdminFilteredAppointments','Doctors'], 
+  tagTypes: [
+    'Auth',
+    'Profile',
+    'Patient',
+    'Admin',
+    'Appointments',
+    'Doctors',
+    'Queue',
+    'DoctorAvailability',
+    'AppointmentMembers',
+    'AdminUpcoming',
+    'AdminBookingRequest',
+    'AdminBookingCount',
+    'AdminFilteredBookings',
+    'AdminFilteredAppointments',
+    'Notifications'
+  ],
   endpoints: () => ({}),
 });

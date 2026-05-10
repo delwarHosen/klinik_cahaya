@@ -81,11 +81,17 @@ const formatTime = (iso: string | null) => {
 const parseToYMD = (dateStr: string): string => {
   if (!dateStr) return ''
   try {
+    // "May 10, 2026 (Sunday)" → remove bracket → "May 10, 2026"
     const clean = dateStr.replace(/\s*\(.*?\)/, '').trim()
-    const d = new Date(clean)
-    if (!isNaN(d.getTime())) {
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-    }
+    // "May 10, 2026" → ["May", "10,", "2026"]
+    const parts = clean.split(' ')
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December']
+    const mo = String(monthNames.indexOf(parts[0]) + 1).padStart(2, '0')
+    const day = String(parseInt(parts[1])).padStart(2, '0')
+    const year = parts[2]
+    if (monthNames.indexOf(parts[0]) === -1) return ''
+    return `${year}-${mo}-${day}`
   } catch { }
   return ''
 }
@@ -143,6 +149,9 @@ export default function AdminAppointmentScreen() {
     ...(appliedEndDate && { end_date: appliedEndDate }),
   }
 
+
+  console.log('🎯 filterParams being sent:', JSON.stringify(filterParams))
+
   const { data, isLoading, isFetching } = useGetFilteredAppointmentsQuery(filterParams)
 
   const isLoadingData = isLoading || isFetching
@@ -199,7 +208,7 @@ export default function AdminAppointmentScreen() {
   // ── Navigation ─────────────────────────────────────────────────────────────
   const handleCardPress = (item: AppointmentItem) => {
     router.push({
-      pathname: '/admin/appointments/appintment_status_details' as any, 
+      pathname: '/admin/appointments/appintment_status_details' as any,
       params: { appointmentId: String(item.id) },
     })
   }

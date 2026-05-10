@@ -90,14 +90,14 @@ export default function OverviewScreen() {
       ),
     };
 
-    console.log('📦 Booking payload:', JSON.stringify(payload, null, 2));
+    console.log(' Booking payload:', JSON.stringify(payload, null, 2));
 
     try {
       const result = await createAppointment(payload).unwrap();
-      console.log('✅ Booking success:', JSON.stringify(result, null, 2));
+      console.log(' Booking success:', JSON.stringify(result, null, 2));
       setShowSuccess(true);
     } catch (err: any) {
-      console.log('❌ Booking failed:', JSON.stringify(err, null, 2));
+      console.log(' Booking failed:', JSON.stringify(err, null, 2));
       showToast('Booking Failed. Something went wrong. Please try again.');
     }
   };

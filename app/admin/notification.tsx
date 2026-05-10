@@ -1,78 +1,119 @@
-// app/patient/notification.tsx
-import SectionTitle from '@/components/shared/SectionTitle';
-import { Caption1, H6 } from '@/components/typo/Typography';
-import { Colors } from '@/constants/theme';
-import { hp, wp } from '@/utils/responsiveDevice';
-import React from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+// app/admin/notification.tsx
+import SectionTitle from '@/components/shared/SectionTitle'
+import { Caption1, H6 } from '@/components/typo/Typography'
+import { Colors } from '@/constants/theme'
+import {
+    useDeleteNotificationMutation,
+    useGetAdminNotificationsQuery,
+    useMarkNotificationReadMutation,
+} from '@/redux/services/notificationApi'
+import { hp, wp } from '@/utils/responsiveDevice'
+import { Ionicons } from '@expo/vector-icons'
+import React from 'react'
+import {
+    ActivityIndicator,
+    FlatList,
+    StyleSheet,
+    TouchableOpacity,
+    View,
+} from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
-const NOTIFICATIONS = [
-    { id: '1', doctor: 'Luna Kellan', message: 'Sent you booking request', time: '9:30 PM', read: false }, // Unread (Bold + Dot)
-    // 
-     // Unread (Bold + Dot)
-    { id: '3', doctor: 'Luna Kellan', message: 'Sent you booking request', time: '10:20 AM', read: true }, // Read (Normal)
-    
-];
+function timeAgo(isoString: string): string {
+    const diff = Date.now() - new Date(isoString).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 1) return 'Just now'
+    if (mins < 60) return `${mins}m ago`
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) return `${hrs}h ago`
+    const days = Math.floor(hrs / 24)
+    return `${days}d ago`
+}
 
-export default function NotificationScreen() {
+export default function AdminNotificationScreen() {
+    const { data, isLoading } = useGetAdminNotificationsQuery()
+    const [markRead] = useMarkNotificationReadMutation()
+    const [deleteNotif] = useDeleteNotificationMutation()
+
+    const notifications = data?.results ?? []
+
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            <View>
+            <View style={styles.header}>
                 <SectionTitle title="Notification" />
             </View>
-            <FlatList
-                data={NOTIFICATIONS}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.list}
-                showsVerticalScrollIndicator={false}
-                renderItem={({ item }) => (
-                    <View style={styles.card}>
-                        {/* Unread হলে ডট দেখাবে */}
-                        {!item.read && <View style={styles.dot} />}
-                        
-                        <View style={styles.cardContent}>
-                            <View style={{ flex: 1 }}>
-                                {/* Unread হলে Bold, Read হলে 600 weight */}
-                                <H6 style={[
-                                    styles.doctorName, 
-                                    { fontWeight: !item.read ? 'bold' : '600' }
-                                ]}>
-                                    {item.doctor}
-                                </H6>
-                                
-                                {/* Unread হলে Bold, Read হলে Normal weight */}
-                                <Caption1 style={[
-                                    styles.message, 
-                                    { fontWeight: !item.read ? 'bold' : '400' }
-                                ]}>
-                                    {item.message}
-                                </Caption1>
-                            </View>
-                            
-                            <Caption1 style={[
-                                styles.time,
-                                { fontWeight: !item.read ? 'bold' : '400' }
-                            ]}>
-                                {item.time}
-                            </Caption1>
+
+            {isLoading ? (
+                <View style={styles.centered}>
+                    <ActivityIndicator color={Colors.BRAND_PRIMARY} size="large" />
+                </View>
+            ) : (
+                <FlatList
+                    data={notifications}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={styles.list}
+                    showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={
+                        <View style={styles.centered}>
+                            <Caption1 style={{ color: '#999' }}>No notifications</Caption1>
                         </View>
-                    </View>
-                )}
-            />
+                    }
+                    renderItem={({ item }) => (
+                        <TouchableOpacity
+                            style={[styles.card, !item.is_read && styles.cardUnread]}
+                            activeOpacity={0.75}
+                            onPress={() => {
+                                if (!item.is_read) markRead(item.id)
+                            }}
+                        >
+                            {/* Unread dot */}
+                            {!item.is_read && <View style={styles.dot} />}
+
+                            <View style={styles.cardContent}>
+                                <View style={styles.textBlock}>
+                                    <H6 style={[
+                                        styles.title,
+                                        !item.is_read && styles.boldText,
+                                    ]}>
+                                        {item.title}
+                                    </H6>
+                                    <Caption1 style={[
+                                        styles.body,
+                                        !item.is_read && styles.boldText,
+                                    ]} numberOfLines={2}>
+                                        {item.body}
+                                    </Caption1>
+                                </View>
+
+                                <View style={styles.rightCol}>
+                                    <Caption1 style={[
+                                        styles.time,
+                                        !item.is_read && styles.boldText,
+                                    ]}>
+                                        {timeAgo(item.created_at)}
+                                    </Caption1>
+                                    <TouchableOpacity
+                                        style={styles.deleteBtn}
+                                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                        onPress={() => deleteNotif(item.id)}
+                                    >
+                                        <Ionicons name="trash-outline" size={16} color="#FF3B30" />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </TouchableOpacity>
+                    )}
+                />
+            )}
         </SafeAreaView>
-    );
+    )
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: Colors.APP_BACKGROUND,
-        paddingHorizontal: wp(20)
-    },
-    list: {
-        paddingTop: hp(10),
-    },
+    container: { flex: 1, backgroundColor: Colors.APP_BACKGROUND },
+    header: { paddingHorizontal: wp(20) },
+    centered: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: hp(60) },
+    list: { paddingHorizontal: wp(20), paddingTop: hp(10), paddingBottom: hp(40) },
     card: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -80,29 +121,35 @@ const styles = StyleSheet.create({
         padding: hp(14),
         marginBottom: hp(10),
         borderWidth: 1,
-        borderColor: Colors.BORDER_COLOR
+        borderColor: Colors.BORDER_COLOR,
+        backgroundColor: '#FFFFFF',
+    },
+    cardUnread: {
+        backgroundColor: '#F0FAF7',
+        borderColor: Colors.BRAND_PRIMARY + '40',
     },
     dot: {
         width: 8, height: 8, borderRadius: 4,
         backgroundColor: Colors.BRAND_PRIMARY,
         marginRight: wp(10),
+        flexShrink: 0,
     },
-    cardContent: { 
-        flex: 1, 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        alignItems: 'flex-start' 
+    cardContent: {
+        flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
     },
-    doctorName: {
-        fontSize: 14,
-        color: Colors.TEXT_COLOR
+    textBlock: { flex: 1, marginRight: wp(8) },
+    title: { fontSize: 14, color: Colors.TEXT_COLOR, marginBottom: 3 },
+    body: { color: '#666666', marginTop: 2, lineHeight: 18 },
+    boldText: { fontWeight: '700' },
+    rightCol: { alignItems: 'flex-end', gap: hp(8) },
+    time: { color: '#999999', fontSize: 11 },
+    deleteBtn: {
+        width: 28, height: 28,
+        justifyContent: 'center', alignItems: 'center',
+        borderRadius: 14,
+        backgroundColor: '#FFF0F0',
     },
-    message: { 
-        color: Colors.TEXT_COLOR, 
-        marginTop: 2 
-    },
-    time: { 
-        color: Colors.TEXT_COLOR, 
-        fontSize: 12 
-    },
-});
+})

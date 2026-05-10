@@ -1,15 +1,16 @@
 import { CustomButton } from '@/components/shared/CustomButton';
 import SectionTitle from '@/components/shared/SectionTitle';
+import { showToast } from '@/components/shared/Toast';
 import { H6 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
+import { useLazyGetMedicalRecordsQuery } from '@/redux/services/medicalRecordApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
     StyleSheet,
     TextInput,
-    TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -17,6 +18,8 @@ export default function IcVerificationScreen() {
     const router = useRouter();
     const [digits, setDigits] = useState(['', '', '', '']);
     const inputs = useRef<(TextInput | null)[]>([]);
+
+    const [triggerVerify, { isLoading }] = useLazyGetMedicalRecordsQuery();
 
     const handleChange = (text: string, index: number) => {
         const newDigits = [...digits];
@@ -35,60 +38,58 @@ export default function IcVerificationScreen() {
         }
     };
 
-    const handleVerify = () => {
+    const handleVerify = async () => {
         const code = digits.join('');
         if (code.length < 4) return;
-        // TODO: verify IC API call
-        router.push('/patient/quick_access/medical_record');
+
+        try {
+            const res = await triggerVerify(code).unwrap();
+            if (res.results && res.results.length > 0) {
+                router.push({
+                    pathname: '/patient/quick_access/medical_record',
+                    params: { icLast4: code }
+                });
+            } else {
+                showToast("No records found for this IC");
+            }
+        } catch (error) {
+            showToast("Verification failed");
+        }
     };
 
-    const isComplete = digits.every(d => d !== '');
+
+    // const isComplete = digits.every(d => d !== '');
 
     return (
-        <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <SafeAreaView style={styles.container}>
             <SectionTitle title="IC Verification" />
-
             <View style={styles.content}>
                 <H6 style={styles.subtitle} align="center">
                     4-digit IC verification{'\n'}(last 4 digits)
                 </H6>
 
-                {/* OTP Boxes */}
                 <View style={styles.boxRow}>
                     {digits.map((digit, index) => (
-                        <TouchableOpacity
-                            key={index}
-                            activeOpacity={1}
-                            onPress={() => inputs.current[index]?.focus()}
-                        >
-                            <View style={[
-                                styles.box,
-                                digit ? styles.boxFilled : styles.boxEmpty,
-                            ]}>
-                                <TextInput
-                                    ref={(ref) => { inputs.current[index] = ref; }}
-                                    style={styles.boxInput}
-                                    value={digit}
-                                    onChangeText={(text) => handleChange(text.slice(-1), index)}
-                                    onKeyPress={(e) => handleKeyPress(e, index)}
-                                    keyboardType="numeric"
-                                    maxLength={1}
-                                    textAlign="center"
-                                    caretHidden
-                                />
-                            </View>
-                        </TouchableOpacity>
+                        <View key={index} style={[styles.box, digit ? styles.boxFilled : styles.boxEmpty]}>
+                            <TextInput
+                                ref={(ref) => { inputs.current[index] = ref; }}
+                                style={styles.boxInput}
+                                value={digit}
+                                onChangeText={(text) => handleChange(text.slice(-1), index)}
+                                onKeyPress={(e) => handleKeyPress(e, index)}
+                                keyboardType="numeric"
+                                maxLength={1}
+                                textAlign="center"
+                            />
+                        </View>
                     ))}
                 </View>
 
                 <CustomButton
                     title="Verify"
                     onPress={handleVerify}
-                    width="100%"
-                    height={hp(56)}
-                    borderRadius={14}
+                    isLoading={isLoading}
                     style={{ marginTop: hp(40) }}
-                    // disabled={!isComplete}
                 />
             </View>
         </SafeAreaView>

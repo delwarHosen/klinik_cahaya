@@ -116,18 +116,42 @@ export const authApi = baseApi.injectEndpoints({
       }),
     }),
 
-    // Reset Password
-    resetPassword: builder.mutation({
-      query: ({ access_token, new_password, confirm_password }) => ({
-        url: '/auth/change_password',
+    verifyForgotPasswordOtp: builder.mutation<any, { email: string; otp: string }>({
+      query: (body) => ({
+        url: '/auth/forgot_password/verify-otp',
         method: 'POST',
-        body: { new_password, confirm_password },
-        headers: {
-          Authorization: `Bearer ${access_token}`,
-        },
+        body,
       }),
     }),
 
+    resendForgotPasswordOtp: builder.mutation<any, { email: string }>({
+      query: (body) => ({
+        url: '/auth/forgot_password',
+        method: 'POST',
+        body,
+      }),
+    }),
+
+    // Reset Password
+    // resetPassword: builder.mutation({
+    //   query: ({ access_token, new_password, confirm_password }) => ({
+    //     url: '/auth/change_password',
+    //     method: 'POST',
+    //     body: { new_password, confirm_password },
+    //     headers: {
+    //       Authorization: `Bearer ${access_token}`,
+    //     },
+    //   }),
+    // }),
+
+
+    resetPassword: builder.mutation<any, { new_password: string }>({
+      query: (body) => ({
+        url: '/auth/reset_password',
+        method: 'POST',
+        body,
+      }),
+    }),
     // Change Password
     changePassword: builder.mutation({
       query: (data) => ({
@@ -196,4 +220,6 @@ export const {
   useUpdatePhotoMutation,
   useUpdatePhoneMutation,
   useUpdateMedicalPatchMutation,
+  useVerifyForgotPasswordOtpMutation,
+  useResendForgotPasswordOtpMutation,
 } = authApi;

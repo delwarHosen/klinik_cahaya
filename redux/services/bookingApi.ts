@@ -42,6 +42,7 @@ export interface DoctorAvailabilityResponse {
     slot_minutes: number;
   };
   availability: AvailabilitySlot[];
+  max_date: string;
 }
 
 export interface CreateAppointmentPayload {

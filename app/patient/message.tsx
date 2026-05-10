@@ -1,11 +1,13 @@
 import { SendIcon } from '@/assets/icons/common_icon/SendIcon';
 import { Colors } from '@/constants/theme';
+import { useSendFaqMessageMutation } from '@/redux/services/faqChatApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
   FlatList,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   StyleSheet,
   Text,
@@ -15,31 +17,17 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 type Message = {
   id: string;
   text: string;
   sender: 'user' | 'bot';
   time: string;
+  hasWhatsApp?: boolean;    // bot reply contains a WhatsApp link
+  whatsAppUrl?: string;     // extracted wa.me URL
 };
 
-const BOT_REPLIES = [
-  "I see. Have you been drinking enough water today?",
-  "That's helpful information. Try to rest and avoid screens for a while.",
-  "If the pain gets worse, please visit the clinic right away.",
-  "I'll note this down. Would you like to schedule a consultation?",
-  "Understood. Let me know if anything changes.",
-  "Thank you for the update. Please take care!",
-];
-
-const INITIAL_MESSAGES: Message[] = [
-  { id: '1', text: "Hi, Doctor. I've Been Having A Headache Since Yesterday. And It Hasn't Gone Away.", sender: 'user', time: '6:30 AM' },
-  { id: '2', text: "I'm Sorry To Hear That. Can You Describe The Headache—Does It Feel Sharp, Dull, Or Throbbing?", sender: 'bot', time: '6:31 AM' },
-  { id: '3', text: "It's More Of A Dull Pain, Mostly Around My Forehead.", sender: 'user', time: '6:33 AM' },
-  { id: '4', text: "See. Have You Noticed Any Other Symptoms Like Fever, Nausea, Or Vision Changes?", sender: 'bot', time: '6:34 AM' },
-  { id: '5', text: "No Fever. But I Felt A Little Dizzy In The Morning.", sender: 'user', time: '6:35 AM' },
-  { id: '6', text: "Thanks For Sharing That. Have You Taken Any Medication For It?", sender: 'bot', time: '6:36 AM' },
-];
-
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function getTime(): string {
   const now = new Date();
   let hours = now.getHours();
@@ -49,69 +37,122 @@ function getTime(): string {
   return `${hours}:${minutes} ${ampm}`;
 }
 
+// Extract wa.me URL from bot reply text
+function extractWhatsAppUrl(text: string): string | null {
+  const match = text.match(/https?:\/\/wa\.me\/[^\s"\\)]+/);
+  return match ? match[0].replace(/\\n/g, '').trim() : null;
+}
+
+// Clean reply text: remove url-encoded line breaks, trim trailing emoji clutter
+function cleanReply(text: string): string {
+  return text
+    .replace(/\\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+const INITIAL_MESSAGES: Message[] = [
+  {
+    id: '0',
+    text: 'Hi 👋 How can I help you today?',
+    sender: 'bot',
+    time: getTime(),
+  },
+];
+
+// ─── WhatsApp Button inside bubble ───────────────────────────────────────────
+function WhatsAppButton({ url }: { url: string }) {
+  return (
+    <TouchableOpacity
+      style={styles.waBtn}
+      activeOpacity={0.8}
+      onPress={() => Linking.openURL(url).catch(() => {})}
+    >
+      <Text style={styles.waBtnText}>💬  Open WhatsApp</Text>
+    </TouchableOpacity>
+  );
+}
+
+// ─── Message Bubble ───────────────────────────────────────────────────────────
+function MessageBubble({ item }: { item: Message }) {
+  const isUser = item.sender === 'user';
+  return (
+    <View style={[styles.msgRow, isUser ? styles.msgRowUser : styles.msgRowBot]}>
+      <View style={[
+        styles.bubble,
+        isUser ? styles.bubbleUser : styles.bubbleBot,
+        isUser ? { borderTopRightRadius: 0 } : { borderTopLeftRadius: 0 },
+      ]}>
+        <Text style={[styles.bubbleText, isUser ? styles.bubbleTextUser : styles.bubbleTextBot]}>
+          {item.text}
+        </Text>
+        {/* WhatsApp redirect button — only when bot provides a link */}
+        {!isUser && item.hasWhatsApp && item.whatsAppUrl && (
+          <WhatsAppButton url={item.whatsAppUrl} />
+        )}
+      </View>
+      <Text style={styles.timestamp}>{item.time}</Text>
+    </View>
+  );
+}
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const flatListRef = useRef<FlatList>(null);
+
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [inputText, setInputText] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const flatListRef = useRef<FlatList>(null);
-  const replyIndexRef = useRef(0);
-  const router = useRouter();
 
-  const sendMessage = () => {
+  const [sendMessage, { isLoading: isSending }] = useSendFaqMessageMutation();
+
+  const handleSend = async () => {
     const text = inputText.trim();
-    if (!text) return;
+    if (!text || isSending) return;
 
+    // Add user message
     const userMsg: Message = {
       id: Date.now().toString(),
       text,
       sender: 'user',
       time: getTime(),
     };
-
-    setMessages(prev => [...prev, userMsg]);
+    setMessages((prev) => [...prev, userMsg]);
     setInputText('');
-    setIsTyping(true);
 
-    setTimeout(() => {
-      setIsTyping(false);
-      const reply = BOT_REPLIES[replyIndexRef.current % BOT_REPLIES.length];
-      replyIndexRef.current += 1;
+    try {
+      const res = await sendMessage({ message: text }).unwrap();
+
+      const cleaned = cleanReply(res.reply);
+      const waUrl = extractWhatsAppUrl(res.reply);
 
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
-        text: reply,
+        text: cleaned,
+        sender: 'bot',
+        time: getTime(),
+        hasWhatsApp: !!waUrl,
+        whatsAppUrl: waUrl ?? undefined,
+      };
+      setMessages((prev) => [...prev, botMsg]);
+    } catch {
+      const errMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        text: 'Sorry, something went wrong. Please try again.',
         sender: 'bot',
         time: getTime(),
       };
-      setMessages(prev => [...prev, botMsg]);
-    }, 1200);
-  };
-
-  const renderItem = ({ item }: { item: Message }) => {
-    const isUser = item.sender === 'user';
-    return (
-      <View style={[styles.msgRow, isUser ? styles.msgRowUser : styles.msgRowBot]}>
-        <View style={[
-            styles.bubble, 
-            isUser ? styles.bubbleUser : styles.bubbleBot,
-            isUser ? { borderTopRightRadius: 0 } : { borderTopLeftRadius: 0 }
-        ]}>
-          <Text style={[styles.bubbleText, isUser ? styles.bubbleTextUser : styles.bubbleTextBot]}>
-            {item.text}
-          </Text>
-        </View>
-        <Text style={styles.timestamp}>{item.time}</Text>
-      </View>
-    );
+      setMessages((prev) => [...prev, errMsg]);
+    }
   };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
 
-      {/* Header */}
+      {/* ── Header ── */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={()=>router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backArrow}>‹</Text>
         </TouchableOpacity>
         <View style={styles.avatarCircle}>
@@ -123,23 +164,23 @@ export default function ChatScreen() {
         </View>
       </View>
 
-      {/* Messages & Input Field */}
+      {/* ── Messages + Input ── */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <FlatList
           ref={flatListRef}
           data={messages}
           keyExtractor={(item) => item.id}
-          renderItem={renderItem}
+          renderItem={({ item }) => <MessageBubble item={item} />}
           contentContainerStyle={styles.chatArea}
           showsVerticalScrollIndicator={false}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
           onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          // Typing indicator
           ListFooterComponent={
-            isTyping ? (
+            isSending ? (
               <View style={styles.msgRowBot}>
                 <View style={[styles.typingBubble, { borderTopLeftRadius: 0 }]}>
                   <Text style={styles.typingDots}>• • •</Text>
@@ -149,7 +190,7 @@ export default function ChatScreen() {
           }
         />
 
-        {/* Bottom Input Bar */}
+        {/* ── Input Bar ── */}
         <View style={[styles.inputBar, { paddingBottom: insets.bottom > 0 ? insets.bottom : hp(10) }]}>
           <TextInput
             style={styles.textInput}
@@ -157,11 +198,17 @@ export default function ChatScreen() {
             placeholderTextColor="#aaa"
             value={inputText}
             onChangeText={setInputText}
-            onSubmitEditing={sendMessage}
+            onSubmitEditing={handleSend}
             returnKeyType="send"
             multiline
+            editable={!isSending}
           />
-          <TouchableOpacity style={styles.sendBtn} onPress={sendMessage} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={[styles.sendBtn, isSending && { opacity: 0.6 }]}
+            onPress={handleSend}
+            activeOpacity={0.8}
+            disabled={isSending}
+          >
             <SendIcon />
           </TouchableOpacity>
         </View>
@@ -170,146 +217,89 @@ export default function ChatScreen() {
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.APP_BACKGROUND,
-  },
+  container: { flex: 1, backgroundColor: Colors.APP_BACKGROUND },
 
-  // Header Styles
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: wp(16),
-    paddingVertical: hp(10),
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#EEEEEE',
+    paddingHorizontal: wp(16), paddingVertical: hp(10),
+    borderBottomWidth: 0.5, borderBottomColor: '#EEEEEE',
     gap: 10,
   },
-  backBtn: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backArrow: {
-    fontSize: 26,
-    color: '#333',
-    lineHeight: 30,
-  },
+  backBtn: { width: 32, height: 32, justifyContent: 'center', alignItems: 'center' },
+  backArrow: { fontSize: 26, color: '#333', lineHeight: 30 },
   avatarCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 38, height: 38, borderRadius: 19,
     backgroundColor: Colors.BRAND_PRIMARY,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center', alignItems: 'center',
   },
-  avatarText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  headerInfo: {
-    flex: 1,
-  },
-  headerName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#111',
-  },
-  headerStatus: {
-    fontSize: 11,
-    color: Colors.BRAND_PRIMARY,
-    marginTop: 1,
-  },
+  avatarText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  headerInfo: { flex: 1 },
+  headerName: { fontSize: 15, fontWeight: '700', color: '#111' },
+  headerStatus: { fontSize: 11, color: Colors.BRAND_PRIMARY, marginTop: 1 },
 
-  // Chat Area Styles
   chatArea: {
     paddingHorizontal: wp(14),
     paddingTop: hp(16),
     paddingBottom: hp(20),
     gap: 10,
   },
-  msgRow: {
-    marginBottom: hp(10),
-  },
-  msgRowUser: {
-    alignItems: 'flex-end',
-  },
-  msgRowBot: {
-    alignItems: 'flex-start',
-  },
+  msgRow: { marginBottom: hp(10) },
+  msgRowUser: { alignItems: 'flex-end' },
+  msgRowBot: { alignItems: 'flex-start' },
+
   bubble: {
-    maxWidth: '75%',
+    maxWidth: '78%',
     paddingHorizontal: wp(13),
     paddingVertical: hp(10),
     borderRadius: 18,
   },
-  bubbleUser: {
-    backgroundColor: Colors.BRAND_PRIMARY,
-  },
-  bubbleBot: {
-    backgroundColor: '#EEEEEE',
-  },
-  bubbleText: {
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  bubbleTextUser: {
-    color: '#FFFFFF',
-  },
-  bubbleTextBot: {
-    color: '#1a1a1a',
-  },
-  timestamp: {
-    fontSize: 10,
-    color: '#aaa',
-    marginTop: 3,
-    paddingHorizontal: 4,
-  },
+  bubbleUser: { backgroundColor: Colors.BRAND_PRIMARY },
+  bubbleBot: { backgroundColor: '#EEEEEE' },
+  bubbleText: { fontSize: 13, lineHeight: 19 },
+  bubbleTextUser: { color: '#FFFFFF' },
+  bubbleTextBot: { color: '#1a1a1a' },
 
-  // Typing Indicator
+  timestamp: { fontSize: 10, color: '#aaa', marginTop: 3, paddingHorizontal: 4 },
+
+  // WhatsApp button inside bot bubble
+  waBtn: {
+    marginTop: hp(10),
+    backgroundColor: '#25D366',
+    borderRadius: 10,
+    paddingVertical: hp(9),
+    paddingHorizontal: wp(14),
+    alignItems: 'center',
+  },
+  waBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+
+  // Typing indicator
   typingBubble: {
     backgroundColor: '#EEEEEE',
-    paddingHorizontal: wp(14),
-    paddingVertical: hp(10),
+    paddingHorizontal: wp(14), paddingVertical: hp(10),
     borderRadius: 18,
   },
-  typingDots: {
-    fontSize: 18,
-    color: '#999',
-    letterSpacing: 3,
-  },
+  typingDots: { fontSize: 18, color: '#999', letterSpacing: 3 },
 
-  // Input Bar Styles
   inputBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: wp(12),
-    paddingVertical: hp(10),
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: wp(12), paddingVertical: hp(10),
     backgroundColor: Colors.APP_BACKGROUND,
     gap: 8,
   },
   textInput: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: Colors.BORDER_COLOR,
+    borderWidth: 1, borderColor: Colors.BORDER_COLOR,
     borderRadius: 60,
-    paddingHorizontal: wp(14),
-    paddingVertical: hp(17),
-    fontSize: 13,
-    color: '#0D0D0D',
-    maxHeight: hp(100),
-    backgroundColor: '#FFF'
+    paddingHorizontal: wp(14), paddingVertical: hp(17),
+    fontSize: 13, color: '#0D0D0D',
+    maxHeight: hp(100), backgroundColor: '#FFF',
   },
   sendBtn: {
-    width: wp(83),
-    height: hp(54),
-    borderRadius: 60,
-    backgroundColor: Colors.BRAND_PRIMARY,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: wp(83), height: hp(54),
+    borderRadius: 60, backgroundColor: Colors.BRAND_PRIMARY,
+    justifyContent: 'center', alignItems: 'center',
   },
 });

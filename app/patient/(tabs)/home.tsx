@@ -1,3 +1,4 @@
+// app/patient/(tabs)/home.tsx — শুধু notification badge অংশ যোগ হয়েছে
 import { NotificationIcon } from '@/assets/icons/common_icon/Notification';
 import { RightArrowIcon } from '@/assets/icons/common_icon/RightArrowIcon';
 import { AntenatalIcon } from '@/assets/icons/patient_icon/AntenatalIcon';
@@ -13,6 +14,7 @@ import { Colors } from '@/constants/theme';
 import { usePageLoader } from '@/hooks/usePageLoader';
 import { useGetProfileQuery } from '@/redux/services/authApi';
 import { useGetDoctorsQuery } from '@/redux/services/doctorsApi';
+import { useGetPatientNotificationsQuery } from '@/redux/services/notificationApi';
 import { useGetServicesQuery } from '@/redux/services/servicesApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useRouter } from 'expo-router';
@@ -22,6 +24,7 @@ import {
   Image,
   ScrollView,
   StyleSheet,
+  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -48,21 +51,22 @@ export default function HomeScreen() {
   const { data: servicesData } = useGetServicesQuery(undefined);
   const services = servicesData?.results ?? [];
 
-
   const { data, isLoading: profileLoading } = useGetProfileQuery({})
   const avatarUrl = data?.profile_picture?.public_url ?? null
+
+  // ── Notification unread count ──────────────────────────────────────────────
+  const { data: notifData } = useGetPatientNotificationsQuery();
+  const unreadCount = (notifData?.results ?? []).filter((n) => !n.is_read).length;
 
   const handleServicesArrow = () => {
     servicesScrollRef.current?.scrollTo({ x: 200, animated: true });
   };
-
   const handleDoctorsArrow = () => {
     doctorsListRef.current?.scrollToOffset({ offset: 200, animated: true });
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-
       <PageLoader visible={loading} />
 
       {/* ── Sticky Header ── */}
@@ -72,11 +76,19 @@ export default function HomeScreen() {
             <Image source={IMAGE_COMPONENTS.logo} style={styles.logo} />
           </View>
           <View style={styles.headerIcons}>
+            {/* Notification button with badge */}
             <TouchableOpacity
               style={styles.iconBtn}
               onPress={() => navigate('/patient/notification')}
             >
               <NotificationIcon />
+              {unreadCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
             <Image
               source={avatarUrl ? { uri: avatarUrl } : IMAGE_COMPONENTS.patient}
@@ -91,29 +103,23 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-
-        {/* ── Quick Actions Grid ── */}
         <QuickActionsGrid onItemPress={(route) => navigate(route)} />
 
-        {/* ── Services Section ── */}
+        {/* ── Services ── */}
         <View style={styles.sectionHeader}>
           <H3 style={styles.sectionTitle}>Services</H3>
           <TouchableOpacity onPress={handleServicesArrow} activeOpacity={0.7}>
             <RightArrowIcon />
           </TouchableOpacity>
         </View>
-
         <ScrollView
           ref={servicesScrollRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
+          horizontal showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.servicesList}
         >
           {services.map((item: any) => (
             <TouchableOpacity
-              key={item.id}
-              style={styles.serviceCard}
-              activeOpacity={0.8}
+              key={item.id} style={styles.serviceCard} activeOpacity={0.8}
               onPress={() => router.push({
                 pathname: '/patient/services/service_detail' as any,
                 params: { serviceId: item.id },
@@ -122,11 +128,7 @@ export default function HomeScreen() {
               <View style={styles.serviceIconContainer}>
                 <View style={styles.serviceIconWrapper}>
                   {item.image_url ? (
-                    <Image
-                      source={{ uri: item.image_url }}
-                      style={styles.serviceImage}
-                      resizeMode="contain"
-                    />
+                    <Image source={{ uri: item.image_url }} style={styles.serviceImage} resizeMode="contain" />
                   ) : (
                     SERVICE_ICONS[String(item.id)] ?? <GeneralIcon />
                   )}
@@ -138,25 +140,21 @@ export default function HomeScreen() {
           ))}
         </ScrollView>
 
-        {/* ── Doctors Section ── */}
+        {/* ── Doctors ── */}
         <View style={styles.sectionHeader}>
           <H3 style={styles.sectionTitle}>Doctors</H3>
           <TouchableOpacity onPress={handleDoctorsArrow} activeOpacity={0.7}>
             <RightArrowIcon />
           </TouchableOpacity>
         </View>
-
         <FlatList
           ref={doctorsListRef}
-          data={doctors}
-          horizontal
-          showsHorizontalScrollIndicator={false}
+          data={doctors} horizontal showsHorizontalScrollIndicator={false}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.doctorsList}
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={styles.doctorCard}
-              activeOpacity={0.85}
+              style={styles.doctorCard} activeOpacity={0.85}
               onPress={() => router.push({
                 pathname: '/patient/doctors_info/doctor_details' as any,
                 params: { doctorId: item.id },
@@ -165,196 +163,88 @@ export default function HomeScreen() {
               <Image source={{ uri: item.avatar_url }} style={styles.doctorImage} />
               <View style={styles.doctorInfo}>
                 <H6 style={styles.doctorName} numberOfLines={1}>{item.name}</H6>
-                <Caption1 style={styles.doctorSpec} numberOfLines={2}>
-                  {item.specialization}
-                </Caption1>
+                <Caption1 style={styles.doctorSpec} numberOfLines={2}>{item.specialization}</Caption1>
               </View>
             </TouchableOpacity>
           )}
         />
-
       </ScrollView>
 
-      {/* ── KNC Float Button ── */}
       <TouchableOpacity
         style={styles.kncFloatBtn}
         onPress={() => navigate('/patient/message')}
         activeOpacity={0.85}
       >
-        <Image
-          source={IMAGE_COMPONENTS.contactLogo}
-          style={styles.kncImage}
-          resizeMode="cover"
-        />
+        <Image source={IMAGE_COMPONENTS.contactLogo} style={styles.kncImage} resizeMode="cover" />
       </TouchableOpacity>
-
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   stickyTop: {
     backgroundColor: Colors.APP_BACKGROUND,
-    paddingHorizontal: wp(20),
-    paddingTop: hp(10),
-    paddingBottom: hp(12),
-    zIndex: 10,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
+    paddingHorizontal: wp(20), paddingTop: hp(10), paddingBottom: hp(12),
+    zIndex: 10, elevation: 1,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06, shadowRadius: 6,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: hp(10),
-  },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logo: {
-    height: hp(54),
-    width: wp(138),
-    resizeMode: 'contain',
-  },
-  headerIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: hp(10) },
+  logoContainer: { flexDirection: 'row', alignItems: 'center' },
+  logo: { height: hp(54), width: wp(138), resizeMode: 'contain' },
+  headerIcons: { flexDirection: 'row', alignItems: 'center' },
   iconBtn: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: 52,
-    width: 52,
-    marginRight: wp(12),
-    backgroundColor: '#F8F8F8',
-    borderRadius: 26,
+    justifyContent: 'center', alignItems: 'center',
+    height: 52, width: 52, marginRight: wp(12),
+    backgroundColor: '#F8F8F8', borderRadius: 26,
   },
-  avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-  },
-  scrollContent: {
-    paddingHorizontal: wp(20),
-    paddingTop: hp(10),
-    paddingBottom: hp(100),
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: hp(28),
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1A1A1A',
-  },
-  servicesList: {
-    paddingTop: hp(14),
-    paddingBottom: hp(4),
-    gap: 14,
-  },
-  serviceCard: {
-    alignItems: 'center',
-  },
-  serviceIconContainer: {
-    width: wp(110),
-    height: hp(140),
-    backgroundColor: '#F8F8F8',
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: wp(8),
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.10,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  serviceIconWrapper: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: hp(8),
-  },
-  serviceImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 6,
-  },
-  serviceName: {
-    color: Colors.BRAND_PRIMARY,
-    fontWeight: '600',
-    textAlign: 'center',
-    fontSize: 12,
-  },
-  serviceSubtitle: {
-    color: '#888888',
-    fontSize: 10,
-    textAlign: 'center',
-    marginTop: 4,
-    paddingHorizontal: 4,
-  },
-  doctorsList: {
-    paddingTop: hp(12),
-    paddingBottom: hp(50),
-    gap: 14,
-  },
-  doctorCard: {
-    width: 155,
-    backgroundColor: '#F8F8F8',
-    borderRadius: 16,
-    overflow: 'hidden',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.10,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  doctorImage: {
-    width: '100%',
-    height: hp(180),
-    backgroundColor: '#1D9E7533',
-  },
-  doctorInfo: {
-    padding: 10,
-  },
-  doctorName: {},
-  doctorSpec: {
-    fontSize: 11,
-    color: '#888888',
-    marginVertical: 3,
-  },
-  kncFloatBtn: {
+  // ── Badge ──
+  badge: {
     position: 'absolute',
-    bottom: hp(110),
-    right: wp(20),
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.20,
-    shadowRadius: 8,
-    overflow: 'hidden',
+    top: 4, right: 4,
+    minWidth: 18, height: 18, borderRadius: 9,
+    backgroundColor: '#FF3B30',
+    justifyContent: 'center', alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5, borderColor: '#FFFFFF',
   },
-  kncImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+  badgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700', lineHeight: 12 },
+  avatar: { width: 52, height: 52, borderRadius: 26 },
+  scrollContent: { paddingHorizontal: wp(20), paddingTop: hp(10), paddingBottom: hp(100) },
+  sectionHeader: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginTop: hp(28),
   },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#1A1A1A' },
+  servicesList: { paddingTop: hp(14), paddingBottom: hp(4), gap: 14 },
+  serviceCard: { alignItems: 'center' },
+  serviceIconContainer: {
+    width: wp(110), height: hp(140), backgroundColor: '#F8F8F8', borderRadius: 16,
+    justifyContent: 'center', alignItems: 'center', paddingHorizontal: wp(8),
+    elevation: 1, shadowColor: '#000', shadowOpacity: 0.10, shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  serviceIconWrapper: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center', marginBottom: hp(8) },
+  serviceImage: { width: 40, height: 40, borderRadius: 6 },
+  serviceName: { color: Colors.BRAND_PRIMARY, fontWeight: '600', textAlign: 'center', fontSize: 12 },
+  serviceSubtitle: { color: '#888888', fontSize: 10, textAlign: 'center', marginTop: 4, paddingHorizontal: 4 },
+  doctorsList: { paddingTop: hp(12), paddingBottom: hp(50), gap: 14 },
+  doctorCard: {
+    width: 155, backgroundColor: '#F8F8F8', borderRadius: 16, overflow: 'hidden',
+    elevation: 1, shadowColor: '#000', shadowOpacity: 0.10, shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  doctorImage: { width: '100%', height: hp(180), backgroundColor: '#1D9E7533' },
+  doctorInfo: { padding: 10 },
+  doctorName: {},
+  doctorSpec: { fontSize: 11, color: '#888888', marginVertical: 3 },
+  kncFloatBtn: {
+    position: 'absolute', bottom: hp(110), right: wp(20),
+    width: 70, height: 70, borderRadius: 35, backgroundColor: '#FFFFFF',
+    justifyContent: 'center', alignItems: 'center',
+    elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.20, shadowRadius: 8, overflow: 'hidden',
+  },
+  kncImage: { width: 60, height: 60, borderRadius: 30 },
 });

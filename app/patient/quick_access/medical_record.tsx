@@ -1,204 +1,117 @@
+// app/patient/quick_access/medical_record.tsx
 import SectionTitle from '@/components/shared/SectionTitle';
 import { Body4, Caption2, H6 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
+import { useLazyGetMedicalRecordsQuery } from '@/redux/services/medicalRecordApi';
 import { hp, wp } from '@/utils/responsiveDevice';
-import React, { useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import React from 'react';
 import {
+  ActivityIndicator,
   FlatList,
+  Linking,
   StyleSheet,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
- 
-// ─── Fake Data ───────────────────────────────────────────────────────────────
- 
-const PERSONAL_RECORDS = [
-  {
-    id: '1',
-    doctorName: 'Dr. Anis Effendi',
-    specialty: 'GENERAL PRACTITIONER Primary Care for Adults & C...',
-    patient: 'My Self',
-    dateTime: '09:30 | May 05, 2026 (Tuesday)',
-  },
-  {
-    id: '2',
-    doctorName: 'Dr. Anis Effendi',
-    specialty: 'GENERAL PRACTITIONER Primary Care for Adults & C...',
-    patient: 'My Self',
-    dateTime: '11:00 | May 12, 2026 (Tuesday)',
-  },
-  {
-    id: '3',
-    doctorName: 'Dr. Anis Effendi',
-    specialty: 'GENERAL PRACTITIONER Primary Care for Adults & C...',
-    patient: 'My Self',
-    dateTime: '18:00 | May 24, 2026 (Sunday)',
-  },
-];
- 
-const FAMILY_RECORDS = [
-  {
-    id: '1',
-    doctorName: 'Dr. Anis Effendi',
-    specialty: 'GENERAL PRACTITIONER Primary Care for Adults & C...',
-    patient: 'Hakim',
-    dateTime: '08:00 | May 03, 2026 (Sunday)',
-  },
-  {
-    id: '2',
-    doctorName: 'Dr. Anis Effendi',
-    specialty: 'GENERAL PRACTITIONER Primary Care for Adults & C...',
-    patient: 'Hakim',
-    dateTime: '10:15 | May 15, 2026 (Friday)',
-  },
-  {
-    id: '3',
-    doctorName: 'Dr. Anis Effendi',
-    specialty: 'GENERAL PRACTITIONER Primary Care for Adults & C...',
-    patient: 'Hakim',
-    dateTime: '16:45 | May 28, 2026 (Thursday)',
-  },
-];
- 
-type TabType = 'personal' | 'family';
- 
-// ─── Component ───────────────────────────────────────────────────────────────
- 
+
 export default function MedicalRecordScreen() {
-  const [activeTab, setActiveTab] = useState<TabType>('personal');
- 
-  const records = activeTab === 'personal' ? PERSONAL_RECORDS : FAMILY_RECORDS;
- 
+  const { icLast4 } = useLocalSearchParams<{ icLast4: string }>();
+  const [getRecords, { data, isLoading }] = useLazyGetMedicalRecordsQuery();
+
+
+  React.useEffect(() => {
+    if (icLast4) {
+      getRecords(icLast4);
+    }
+  }, [icLast4]);
+
+  const handleDownload = (url: string) => {
+    if (url) {
+      Linking.openURL(url);
+    }
+  };
+
+
+
+  if (isLoading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={Colors.BRAND_PRIMARY} />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
       <View style={styles.header}>
-        <SectionTitle title="Medical Record" />
+        <SectionTitle title="Medical Records" />
       </View>
- 
-      {/* ── Tab Toggle ── */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tabBtn, activeTab === 'personal' && styles.tabBtnActive]}
-          onPress={() => setActiveTab('personal')}
-          activeOpacity={0.85}
-        >
-          <Caption2
-            style={[styles.tabText, activeTab === 'personal' && styles.tabTextActive]}
-          >
-            Personal
-          </Caption2>
-        </TouchableOpacity>
- 
-        <TouchableOpacity
-          style={[styles.tabBtn, activeTab === 'family' && styles.tabBtnActive]}
-          onPress={() => setActiveTab('family')}
-          activeOpacity={0.85}
-        >
-          <Caption2
-            style={[styles.tabText, activeTab === 'family' && styles.tabTextActive]}
-          >
-            Family
-          </Caption2>
-        </TouchableOpacity>
-      </View>
- 
-      {/* ── Records List ── */}
+
       <FlatList
-        data={records}
+        data={data?.results ?? []}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.card} activeOpacity={0.85}>
-            <H6 style={styles.doctorName}>{item.doctorName}</H6>
-            <Caption2 style={styles.specialty} numberOfLines={1}>{item.specialty}</Caption2>
+          <View style={styles.card}>
+            <H6 style={styles.doctorName}>{item.patient_name}</H6>
+            <Caption2 style={styles.specialty}>Result Type: {item.result_type}</Caption2>
+
             <View style={styles.divider} />
-            <Caption2 style={styles.patientName}>{item.patient}</Caption2>
-            <Body4 weight='semiBold' style={styles.dateTime}>{item.dateTime}</Body4>
-          </TouchableOpacity>
+
+            <View style={styles.row}>
+              <View style={{ flex: 1 }}>
+                <Caption2 style={styles.label}>Test Date</Caption2>
+                <Body4 weight='semiBold' style={styles.dateTime}>{item.test_date}</Body4>
+              </View>
+
+              {/* ডাউনলোড বা ভিউ বাটন */}
+              <TouchableOpacity
+                style={styles.downloadBtn}
+                onPress={() => handleDownload(item.file_url)}
+              >
+                <Caption2 style={{ color: '#fff' }}>View File</Caption2>
+              </TouchableOpacity>
+            </View>
+
+            <Caption2 style={styles.fileName} numberOfLines={1}>
+              File: {item.filename}
+            </Caption2>
+          </View>
+        )}
+        ListEmptyComponent={() => (
+          <View style={styles.centered}><H6>No records found.</H6></View>
         )}
       />
     </SafeAreaView>
   );
 }
- 
-// ─── Styles ──────────────────────────────────────────────────────────────────
- 
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-     paddingHorizontal: wp(20)
-  },
-  header: {
-    
-  },
- 
-  // ── Tab Toggle
-  tabContainer: {
-    flexDirection: 'row',
-    // marginHorizontal: wp(20),
-    marginTop: hp(16),
-    marginBottom: hp(4),
-    // backgroundColor: '#F0F0F0',
-    borderRadius: 16,
-    padding: 4,
-    gap:5
-  },
-  tabBtn: {
-    flex: 1,
-    paddingVertical: hp(12),
-    borderRadius: 16,
-    alignItems: 'center',
-    backgroundColor:"#F6F6F6"
-  },
-  tabBtnActive: {
-    backgroundColor: Colors.BRAND_PRIMARY,
-  },
-  tabText: {
-    color: '#888888',
-    fontWeight: '600',
-  },
-  tabTextActive: {
-    color: '#FFFFFF',
-  },
- 
-  // ── List
-  listContent: {
-    // paddingHorizontal: wp(20),
-    paddingTop: hp(14),
-    paddingBottom: hp(30),
-    gap: 12,
-  },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  header: { paddingHorizontal: wp(20), marginBottom: hp(10) },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  listContent: { paddingHorizontal: wp(20), paddingBottom: hp(20) },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8F8F8',
     borderRadius: 16,
     padding: wp(16),
-    borderWidth:1,
-    borderColor:Colors.BORDER_COLOR,
-    gap: 4,
+    marginBottom: hp(16),
+    borderWidth: 1,
+    borderColor: '#EEE',
   },
-  doctorName: {
-    color: '#1A1A1A',
-    fontWeight: '700',
+  doctorName: { color: Colors.BRAND_PRIMARY, marginBottom: 4 },
+  specialty: { color: '#666' },
+  divider: { height: 1, backgroundColor: '#EEE', marginVertical: hp(12) },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  label: { color: '#999', marginBottom: 2 },
+  dateTime: { color: Colors.TEXT_COLOR },
+  downloadBtn: {
+    backgroundColor: Colors.BRAND_PRIMARY,
+    paddingHorizontal: wp(12),
+    paddingVertical: hp(6),
+    borderRadius: 8,
   },
-  specialty: {
-    color: '#818181',
-    // fontSize: 11,
-    textTransform: 'uppercase',
-  },
-  divider: {
-    // height: 1,
-    // backgroundColor: '#F0F0F0',
-    marginVertical: hp(6),
-  },
-  patientName: {
-    color: '#818181',
-    fontWeight: '600',
-  },
-  dateTime: {
-    color: '#00000080',
-  },
+  fileName: { marginTop: hp(8), color: '#888', fontStyle: 'italic' }
 });

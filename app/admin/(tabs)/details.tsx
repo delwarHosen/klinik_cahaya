@@ -22,7 +22,6 @@ import {
 } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 interface BookingRequest {
   id: string
   appointment_id: number | null
@@ -45,17 +44,15 @@ interface BookingRequest {
   approved_at: string | null
 }
 
-// ─── Doctor list — uses provider_id (matches API field) ──────────────────────
 const DOCTORS = [
-  { id: 'dr_faiz',         name: 'Dr. Faiz',                    provider_id: 3849 },
+  { id: 'dr_faiz', name: 'Dr. Faiz', provider_id: 3849 },
   { id: 'dr_liyana_ramli', name: 'Dr. Noor Liyana Binti Ramli', provider_id: 3949 },
-  { id: 'dr_liyana_yusoff',name: 'Dr. Liyana',                  provider_id: 3798 },
-  { id: 'dr_mimi',         name: 'Dr. Mimi',                    provider_id: 6505 },
-  { id: 'dr_sourav',       name: 'Dr. Sourav',                  provider_id: 8451 },
-  { id: 'dr_anis',         name: 'Dr. Anis Effendi',            provider_id: 3797 },
+  { id: 'dr_liyana_yusoff', name: 'Dr. Liyana', provider_id: 3798 },
+  { id: 'dr_mimi', name: 'Dr. Mimi', provider_id: 6505 },
+  { id: 'dr_sourav', name: 'Dr. Sourav', provider_id: 8451 },
+  { id: 'dr_anis', name: 'Dr. Anis Effendi', provider_id: 3797 },
 ]
 
-// ─── Status options ───────────────────────────────────────────────────────────
 type StatusOption = {
   label: string
   apiValue: string
@@ -64,14 +61,13 @@ type StatusOption = {
 }
 
 const STATUS_OPTIONS: StatusOption[] = [
-  { label: 'Pending',     apiValue: 'pending',     color: '#1A1A1A', bg: '#D4F000' },
-  { label: 'Confirmed',   apiValue: 'confirmed',   color: '#FFFFFF', bg: Colors.BRAND_PRIMARY },
-  { label: 'Rejected',    apiValue: 'rejected',    color: '#FFFFFF', bg: '#FF383C' },
-  { label: 'Expired',     apiValue: 'expired',     color: '#FFFFFF', bg: '#AAAAAA' },
+  { label: 'Pending', apiValue: 'pending', color: '#1A1A1A', bg: '#D4F000' },
+  { label: 'Confirmed', apiValue: 'confirmed', color: '#FFFFFF', bg: Colors.BRAND_PRIMARY },
+  { label: 'Rejected', apiValue: 'rejected', color: '#FFFFFF', bg: '#FF383C' },
+  { label: 'Expired', apiValue: 'expired', color: '#FFFFFF', bg: '#AAAAAA' },
   { label: 'Rescheduled', apiValue: 'rescheduled', color: '#FFFFFF', bg: '#F5A623' },
 ]
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 const formatDate = (dateStr: string) => {
   try {
     return new Date(dateStr).toLocaleDateString('en-GB', {
@@ -92,23 +88,25 @@ const formatTime = (timeStr: string) => {
 const getStatusConfig = (apiValue: string) =>
   STATUS_OPTIONS.find(s => s.apiValue === apiValue) ?? STATUS_OPTIONS[0]
 
-// DatePickerModal returns e.g. "April 9, 2026 (Thursday)" → convert to "2026-04-09"
+
 const parseToYMD = (dateStr: string): string => {
   if (!dateStr) return ''
   try {
+    // "May 10, 2026 (Sunday)" → remove bracket → "May 10, 2026"
     const clean = dateStr.replace(/\s*\(.*?\)/, '').trim()
-    const d = new Date(clean)
-    if (!isNaN(d.getTime())) {
-      const y = d.getFullYear()
-      const m = String(d.getMonth() + 1).padStart(2, '0')
-      const day = String(d.getDate()).padStart(2, '0')
-      return `${y}-${m}-${day}`
-    }
+    // "May 10, 2026" → ["May", "10,", "2026"]
+    const parts = clean.split(' ')
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December']
+    const mo = String(monthNames.indexOf(parts[0]) + 1).padStart(2, '0')
+    const day = String(parseInt(parts[1])).padStart(2, '0')
+    const year = parts[2]
+    if (monthNames.indexOf(parts[0]) === -1) return ''
+    return `${year}-${mo}-${day}`
   } catch { }
   return ''
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
 export default function BookingRequestScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
@@ -118,40 +116,44 @@ export default function BookingRequestScreen() {
   const [datePickerVisible, setDatePickerVisible] = useState(false)
   const [datePickerFor, setDatePickerFor] = useState<'start' | 'end'>('start')
 
-  // ── Applied state → drives the API call ───────────────────────────────────
+  // ── APPLIED states ──
+  // appliedStartDate / appliedEndDate      → YYYY-MM-DD  (sent to API)
+  // appliedStartDisplay / appliedEndDisplay → display string (shown in filter modal on reopen)
   const [appliedStatus, setAppliedStatus] = useState<StatusOption>(STATUS_OPTIONS[0])
   const [appliedProviderIds, setAppliedProviderIds] = useState<number[]>(
     DOCTORS.map(d => d.provider_id)
   )
-  const [appliedStartDate, setAppliedStartDate] = useState('') // YYYY-MM-DD
-  const [appliedEndDate, setAppliedEndDate] = useState('')     // YYYY-MM-DD
+  const [appliedStartDate, setAppliedStartDate] = useState('')       // YYYY-MM-DD for API
+  const [appliedEndDate, setAppliedEndDate] = useState('')           // YYYY-MM-DD for API
+  const [appliedStartDisplay, setAppliedStartDisplay] = useState('') // display string for UI
+  const [appliedEndDisplay, setAppliedEndDisplay] = useState('')     // display string for UI
 
-  // ── Temp state → inside modal only ────────────────────────────────────────
+  // ── TEMP states (inside filter modal, before Apply is pressed) ──
   const [tempStatus, setTempStatus] = useState<StatusOption>(STATUS_OPTIONS[0])
   const [tempProviderIds, setTempProviderIds] = useState<number[]>(
     DOCTORS.map(d => d.provider_id)
   )
-  const [tempStartDate, setTempStartDate] = useState('') // display string
-  const [tempEndDate, setTempEndDate] = useState('')     // display string
+  const [tempStartDate, setTempStartDate] = useState('') // display string only
+  const [tempEndDate, setTempEndDate] = useState('')     // display string only
 
-  // ── Build API params ───────────────────────────────────────────────────────
+  // All doctors selected → don't send doctor_ids param (backend returns all)
   const allSelected = appliedProviderIds.length === DOCTORS.length
 
+  // ── API filter params: status + optional doctor_ids + optional dates ──
+  // doctor_phone is intentionally NOT included
   const filterParams = {
     status: appliedStatus.apiValue,
-    // Send provider_id values joined as doctor_ids when not all doctors selected
-    ...(!allSelected && {
-      doctor_ids: appliedProviderIds.join(','),
-    }),
+    ...(!allSelected && { doctor_ids: appliedProviderIds.join(',') }),
     ...(appliedStartDate && { start_date: appliedStartDate }),
-    ...(appliedEndDate   && { end_date:   appliedEndDate }),
+    ...(appliedEndDate && { end_date: appliedEndDate }),
   }
+
+
 
   const { data, isLoading, isFetching } = useGetFilteredBookingsQuery(filterParams)
 
   const allResults: BookingRequest[] = (data?.results ?? []) as BookingRequest[]
 
-  // ── Client-side search only (everything else filtered by API) ─────────────
   const filteredResults = allResults.filter(item => {
     if (!search.trim()) return true
     const q = search.toLowerCase()
@@ -163,25 +165,32 @@ export default function BookingRequestScreen() {
 
   const isLoadingData = isLoading || isFetching
 
-  // ── Modal handlers ─────────────────────────────────────────────────────────
+  // Open filter: restore temp from applied DISPLAY strings (never from YMD strings)
   const handleOpenFilter = () => {
     setTempStatus(appliedStatus)
     setTempProviderIds([...appliedProviderIds])
-    // Show the stored YYYY-MM-DD as-is inside temp (parsed back on apply)
-    setTempStartDate(appliedStartDate)
-    setTempEndDate(appliedEndDate)
+    setTempStartDate(appliedStartDisplay) 
+    setTempEndDate(appliedEndDisplay)     
     setFilterVisible(true)
   }
 
+  // Apply: convert display → YYYY-MM-DD for API, save display separately for UI
   const handleApplyFilter = () => {
     setAppliedStatus(tempStatus)
     setAppliedProviderIds([...tempProviderIds])
-    // parseToYMD handles the display string; if already YYYY-MM-DD it passes through
-    setAppliedStartDate(parseToYMD(tempStartDate) || tempStartDate)
-    setAppliedEndDate(parseToYMD(tempEndDate) || tempEndDate)
+
+    const startYMD = parseToYMD(tempStartDate)
+    const endYMD = parseToYMD(tempEndDate)
+
+    setAppliedStartDate(startYMD)           // YYYY-MM-DD → goes to API
+    setAppliedEndDate(endYMD)               // YYYY-MM-DD → goes to API
+    setAppliedStartDisplay(tempStartDate)   // display string → shown on modal reopen
+    setAppliedEndDisplay(tempEndDate)       // display string → shown on modal reopen
+
     setFilterVisible(false)
   }
 
+  // Reset: only clears temp states inside the modal (does not affect applied/API params)
   const handleResetFilter = () => {
     setTempStatus(STATUS_OPTIONS[0])
     setTempProviderIds(DOCTORS.map(d => d.provider_id))
@@ -189,7 +198,6 @@ export default function BookingRequestScreen() {
     setTempEndDate('')
   }
 
-  // Toggle a single provider_id in the temp selection
   const toggleTempDoctor = (providerId: number) => {
     setTempProviderIds(prev =>
       prev.includes(providerId)
@@ -198,13 +206,13 @@ export default function BookingRequestScreen() {
     )
   }
 
+  // DatePickerModal returns display string like "April 9, 2026 (Thursday)"
   const handleDateConfirm = (dateDisplay: string) => {
     if (datePickerFor === 'start') setTempStartDate(dateDisplay)
     else setTempEndDate(dateDisplay)
     setDatePickerVisible(false)
   }
 
-  // ── Navigation ─────────────────────────────────────────────────────────────
   const handleCardPress = (item: BookingRequest) => {
     if (item.status === 'rejected') {
       router.push({
@@ -219,7 +227,6 @@ export default function BookingRequestScreen() {
     }
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={{ marginTop: hp(10) }}>
@@ -332,7 +339,7 @@ export default function BookingRequestScreen() {
         </ScrollView>
       )}
 
-      {/* ── Filter Modal ──────────────────────────────────────────────────── */}
+      {/* Filter Modal */}
       <Modal
         visible={filterVisible}
         transparent
@@ -345,7 +352,6 @@ export default function BookingRequestScreen() {
               <View style={[styles.bottomSheet, { paddingBottom: Math.max(insets.bottom, hp(24)) }]}>
                 <View style={styles.sheetHandle} />
 
-                {/* Header */}
                 <View style={styles.sheetHeader}>
                   <Body2 style={styles.sheetTitle}>Filter</Body2>
                   <TouchableOpacity onPress={handleResetFilter} activeOpacity={0.7}>
@@ -377,7 +383,7 @@ export default function BookingRequestScreen() {
                     )
                   })}
 
-                  {/* Doctor — keyed by provider_id */}
+                  {/* Doctor */}
                   <Body2 style={styles.filterSectionLabel}>Doctor</Body2>
                   {DOCTORS.map(doc => {
                     const checked = tempProviderIds.includes(doc.provider_id)
@@ -396,7 +402,7 @@ export default function BookingRequestScreen() {
                     )
                   })}
 
-                  {/* Date Range — allowPastDates={true} so April etc. are selectable */}
+                  {/* Date Range */}
                   <Body2 style={styles.filterSectionLabel}>Date Range</Body2>
                   <TouchableOpacity
                     style={styles.filterRow}
@@ -420,7 +426,6 @@ export default function BookingRequestScreen() {
                     </Caption1>
                   </TouchableOpacity>
 
-                  {/* Apply */}
                   <TouchableOpacity
                     style={styles.findBtn}
                     onPress={handleApplyFilter}
@@ -436,19 +441,17 @@ export default function BookingRequestScreen() {
         </TouchableWithoutFeedback>
       </Modal>
 
-      {/* Date Picker — allowPastDates so filter can select historical dates */}
       <DatePickerModal
         visible={datePickerVisible}
         title={datePickerFor === 'start' ? 'Select Start Date' : 'Select End Date'}
         onClose={() => setDatePickerVisible(false)}
         onConfirm={handleDateConfirm}
-        allowPastDates={true}   // ← KEY FIX: filter needs past dates like April
+        allowPastDates={true}
       />
     </SafeAreaView>
   )
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -1,10 +1,10 @@
-// app/admin/(tabs)/home.tsx  — শুধু notification badge অংশটা পরিবর্তিত
 import { NotificationIcon } from '@/assets/icons/common_icon/Notification'
 import { CustomButton } from '@/components/shared/CustomButton'
 import PageLoader from '@/components/shared/PageLoader'
 import { Body1, Caption1, Caption2, Caption4, H3, H6 } from '@/components/typo/Typography'
 import { IMAGE_COMPONENTS } from '@/constants/image.index'
 import { Colors } from '@/constants/theme'
+import { useRefresh } from '@/hooks/useRefresh'
 import {
   useGetBookingCountQuery,
   useGetBookingRequestsQuery,
@@ -14,8 +14,18 @@ import { useGetAdminNotificationsQuery } from '@/redux/services/notificationApi'
 import { hp, wp } from '@/utils/responsiveDevice'
 import { useRouter } from 'expo-router'
 import React from 'react'
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import {
+  Image,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function toMidnight(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -49,18 +59,48 @@ function formatApptTime(timeStr: string): string {
   return `${String(h12).padStart(2, '0')}:${mStr} ${ampm}`;
 }
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export default function AdminHomeScreen() {
   const router = useRouter()
 
-  const { data: upcomingData, isLoading: upcomingLoading } = useGetUpcomingAppointmentsQuery();
-  const { data: requestData,  isLoading: requestLoading  } = useGetBookingRequestsQuery();
-  const { data: countData,    isLoading: countLoading    } = useGetBookingCountQuery();
+  const {
+    data: upcomingData,
+    isLoading: upcomingLoading,
+    refetch: refetchUpcoming,
+  } = useGetUpcomingAppointmentsQuery();
 
-  // ── Notification unread count ──────────────────────────────────────────────
-  const { data: notifData } = useGetAdminNotificationsQuery();
-  const unreadCount = (notifData?.results ?? []).filter((n) => !n.is_read).length;
+  const {
+    data: requestData,
+    isLoading: requestLoading,
+    refetch: refetchRequest,
+  } = useGetBookingRequestsQuery();
 
-  const isLoading = upcomingLoading || requestLoading || countLoading;
+  const {
+    data: countData,
+    isLoading: countLoading,
+    refetch: refetchCount,
+  } = useGetBookingCountQuery();
+
+  const {
+    data: notifData,
+    refetch: refetchNotif,
+  } = useGetAdminNotificationsQuery();
+
+  // ── Pull-to-refresh 
+  const { refreshing, onRefresh } = useRefresh([
+    refetchUpcoming,
+    refetchRequest,
+    refetchCount,
+    refetchNotif,
+  ]);
+
+  // 
+  const hasCache = !!(upcomingData || requestData || countData);
+  const isLoading = (upcomingLoading || requestLoading || countLoading) && !hasCache;
+
+  // ── Notification unread count
+  const unreadCount = (notifData?.results ?? []).filter((n: any) => !n.is_read).length;
 
   const upcomingList = (upcomingData?.results ?? []).filter((r: any) => !!r.start);
   const pendingList  = (requestData?.results  ?? []).filter((r: any) => r.status === 'pending');
@@ -70,6 +110,7 @@ export default function AdminHomeScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+
       <PageLoader visible={isLoading} title="LOADING" subtitle="Fetching dashboard data..." />
 
       {/* ── Header ── */}
@@ -80,7 +121,6 @@ export default function AdminHomeScreen() {
           onPress={() => router.push('/admin/notification' as any)}
         >
           <NotificationIcon />
-          {/* Badge */}
           {unreadCount > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>
@@ -94,6 +134,14 @@ export default function AdminHomeScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.BRAND_PRIMARY]}
+            tintColor={Colors.BRAND_PRIMARY}
+          />
+        }
       >
         {/* ── Upcoming Appointment Card ── */}
         <View style={styles.upcomingCard}>
@@ -204,6 +252,8 @@ export default function AdminHomeScreen() {
   )
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   header: {
@@ -219,7 +269,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F8F8',
     justifyContent: 'center', alignItems: 'center',
   },
-  // ── Badge ──
   badge: {
     position: 'absolute',
     top: 2, right: 2,

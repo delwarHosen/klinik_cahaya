@@ -1,12 +1,14 @@
 import { BookingConfirmedModal } from '@/components/appointment/BookingConfirmedModal'
 import { ExpandableSection, InfoRow } from '@/components/appointment/ExpandableSection'
 import { RejectConfirmModal } from '@/components/appointment/RejectConfirmModal'
+import { RescheduleReasonModal } from '@/components/appointment/RescheduleReasonModal'
 import { DateTimePickerModal } from '@/components/booking/DateTimePickerModal'
 import { CustomButton } from '@/components/shared/CustomButton'
-import CustomLoader from '@/components/shared/CustomLoader'
+import PageLoader from '@/components/shared/PageLoader'
 import SectionTitle from '@/components/shared/SectionTitle'
-import { Caption1, Caption2, Caption4, H3, H6, SpecialText } from '@/components/typo/Typography'
+import { Caption1, Caption2, Caption4, H3, SpecialText } from '@/components/typo/Typography'
 import { Colors } from '@/constants/theme'
+import { useRefresh } from '@/hooks/useRefresh'
 import {
   useGetBookingLookupQueryQuery,
   useGetStatusChangesMutation,
@@ -17,25 +19,21 @@ import { hp, wp } from '@/utils/responsiveDevice'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useState } from 'react'
 import {
-  ActivityIndicator,
   Image,
-  Modal,
-  Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
-  TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  confirmed:   { label: 'Upcoming',    color: '#1A1A1A', bg: '#F0F0F0',            border: '#CCCCCC' },
-  pending:     { label: 'Pending',     color: '#1A1A1A', bg: '#D4F000',            border: '#D4F000' },
-  completed:   { label: 'Completed',   color: '#FFFFFF', bg: Colors.BRAND_PRIMARY, border: Colors.BRAND_PRIMARY },
-  canceled:    { label: 'Canceled',    color: '#FFFFFF', bg: '#FF383C',            border: '#FF383C' },
-  rejected:    { label: 'Canceled',    color: '#FFFFFF', bg: '#FF383C',            border: '#FF383C' },
-  expired:     { label: 'Expired',     color: '#FFFFFF', bg: '#AAAAAA',            border: '#AAAAAA' },
+  confirmed: { label: 'Upcoming', color: '#1A1A1A', bg: '#F0F0F0', border: '#CCCCCC' },
+  pending: { label: 'Pending', color: '#1A1A1A', bg: '#D4F000', border: '#D4F000' },
+  completed: { label: 'Completed', color: '#FFFFFF', bg: Colors.BRAND_PRIMARY, border: Colors.BRAND_PRIMARY },
+  canceled: { label: 'Canceled', color: '#FFFFFF', bg: '#FF383C', border: '#FF383C' },
+  rejected: { label: 'Canceled', color: '#FFFFFF', bg: '#FF383C', border: '#FF383C' },
+  expired: { label: 'Expired', color: '#FFFFFF', bg: '#AAAAAA', border: '#AAAAAA' },
   rescheduled: { label: 'Rescheduled', color: '#FFFFFF', bg: Colors.BRAND_PRIMARY, border: Colors.BRAND_PRIMARY },
 }
 
@@ -58,74 +56,18 @@ const formatTime = (timeStr: string) => {
   } catch { return timeStr }
 }
 
-// ─── Reschedule Reason Modal ──────────────────────────────────────────────────
-interface ReasonModalProps {
-  visible: boolean
-  date: string
-  time: string
-  onBack: () => void
-  onConfirm: (reason: string) => void
-  isLoading: boolean
-}
+const capitalize = (str: string) =>
+  str ? str.charAt(0).toUpperCase() + str.slice(1) : 'N/A'
 
-function RescheduleReasonModal({ visible, date, time, onBack, onConfirm, isLoading }: ReasonModalProps) {
-  const [reason, setReason] = useState('')
-
-  const handleConfirm = () => {
-    onConfirm(reason.trim() || `Rescheduled to ${date} at ${formatTime(time)}`)
-    setReason('')
-  }
-
-  return (
-    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent>
-      <View style={rm.backdrop}>
-        <View style={rm.card}>
-          <H6 style={rm.title}>Reschedule Reason</H6>
-          <Caption2 style={rm.subtitle}>
-            {formatDate(date)}  ·  {formatTime(time)}
-          </Caption2>
-
-          <Caption1 style={rm.label}>Message to patient (optional)</Caption1>
-          <TextInput
-            style={rm.input}
-            placeholder="e.g. The doctor is available after 10:00 AM on this date."
-            placeholderTextColor="#AAAAAA"
-            value={reason}
-            onChangeText={setReason}
-            multiline
-            numberOfLines={4}
-          />
-
-          <View style={rm.btnRow}>
-            <TouchableOpacity style={rm.cancelBtn} onPress={onBack} disabled={isLoading}>
-              <Caption1 style={rm.cancelText}>Back</Caption1>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[rm.okBtn, isLoading && rm.okBtnDisabled]}
-              onPress={handleConfirm}
-              disabled={isLoading}
-            >
-              {isLoading
-                ? <ActivityIndicator color="#FFF" size="small" />
-                : <Caption1 style={rm.okText}>Confirm</Caption1>
-              }
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  )
-}
-
-// ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function AppointmentDetailsScreen() {
   const router = useRouter()
   const { bookingId, id } = useLocalSearchParams<{ bookingId?: string; id?: string }>()
   const resolvedId = bookingId ?? id ?? ''
 
-  const { data, isLoading, error } = useGetBookingLookupQueryQuery(resolvedId, {
+  const { data, isLoading, error, refetch } = useGetBookingLookupQueryQuery(resolvedId, {
     skip: !resolvedId,
   })
+
   const [changeStatus, { isLoading: isChanging }] = useGetStatusChangesMutation()
   const [reschedule, { isLoading: isRescheduling }] = useRescheduleBookingMutation()
 
@@ -136,17 +78,19 @@ export default function AppointmentDetailsScreen() {
   const [pickedDate, setPickedDate] = useState('')
   const [pickedTime, setPickedTime] = useState('')
 
-  // ── Doctor availability — needed for DateTimePickerModal ──
-  const doctorId = data?.doctor?.id ?? ''
-  const { data: availData } = useGetDoctorAvailabilityQuery(doctorId, {
-    skip: !doctorId,
-  })
+  const { refreshing, onRefresh } = useRefresh([refetch])
 
-  if (isLoading) {
+  const hasCache = !!data
+  const isInitialLoading = isLoading && !hasCache
+
+  const doctorId = data?.doctor?.id ?? ''
+  const { data: availData } = useGetDoctorAvailabilityQuery(doctorId, { skip: !doctorId })
+
+  if (isInitialLoading) {
     return (
       <SafeAreaView style={styles.container}>
+        <PageLoader visible={true} title="LOADING" subtitle="Fetching appointment details..." />
         <SectionTitle title="Appointment Details" />
-        <View style={styles.loadingBox}><CustomLoader size={50} /></View>
       </SafeAreaView>
     )
   }
@@ -160,15 +104,23 @@ export default function AppointmentDetailsScreen() {
     )
   }
 
-  const booking     = data.booking
-  const doctor      = data.doctor
+  const booking = data.booking
+  const doctor = data.doctor
   const patientInfo = data.patient?.requested_patient
+  const patientFull = data.patient?.patient  // full patient object with dob, gender, address etc.
 
-  const cfg        = STATUS_CONFIG[booking.status] ?? STATUS_CONFIG['confirmed']
-  const isPending  = booking.status === 'pending'
+  const cfg = STATUS_CONFIG[booking.status] ?? STATUS_CONFIG['confirmed']
+  const isPending = booking.status === 'pending'
   const isCanceled = booking.status === 'rejected' || booking.status === 'canceled'
 
-  // ── Accept ──
+  // ── Medical Info ──
+  const medicalInfo = patientFull?.medical_info ?? {}
+  const hasMedicalInfo = Object.keys(medicalInfo).length > 0
+
+  // ── Family / Relationships ──
+  const relationships = patientFull?.relationships ?? []
+  const hasRelationships = relationships.length > 0
+
   const handleAccept = async () => {
     try {
       await changeStatus({ booking_id: resolvedId, status: 'confirmed' }).unwrap()
@@ -177,7 +129,6 @@ export default function AppointmentDetailsScreen() {
     } catch (err) { console.log('Accept error:', err) }
   }
 
-  // ── Reject ──
   const handleReject = async () => {
     try {
       await changeStatus({ booking_id: resolvedId, status: 'rejected' }).unwrap()
@@ -186,7 +137,6 @@ export default function AppointmentDetailsScreen() {
     } catch (err) { console.log('Reject error:', err) }
   }
 
-  // ── Reschedule Step 1 — date & time picked ──
   const handleDateTimeConfirm = (date: string, time: string) => {
     setPickedDate(date)
     setPickedTime(time)
@@ -194,7 +144,6 @@ export default function AppointmentDetailsScreen() {
     setShowReasonModal(true)
   }
 
-  // ── Reschedule Step 2 — reason confirmed ──
   const handleReasonConfirm = async (reason: string) => {
     try {
       await reschedule({
@@ -221,6 +170,14 @@ export default function AppointmentDetailsScreen() {
         style={styles.flex}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.BRAND_PRIMARY]}
+            tintColor={Colors.BRAND_PRIMARY}
+          />
+        }
       >
         {/* ── Doctor Row ── */}
         <View style={styles.doctorRow}>
@@ -289,6 +246,57 @@ export default function AppointmentDetailsScreen() {
           </View>
         </View>
 
+        {/* ── Patient Personal Info ── */}
+        {patientFull && (
+          <ExpandableSection title="Personal Info">
+            {patientFull.gender ? <InfoRow label="Gender" value={capitalize(patientFull.gender)} /> : null}
+            {patientFull.dob ? <InfoRow label="Date of Birth" value={formatDate(patientFull.dob)} /> : null}
+            {patientFull.address ? <InfoRow label="Address" value={patientFull.address} /> : null}
+            {patientFull.nationality ? <InfoRow label="Nationality" value={patientFull.nationality} /> : null}
+            {patientFull.email ? <InfoRow label="Email" value={patientFull.email} /> : null}
+          </ExpandableSection>
+        )}
+
+        {/* ── Medical Information ── */}
+        {hasMedicalInfo && (
+          <ExpandableSection title="Medical Information">
+            {Object.entries(medicalInfo).map(([key, value]) => {
+              let displayValue: string;
+              if (Array.isArray(value)) {
+                
+                displayValue = value
+                  .map((v: any) => (typeof v === 'object' ? v?.name ?? v?.label ?? JSON.stringify(v) : String(v)))
+                  .join(', ') || '—';
+              } else if (typeof value === 'object' && value !== null) {
+                displayValue = (value as any)?.name ?? (value as any)?.label ?? JSON.stringify(value);
+              } else {
+                displayValue = String(value ?? '—');
+              }
+
+              return (
+                <InfoRow
+                  key={key}
+                  label={key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                  value={displayValue}
+                />
+              );
+            })}
+          </ExpandableSection>
+        )}
+
+        {/* ── Family Information ── */}
+        {hasRelationships && (
+          <ExpandableSection title="Family Information">
+            {relationships.map((rel: any, idx: number) => (
+              <InfoRow
+                key={idx}
+                label={capitalize(rel.relationship ?? rel.relation ?? `Member ${idx + 1}`)}
+                value={rel.name ?? '—'}
+              />
+            ))}
+          </ExpandableSection>
+        )}
+
         {/* ── Doctor Consultation Info ── */}
         {doctor?.consultation_days && (
           <ExpandableSection title="Consultation Info">
@@ -342,8 +350,6 @@ export default function AppointmentDetailsScreen() {
         doctorName={doctor?.full_name || doctor?.name || ''}
         onClose={() => setShowConfirmed(false)}
       />
-
-      {/* ── Step 1: Date & Time Picker ── */}
       <DateTimePickerModal
         visible={showDatePicker}
         onClose={() => setShowDatePicker(false)}
@@ -352,8 +358,6 @@ export default function AppointmentDetailsScreen() {
         maxDate={maxDate}
         consultationTime={doctor?.consultation_time ?? ''}
       />
-
-      {/* ── Step 2: Reschedule Reason ── */}
       <RescheduleReasonModal
         visible={showReasonModal}
         date={pickedDate}
@@ -396,26 +400,4 @@ const styles = StyleSheet.create({
   personIC: { color: Colors.BRAND_PRIMARY },
   actionsSection: { marginTop: hp(24), gap: hp(12) },
   rejectAcceptRow: { flexDirection: 'row', gap: hp(12) },
-})
-
-// ─── Reason Modal Styles ──────────────────────────────────────────────────────
-const rm = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: wp(20) },
-  card: { backgroundColor: '#FFF', borderRadius: 20, paddingHorizontal: wp(20), paddingTop: hp(24), paddingBottom: hp(20), width: '100%' },
-  title: { textAlign: 'center', color: Colors.BRAND_PRIMARY, fontWeight: '700', fontSize: 18, marginBottom: hp(4) },
-  subtitle: { textAlign: 'center', color: '#888', marginBottom: hp(20) },
-  label: { color: Colors.TEXT_COLOR, fontWeight: '600', marginBottom: hp(8) },
-  input: {
-    borderWidth: 1, borderColor: '#E8E8E8', borderRadius: 12,
-    paddingHorizontal: wp(14), paddingVertical: hp(12),
-    fontSize: 13, color: '#333', minHeight: hp(100),
-    textAlignVertical: 'top', marginBottom: hp(20),
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'Poppins_400Regular',
-  },
-  btnRow: { flexDirection: 'row', gap: wp(12) },
-  cancelBtn: { flex: 1, borderWidth: 1.5, borderColor: '#CCC', borderRadius: 100, paddingVertical: hp(14), alignItems: 'center' },
-  cancelText: { color: '#333', fontWeight: '500' },
-  okBtn: { flex: 1, backgroundColor: Colors.BRAND_PRIMARY, borderRadius: 100, paddingVertical: hp(14), alignItems: 'center' },
-  okText: { color: '#FFF', fontWeight: '600' },
-  okBtnDisabled: { opacity: 0.5 },
 })

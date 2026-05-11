@@ -31,7 +31,7 @@ export default function BookAppointmentScreen() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => {
-          const isExpanded = expandedId === item.id; // ← এখানে রাখুন
+          const isExpanded = expandedId === item.id; 
 
           return (
             <TouchableOpacity

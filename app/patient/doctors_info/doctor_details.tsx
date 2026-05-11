@@ -1,14 +1,16 @@
 import { CustomButton } from '@/components/shared/CustomButton';
+import PageLoader from '@/components/shared/PageLoader';
 import SectionTitle from '@/components/shared/SectionTitle';
 import { Caption1, H3, SpecialText } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
+import { useRefresh } from '@/hooks/useRefresh';
 import { useGetDoctorByIdQuery } from '@/redux/services/doctorsApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import {
-  ActivityIndicator,
   Image,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   View,
@@ -20,98 +22,100 @@ export default function DoctorDetailsScreen() {
   const { id, doctorId } = useLocalSearchParams<{ id: string; doctorId: string }>();
   const resolvedId = doctorId ?? id;
 
-  const { data, isLoading } = useGetDoctorByIdQuery(resolvedId);
+  const { data, isLoading, refetch } = useGetDoctorByIdQuery(resolvedId);
+  const { refreshing, onRefresh } = useRefresh([refetch]);
   const doctor = data?.data ?? data;
 
-  // console.log('Doctors', doctor);
-
-  if (isLoading) {
-    return (
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <SectionTitle title="Doctor Details" />
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={Colors.BRAND_PRIMARY} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (!doctor) return null;
-
   const specialties =
-    typeof doctor.specialties === 'string'
+    typeof doctor?.specialties === 'string'
       ? doctor.specialties.split('|')
-      : doctor.specialties ?? [];
+      : doctor?.specialties ?? [];
 
-  const consultationDays = doctor.consultation_days ?? '';
-  const consultationTime = doctor.consultation_time ?? '';
+  const consultationDays = doctor?.consultation_days ?? '';
+  const consultationTime = doctor?.consultation_time ?? '';
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <PageLoader visible={isLoading} title="LOADING" subtitle="Loading doctor details..." />
+
       <SectionTitle title="Doctor Details" />
 
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.BRAND_PRIMARY]}
+            tintColor={Colors.BRAND_PRIMARY}
+          />
+        }
       >
-        {/* Doctor Card */}
-        <View style={styles.profileRow}>
-          <Image source={{ uri: doctor.avatar_url }} style={styles.doctorImage} />
-          <View style={styles.profileInfo}>
-            <View style={styles.nameRow}>
-              <H3 style={styles.doctorName} numberOfLines={1}>
-                {doctor.name}
-              </H3>
+        {!isLoading && doctor && (
+          <>
+            {/* Doctor Card */}
+            <View style={styles.profileRow}>
+              <Image source={{ uri: doctor.avatar_url }} style={styles.doctorImage} />
+              <View style={styles.profileInfo}>
+                <View style={styles.nameRow}>
+                  <H3 style={styles.doctorName} numberOfLines={1}>
+                    {doctor.name}
+                  </H3>
+                </View>
+                <Caption1 style={styles.specialty}>{doctor.specialization}</Caption1>
+              </View>
             </View>
-            <Caption1 style={styles.specialty}>{doctor.specialization}</Caption1>
-          </View>
-        </View>
 
-        {/* Consultation Time */}
-        <SpecialText style={styles.sectionTitle}>
-          Appointment Consultation Time
-        </SpecialText>
-        <View style={styles.timeRow}>
-          <View style={styles.timeDot} />
-          <View>
-            <Caption1 style={styles.timeText}>{consultationDays}</Caption1>
-            <Caption1 style={styles.timeText}>{consultationTime}</Caption1>
-          </View>
-        </View>
+            {/* Consultation Time */}
+            <SpecialText style={styles.sectionTitle}>
+              Appointment Consultation Time
+            </SpecialText>
+            <View style={styles.timeRow}>
+              <View style={styles.timeDot} />
+              <View>
+                <Caption1 style={styles.timeText}>{consultationDays}</Caption1>
+                <Caption1 style={styles.timeText}>{consultationTime}</Caption1>
+              </View>
+            </View>
 
-        {/* About */}
-        <SpecialText style={styles.sectionTitle}>About</SpecialText>
-        <Caption1 style={styles.aboutText}>{doctor.about}</Caption1>
+            {/* About */}
+            <SpecialText style={styles.sectionTitle}>About</SpecialText>
+            <Caption1 style={styles.aboutText}>{doctor.about}</Caption1>
 
-        {/* Services */}
-        <SpecialText style={styles.sectionTitle}>Services</SpecialText>
-        {specialties.map((service: string, index: number) => (
-          <View key={index} style={styles.serviceRow}>
-            <View style={styles.bullet} />
-            <Caption1 style={styles.serviceText}>{service}</Caption1>
-          </View>
-        ))}
+            {/* Services */}
+            <SpecialText style={styles.sectionTitle}>Services</SpecialText>
+            {specialties.map((service: string, index: number) => (
+              <View key={index} style={styles.serviceRow}>
+                <View style={styles.bullet} />
+                <Caption1 style={styles.serviceText}>{service}</Caption1>
+              </View>
+            ))}
+          </>
+        )}
       </ScrollView>
 
       {/* Bottom Bar */}
-      <View style={styles.bottomBar}>
-        <CustomButton
-          title="Book Appointment"
-          height={54}
-          width="100%"
-          borderRadius={16}
-          onPress={() =>
-            router.push({
-              pathname: '/patient/doctors_info/information' as any,
-              params: {
-                id: resolvedId,
-                consultationTime,
-              },
-            })
-          }
-        />
-      </View>
+      {!isLoading && doctor && (
+        <View style={styles.bottomBar}>
+          <CustomButton
+            title="Book Appointment"
+            height={54}
+            width="100%"
+            borderRadius={16}
+            onPress={() =>
+              router.push({
+                pathname: '/patient/doctors_info/information' as any,
+                params: {
+                  id: resolvedId,
+                  consultationTime,
+                },
+              })
+            }
+          />
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -121,11 +125,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: wp(20),
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   scroll: { flex: 1 },
   scrollContent: {

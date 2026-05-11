@@ -6,19 +6,22 @@ import { PrivacyPolicyIcon } from '@/assets/icons/patient_icon/PrivacyPolicyIcon
 import { TermsConditionIcon } from '@/assets/icons/patient_icon/TermsConditionIcon'
 import { CustomButton } from '@/components/shared/CustomButton'
 import CustomLoader from '@/components/shared/CustomLoader'
+import PageLoader from '@/components/shared/PageLoader'
 import { ProfileCard } from '@/components/shared/ProfileCard'
 import SectionTitle from '@/components/shared/SectionTitle'
 import { Body2, Caption1, Caption4, H2, H6 } from '@/components/typo/Typography'
 import { IMAGE_COMPONENTS } from '@/constants/image.index'
 import { Colors } from '@/constants/theme'
+import { useRefresh } from '@/hooks/useRefresh'
 import { logout } from '@/redux/authSlice'
 import { useGetProfileQuery, useLogoutMutation } from '@/redux/services/authApi'
 import { hp, wp } from '@/utils/responsiveDevice'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { useRouter } from 'expo-router'
-import React from 'react'
+import { useFocusEffect, useRouter } from 'expo-router'
+import React, { useCallback, useState } from 'react'
 import {
   Image,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   View
@@ -30,12 +33,22 @@ export default function ProfileScreen() {
   const router = useRouter()
   const dispatch = useDispatch()
   const [logoutApi, { isLoading: logoutLoading }] = useLogoutMutation()
-  const { data, isLoading: profileLoading } = useGetProfileQuery({})
+  const { data, isLoading: profileLoading, refetch: refetchProfile } = useGetProfileQuery({})
+  const { refreshing, onRefresh } = useRefresh([refetchProfile])
+
+  const [focusLoading, setFocusLoading] = useState(false)
+
+  useFocusEffect(
+    useCallback(() => {
+      setFocusLoading(true)
+      refetchProfile().finally(() => setFocusLoading(false))
+    }, [])
+  )
 
   const handleLogout = async () => {
     try {
       await logoutApi(undefined).unwrap()
-    } catch {}
+    } catch { }
     finally {
       await AsyncStorage.multiRemove(['access_token', 'refresh_token', 'role'])
       dispatch(logout())
@@ -43,7 +56,6 @@ export default function ProfileScreen() {
     }
   }
 
-  
   const name = data?.name ?? '-'
   const icNumber = data?.ic_number ?? '-'
   const phone = data?.steps?.profile?.data?.phone ?? '-'
@@ -69,10 +81,21 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+     <PageLoader visible={focusLoading} title="LOADING" subtitle="" />
       <SectionTitle title="Profile" />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.BRAND_PRIMARY]}
+            tintColor={Colors.BRAND_PRIMARY}
+          />
+        }
+      >
         {/* ── Patient Card ── */}
         <View style={styles.patientCard}>
           <View style={styles.cardHeader}>

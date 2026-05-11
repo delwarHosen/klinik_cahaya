@@ -1,18 +1,21 @@
 import { FilterIcon } from '@/assets/icons/admin_icon/FilterIcon'
 import { DatePickerModal } from '@/components/booking/DatePickerModal'
 import { CustomButton } from '@/components/shared/CustomButton'
+import PageLoader from '@/components/shared/PageLoader'
 import SectionTitle from '@/components/shared/SectionTitle'
 import { Body2, Caption1, Caption4 } from '@/components/typo/Typography'
 import { Colors } from '@/constants/theme'
-import { useGetFilteredBookingsQuery } from '@/redux/services/adminApi'
+import { useRefresh } from '@/hooks/useRefresh'
+import { useGetDoctorsQuery, useGetFilteredBookingsQuery } from '@/redux/services/adminApi'
 import { hp, wp } from '@/utils/responsiveDevice'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   Keyboard,
   Modal,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -44,14 +47,7 @@ interface BookingRequest {
   approved_at: string | null
 }
 
-const DOCTORS = [
-  { id: 'dr_faiz', name: 'Dr. Faiz', provider_id: 3849 },
-  { id: 'dr_liyana_ramli', name: 'Dr. Noor Liyana Binti Ramli', provider_id: 3949 },
-  { id: 'dr_liyana_yusoff', name: 'Dr. Liyana', provider_id: 3798 },
-  { id: 'dr_mimi', name: 'Dr. Mimi', provider_id: 6505 },
-  { id: 'dr_sourav', name: 'Dr. Sourav', provider_id: 8451 },
-  { id: 'dr_anis', name: 'Dr. Anis Effendi', provider_id: 3797 },
-]
+
 
 type StatusOption = {
   label: string
@@ -88,13 +84,10 @@ const formatTime = (timeStr: string) => {
 const getStatusConfig = (apiValue: string) =>
   STATUS_OPTIONS.find(s => s.apiValue === apiValue) ?? STATUS_OPTIONS[0]
 
-
 const parseToYMD = (dateStr: string): string => {
   if (!dateStr) return ''
   try {
-    // "May 10, 2026 (Sunday)" → remove bracket → "May 10, 2026"
     const clean = dateStr.replace(/\s*\(.*?\)/, '').trim()
-    // "May 10, 2026" → ["May", "10,", "2026"]
     const parts = clean.split(' ')
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December']
@@ -111,36 +104,38 @@ export default function BookingRequestScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
 
+  const { data: doctorsData } = useGetDoctorsQuery();
+  const DOCTORS = (doctorsData?.results ?? []).map(d => ({
+    id: d.id,
+    name: d.name,
+    provider_id: d.yezza_provider_id,
+  }));
+
   const [search, setSearch] = useState('')
   const [filterVisible, setFilterVisible] = useState(false)
   const [datePickerVisible, setDatePickerVisible] = useState(false)
   const [datePickerFor, setDatePickerFor] = useState<'start' | 'end'>('start')
 
   // ── APPLIED states ──
-  // appliedStartDate / appliedEndDate      → YYYY-MM-DD  (sent to API)
-  // appliedStartDisplay / appliedEndDisplay → display string (shown in filter modal on reopen)
+
+  const [appliedProviderIds, setAppliedProviderIds] = useState<number[]>([]);
+  const [tempProviderIds, setTempProviderIds] = useState<number[]>([]);
+
   const [appliedStatus, setAppliedStatus] = useState<StatusOption>(STATUS_OPTIONS[0])
-  const [appliedProviderIds, setAppliedProviderIds] = useState<number[]>(
-    DOCTORS.map(d => d.provider_id)
-  )
-  const [appliedStartDate, setAppliedStartDate] = useState('')       // YYYY-MM-DD for API
-  const [appliedEndDate, setAppliedEndDate] = useState('')           // YYYY-MM-DD for API
-  const [appliedStartDisplay, setAppliedStartDisplay] = useState('') // display string for UI
-  const [appliedEndDisplay, setAppliedEndDisplay] = useState('')     // display string for UI
 
-  // ── TEMP states (inside filter modal, before Apply is pressed) ──
+  const [appliedStartDate, setAppliedStartDate] = useState('')
+  const [appliedEndDate, setAppliedEndDate] = useState('')
+  const [appliedStartDisplay, setAppliedStartDisplay] = useState('')
+  const [appliedEndDisplay, setAppliedEndDisplay] = useState('')
+
+  // ── TEMP states (inside filter modal) ──
   const [tempStatus, setTempStatus] = useState<StatusOption>(STATUS_OPTIONS[0])
-  const [tempProviderIds, setTempProviderIds] = useState<number[]>(
-    DOCTORS.map(d => d.provider_id)
-  )
-  const [tempStartDate, setTempStartDate] = useState('') // display string only
-  const [tempEndDate, setTempEndDate] = useState('')     // display string only
 
-  // All doctors selected → don't send doctor_ids param (backend returns all)
+  const [tempStartDate, setTempStartDate] = useState('')
+  const [tempEndDate, setTempEndDate] = useState('')
+
   const allSelected = appliedProviderIds.length === DOCTORS.length
 
-  // ── API filter params: status + optional doctor_ids + optional dates ──
-  // doctor_phone is intentionally NOT included
   const filterParams = {
     status: appliedStatus.apiValue,
     ...(!allSelected && { doctor_ids: appliedProviderIds.join(',') }),
@@ -148,9 +143,15 @@ export default function BookingRequestScreen() {
     ...(appliedEndDate && { end_date: appliedEndDate }),
   }
 
+  const { data, isLoading, isFetching, refetch } = useGetFilteredBookingsQuery(filterParams)
+  // console.log("datas", data)
 
+  // ── Pull-to-refresh 
+  const { refreshing, onRefresh } = useRefresh([refetch])
 
-  const { data, isLoading, isFetching } = useGetFilteredBookingsQuery(filterParams)
+  // ── Cache-aware loader
+  const hasCache = !!data
+  const isInitialLoading = isLoading && !hasCache
 
   const allResults: BookingRequest[] = (data?.results ?? []) as BookingRequest[]
 
@@ -163,18 +164,24 @@ export default function BookingRequestScreen() {
     )
   })
 
-  const isLoadingData = isLoading || isFetching
+  // Load all doctors
+  useEffect(() => {
+    if (DOCTORS.length > 0 && appliedProviderIds.length === 0) {
+      const allIds = DOCTORS.map(d => d.provider_id);
+      setAppliedProviderIds(allIds);
+      setTempProviderIds(allIds);
+    }
+  }, [DOCTORS.length]);
 
-  // Open filter: restore temp from applied DISPLAY strings (never from YMD strings)
+  // ── Modal handlers
   const handleOpenFilter = () => {
     setTempStatus(appliedStatus)
     setTempProviderIds([...appliedProviderIds])
-    setTempStartDate(appliedStartDisplay) 
-    setTempEndDate(appliedEndDisplay)     
+    setTempStartDate(appliedStartDisplay)
+    setTempEndDate(appliedEndDisplay)
     setFilterVisible(true)
   }
 
-  // Apply: convert display → YYYY-MM-DD for API, save display separately for UI
   const handleApplyFilter = () => {
     setAppliedStatus(tempStatus)
     setAppliedProviderIds([...tempProviderIds])
@@ -182,15 +189,14 @@ export default function BookingRequestScreen() {
     const startYMD = parseToYMD(tempStartDate)
     const endYMD = parseToYMD(tempEndDate)
 
-    setAppliedStartDate(startYMD)           // YYYY-MM-DD → goes to API
-    setAppliedEndDate(endYMD)               // YYYY-MM-DD → goes to API
-    setAppliedStartDisplay(tempStartDate)   // display string → shown on modal reopen
-    setAppliedEndDisplay(tempEndDate)       // display string → shown on modal reopen
+    setAppliedStartDate(startYMD)
+    setAppliedEndDate(endYMD)
+    setAppliedStartDisplay(tempStartDate)
+    setAppliedEndDisplay(tempEndDate)
 
     setFilterVisible(false)
   }
 
-  // Reset: only clears temp states inside the modal (does not affect applied/API params)
   const handleResetFilter = () => {
     setTempStatus(STATUS_OPTIONS[0])
     setTempProviderIds(DOCTORS.map(d => d.provider_id))
@@ -206,7 +212,6 @@ export default function BookingRequestScreen() {
     )
   }
 
-  // DatePickerModal returns display string like "April 9, 2026 (Thursday)"
   const handleDateConfirm = (dateDisplay: string) => {
     if (datePickerFor === 'start') setTempStartDate(dateDisplay)
     else setTempEndDate(dateDisplay)
@@ -229,6 +234,8 @@ export default function BookingRequestScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <PageLoader visible={isInitialLoading} title="LOADING" subtitle="Fetching booking requests..." />
+
       <View style={{ marginTop: hp(10) }}>
         <SectionTitle title="Booking Request" showBackButton={false} />
       </View>
@@ -262,7 +269,7 @@ export default function BookingRequestScreen() {
             {appliedStatus.label}
           </Caption1>
         </View>
-        {!isLoadingData && (
+        {!isInitialLoading && (
           <Caption4 style={styles.countText}>
             {filteredResults.length} result{filteredResults.length !== 1 ? 's' : ''}
           </Caption4>
@@ -270,15 +277,28 @@ export default function BookingRequestScreen() {
       </View>
 
       {/* List */}
-      {isLoadingData ? (
-        <View style={styles.loadingBox}>
-          <ActivityIndicator color={Colors.BRAND_PRIMARY} size="large" />
-        </View>
-      ) : (
+      {isInitialLoading ? null : (
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: insets.bottom + hp(20) }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[Colors.BRAND_PRIMARY]}
+              tintColor={Colors.BRAND_PRIMARY}
+            />
+          }
         >
+          {/* filter change হলে subtle spinner */}
+          {isFetching && !refreshing && (
+            <ActivityIndicator
+              color={Colors.BRAND_PRIMARY}
+              size="small"
+              style={{ marginBottom: hp(8) }}
+            />
+          )}
+
           {filteredResults.length === 0 ? (
             <View style={styles.empty}>
               <Caption1 style={{ color: '#aaa' }}>
@@ -457,11 +477,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.APP_BACKGROUND,
     paddingHorizontal: wp(20),
-  },
-  loadingBox: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   searchRow: {
     flexDirection: 'row',

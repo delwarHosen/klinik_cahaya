@@ -3,16 +3,18 @@ import { AntenatalIcon } from '@/assets/icons/patient_icon/AntenatalIcon';
 import { GeneralIcon } from '@/assets/icons/patient_icon/GenaralIcon';
 import { PediatricIcon } from '@/assets/icons/patient_icon/PediatricIcon';
 import { VaccinesIcon } from '@/assets/icons/patient_icon/VaccinesIcon';
+import PageLoader from '@/components/shared/PageLoader';
 import SectionTitle from '@/components/shared/SectionTitle';
 import { Body2, Caption1, Caption2, H3, H6 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
+import { useRefresh } from '@/hooks/useRefresh';
 import { useGetServiceByIdQuery } from '@/redux/services/servicesApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import {
-    ActivityIndicator,
     Image,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
@@ -33,18 +35,19 @@ export default function ServiceDetailScreen() {
     const router = useRouter();
     const { serviceId } = useLocalSearchParams<{ serviceId: string }>();
 
-    const { data, isLoading } = useGetServiceByIdQuery(serviceId ?? '1');
+    const { data, isLoading, refetch } = useGetServiceByIdQuery(serviceId ?? '1');
+    const { refreshing, onRefresh } = useRefresh([refetch]);
 
-    if (isLoading) {
-        return (
-            <SafeAreaView style={styles.container} edges={['top']}>
-                <SectionTitle title="Service Details" />
-                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                    <ActivityIndicator size="large" color={Colors.BRAND_PRIMARY} />
-                </View>
-            </SafeAreaView>
-        );
-    }
+    // if (isLoading) {
+    //     return (
+    //         <SafeAreaView style={styles.container} edges={['top']}>
+    //             <SectionTitle title="Service Details" />
+    //             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    //                 <PageLoader visible={isLoading} title="LOADING" subtitle="Service details loading" />
+    //             </View>
+    //         </SafeAreaView>
+    //     );
+    // }
 
     const service = data?.service;
     const doctors: any[] = data?.doctors ?? [];
@@ -53,11 +56,20 @@ export default function ServiceDetailScreen() {
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
+            <PageLoader visible={isLoading} title="LOADING" subtitle="Service details loading" />
             <SectionTitle title="Service Details" />
 
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        colors={[Colors.BRAND_PRIMARY]}
+                        tintColor={Colors.BRAND_PRIMARY}
+                    />
+                }
             >
                 {/* Hero Card */}
                 <View style={styles.heroCard}>

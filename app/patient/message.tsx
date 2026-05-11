@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Linking,
   Platform,
@@ -13,21 +14,20 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 type Message = {
   id: string;
   text: string;
   sender: 'user' | 'bot';
   time: string;
-  hasWhatsApp?: boolean;    // bot reply contains a WhatsApp link
-  whatsAppUrl?: string;     // extracted wa.me URL
+  hasWhatsApp?: boolean;
+  whatsAppUrl?: string;
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 function getTime(): string {
   const now = new Date();
   let hours = now.getHours();
@@ -37,30 +37,19 @@ function getTime(): string {
   return `${hours}:${minutes} ${ampm}`;
 }
 
-// Extract wa.me URL from bot reply text
 function extractWhatsAppUrl(text: string): string | null {
   const match = text.match(/https?:\/\/wa\.me\/[^\s"\\)]+/);
   return match ? match[0].replace(/\\n/g, '').trim() : null;
 }
 
-// Clean reply text: remove url-encoded line breaks, trim trailing emoji clutter
 function cleanReply(text: string): string {
-  return text
-    .replace(/\\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
+  return text.replace(/\\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
 const INITIAL_MESSAGES: Message[] = [
-  {
-    id: '0',
-    text: 'Hi 👋 How can I help you today?',
-    sender: 'bot',
-    time: getTime(),
-  },
+  { id: '0', text: 'Hi 👋 How can I help you today?', sender: 'bot', time: getTime() },
 ];
 
-// ─── WhatsApp Button inside bubble ───────────────────────────────────────────
 function WhatsAppButton({ url }: { url: string }) {
   return (
     <TouchableOpacity
@@ -73,7 +62,6 @@ function WhatsAppButton({ url }: { url: string }) {
   );
 }
 
-// ─── Message Bubble ───────────────────────────────────────────────────────────
 function MessageBubble({ item }: { item: Message }) {
   const isUser = item.sender === 'user';
   return (
@@ -86,7 +74,6 @@ function MessageBubble({ item }: { item: Message }) {
         <Text style={[styles.bubbleText, isUser ? styles.bubbleTextUser : styles.bubbleTextBot]}>
           {item.text}
         </Text>
-        {/* WhatsApp redirect button — only when bot provides a link */}
         {!isUser && item.hasWhatsApp && item.whatsAppUrl && (
           <WhatsAppButton url={item.whatsAppUrl} />
         )}
@@ -96,7 +83,6 @@ function MessageBubble({ item }: { item: Message }) {
   );
 }
 
-// ─── Screen ───────────────────────────────────────────────────────────────────
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -104,14 +90,12 @@ export default function ChatScreen() {
 
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [inputText, setInputText] = useState('');
-
   const [sendMessage, { isLoading: isSending }] = useSendFaqMessageMutation();
 
   const handleSend = async () => {
     const text = inputText.trim();
     if (!text || isSending) return;
 
-    // Add user message
     const userMsg: Message = {
       id: Date.now().toString(),
       text,
@@ -123,7 +107,6 @@ export default function ChatScreen() {
 
     try {
       const res = await sendMessage({ message: text }).unwrap();
-
       const cleaned = cleanReply(res.reply);
       const waUrl = extractWhatsAppUrl(res.reply);
 
@@ -137,13 +120,12 @@ export default function ChatScreen() {
       };
       setMessages((prev) => [...prev, botMsg]);
     } catch {
-      const errMsg: Message = {
+      setMessages((prev) => [...prev, {
         id: (Date.now() + 1).toString(),
         text: 'Sorry, something went wrong. Please try again.',
         sender: 'bot',
         time: getTime(),
-      };
-      setMessages((prev) => [...prev, errMsg]);
+      }]);
     }
   };
 
@@ -167,31 +149,42 @@ export default function ChatScreen() {
       {/* ── Messages + Input ── */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <MessageBubble item={item} />}
-          contentContainerStyle={styles.chatArea}
-          showsVerticalScrollIndicator={false}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-          onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
-          // Typing indicator
-          ListFooterComponent={
-            isSending ? (
-              <View style={styles.msgRowBot}>
-                <View style={[styles.typingBubble, { borderTopLeftRadius: 0 }]}>
-                  <Text style={styles.typingDots}>• • •</Text>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => <MessageBubble item={item} />}
+            contentContainerStyle={styles.chatArea}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            onContentSizeChange={() =>
+              flatListRef.current?.scrollToEnd({ animated: true })
+            }
+            onLayout={() =>
+              flatListRef.current?.scrollToEnd({ animated: false })
+            }
+            ListFooterComponent={
+              isSending ? (
+                <View style={styles.msgRowBot}>
+                  <View style={[styles.typingBubble, { borderTopLeftRadius: 0 }]}>
+                    <Text style={styles.typingDots}>• • •</Text>
+                  </View>
                 </View>
-              </View>
-            ) : null
-          }
-        />
+              ) : null
+            }
+          />
+        </TouchableWithoutFeedback>
 
         {/* ── Input Bar ── */}
-        <View style={[styles.inputBar, { paddingBottom: insets.bottom > 0 ? insets.bottom : hp(10) }]}>
+        <View style={[
+          styles.inputBar,
+          { paddingBottom: insets.bottom > 0 ? insets.bottom : hp(10) }
+        ]}>
           <TextInput
             style={styles.textInput}
             placeholder="Type Something..."
@@ -217,7 +210,6 @@ export default function ChatScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.APP_BACKGROUND },
 
@@ -244,7 +236,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: wp(14),
     paddingTop: hp(16),
     paddingBottom: hp(20),
-    gap: 10,
+    flexGrow: 1,
   },
   msgRow: { marginBottom: hp(10) },
   msgRowUser: { alignItems: 'flex-end' },
@@ -264,7 +256,6 @@ const styles = StyleSheet.create({
 
   timestamp: { fontSize: 10, color: '#aaa', marginTop: 3, paddingHorizontal: 4 },
 
-  // WhatsApp button inside bot bubble
   waBtn: {
     marginTop: hp(10),
     backgroundColor: '#25D366',
@@ -275,7 +266,6 @@ const styles = StyleSheet.create({
   },
   waBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
 
-  // Typing indicator
   typingBubble: {
     backgroundColor: '#EEEEEE',
     paddingHorizontal: wp(14), paddingVertical: hp(10),
@@ -287,6 +277,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: wp(12), paddingVertical: hp(10),
     backgroundColor: Colors.APP_BACKGROUND,
+    borderTopWidth: 0.5, borderTopColor: '#EEEEEE',
     gap: 8,
   },
   textInput: {

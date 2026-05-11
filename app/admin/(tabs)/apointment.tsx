@@ -1,8 +1,10 @@
 import { FilterIcon } from '@/assets/icons/admin_icon/FilterIcon'
 import { DatePickerModal } from '@/components/booking/DatePickerModal'
+import PageLoader from '@/components/shared/PageLoader'
 import SectionTitle from '@/components/shared/SectionTitle'
 import { Body2, Caption1, Caption2, Caption4 } from '@/components/typo/Typography'
 import { Colors } from '@/constants/theme'
+import { useRefresh } from '@/hooks/useRefresh'
 import {
   AppointmentFilterParams,
   AppointmentItem,
@@ -16,6 +18,7 @@ import {
   ActivityIndicator,
   Keyboard,
   Modal,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -81,9 +84,7 @@ const formatTime = (iso: string | null) => {
 const parseToYMD = (dateStr: string): string => {
   if (!dateStr) return ''
   try {
-    // "May 10, 2026 (Sunday)" → remove bracket → "May 10, 2026"
     const clean = dateStr.replace(/\s*\(.*?\)/, '').trim()
-    // "May 10, 2026" → ["May", "10,", "2026"]
     const parts = clean.split(' ')
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December']
@@ -107,30 +108,30 @@ export default function AdminAppointmentScreen() {
     (params.activeTab?.toLowerCase() as Category) ?? 'upcoming'
   )
 
-  // ── Search ─────────────────────────────────────────────────────────────────
+  // ── Search 
   const [search, setSearch] = useState('')
 
-  // ── Filter modal visibility ────────────────────────────────────────────────
+  // ── Filter modal visibility 
   const [filterVisible, setFilterVisible] = useState(false)
 
-  // ── Applied filter state (drives API call) ─────────────────────────────────
+  // ── Applied filter state (drives API call)
   const [appliedProviderIds, setAppliedProviderIds] = useState<number[]>(
     DOCTORS.map(d => d.provider_id)
   )
   const [appliedStartDate, setAppliedStartDate] = useState('')
   const [appliedEndDate, setAppliedEndDate] = useState('')
 
-  // ── Temp filter state (inside modal) ──────────────────────────────────────
+  // ── Temp filter state (inside modal) 
   const [tempCategory, setTempCategory] = useState<Category>(activeCategory)
   const [tempProviderIds, setTempProviderIds] = useState<number[]>(DOCTORS.map(d => d.provider_id))
   const [tempStartDate, setTempStartDate] = useState('')
   const [tempEndDate, setTempEndDate] = useState('')
 
-  // ── Date picker ────────────────────────────────────────────────────────────
+  // ── Date picker 
   const [datePickerVisible, setDatePickerVisible] = useState(false)
   const [datePickerFor, setDatePickerFor] = useState<'start' | 'end'>('start')
 
-  // ── Sync tab from route params ─────────────────────────────────────────────
+  // ── Sync tab from route params 
   useEffect(() => {
     if (params.activeTab) {
       const cat = params.activeTab.toLowerCase() as Category
@@ -139,7 +140,7 @@ export default function AdminAppointmentScreen() {
     }
   }, [params.activeTab])
 
-  // ── Build API params ───────────────────────────────────────────────────────
+  // ── Build API params 
   const allSelected = appliedProviderIds.length === DOCTORS.length
 
   const filterParams: AppointmentFilterParams = {
@@ -149,15 +150,18 @@ export default function AdminAppointmentScreen() {
     ...(appliedEndDate && { end_date: appliedEndDate }),
   }
 
+  const { data, isLoading, isFetching, refetch } = useGetFilteredAppointmentsQuery(filterParams)
 
-  console.log('🎯 filterParams being sent:', JSON.stringify(filterParams))
+  // ── Pull-to-refresh 
+  const { refreshing, onRefresh } = useRefresh([refetch])
 
-  const { data, isLoading, isFetching } = useGetFilteredAppointmentsQuery(filterParams)
+  // ── Cache-aware loader:
+  const hasCache = !!data
+  const isInitialLoading = isLoading && !hasCache
 
-  const isLoadingData = isLoading || isFetching
   const allResults: AppointmentItem[] = (data?.results ?? []) as AppointmentItem[]
 
-  // ── Client-side search filter ──────────────────────────────────────────────
+  // ── Client-side search filter 
   const filtered = allResults.filter(item => {
     if (!search.trim()) return true
     const q = search.toLowerCase()
@@ -216,6 +220,10 @@ export default function AdminAppointmentScreen() {
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+
+      {/* প্রথমবার ঢুকলে loader — cache থাকলে দেখাবে না */}
+      <PageLoader visible={isInitialLoading} title="LOADING" subtitle="Fetching appointments..." />
+
       <View style={{ marginTop: hp(10) }}>
         <SectionTitle title="Appointments" showBackButton={false} />
       </View>
@@ -242,25 +250,36 @@ export default function AdminAppointmentScreen() {
         </TouchableOpacity>
       </View>
 
-
-
       {/* Count */}
-      {!isLoadingData && (
+      {!isInitialLoading && (
         <Caption4 style={styles.countText}>
           {filtered.length} result{filtered.length !== 1 ? 's' : ''}
         </Caption4>
       )}
 
       {/* List */}
-      {isLoadingData ? (
-        <View style={styles.loadingBox}>
-          <ActivityIndicator color={Colors.BRAND_PRIMARY} size="large" />
-        </View>
-      ) : (
+      {isInitialLoading ? null : (
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: insets.bottom + hp(20) }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[Colors.BRAND_PRIMARY]}
+              tintColor={Colors.BRAND_PRIMARY}
+            />
+          }
         >
+          {/* isFetching কিন্তু cache আছে — subtle indicator */}
+          {isFetching && !refreshing && (
+            <ActivityIndicator
+              color={Colors.BRAND_PRIMARY}
+              size="small"
+              style={{ marginBottom: hp(8) }}
+            />
+          )}
+
           {filtered.length === 0 ? (
             <View style={styles.empty}>
               <Caption1 style={{ color: '#aaa' }}>No appointments found.</Caption1>
@@ -377,7 +396,7 @@ export default function AdminAppointmentScreen() {
                     )
                   })}
 
-                  {/* Date Range — allowPastDates for historical filtering */}
+                  {/* Date Range */}
                   <Body2 style={styles.filterSectionLabel}>Date Range</Body2>
                   <TouchableOpacity
                     style={styles.filterRow}
@@ -436,11 +455,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.APP_BACKGROUND,
     paddingHorizontal: wp(20),
   },
-  loadingBox: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
 
   // Search
   searchRow: {
@@ -472,29 +486,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F6F6F6',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-
-  // Category tabs
-  tabRow: {
-    flexDirection: 'row',
-    gap: wp(8),
-    marginBottom: hp(12),
-  },
-  tabPill: {
-    paddingHorizontal: wp(16),
-    paddingVertical: hp(8),
-    borderRadius: 20,
-    backgroundColor: '#F0F0F0',
-  },
-  tabPillActive: {
-    backgroundColor: Colors.BRAND_PRIMARY,
-  },
-  tabText: {
-    color: '#888888',
-    fontSize: 13,
-  },
-  tabTextActive: {
-    color: '#FFFFFF',
   },
 
   countText: {

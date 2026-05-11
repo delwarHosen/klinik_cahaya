@@ -62,6 +62,7 @@ export default function IcVerificationScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
+            
             <SectionTitle title="IC Verification" />
             <View style={styles.content}>
                 <H6 style={styles.subtitle} align="center">

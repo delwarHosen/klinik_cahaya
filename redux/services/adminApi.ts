@@ -246,6 +246,19 @@ export interface AppointmentLookupResponse {
   };
 }
 
+
+export interface Doctor {
+  id: string;
+  name: string;
+  full_name: string;
+  yezza_provider_id: number;
+}
+
+export interface DoctorsResponse {
+  count: number;
+  results: Doctor[];
+}
+
 export interface StatusChangeRequest {
   booking_id: string;
   status: 'confirmed' | 'rejected';
@@ -341,6 +354,13 @@ export const adminApi = baseApi.injectEndpoints({
       }),
     }),
 
+
+    // endpoints get all doctor
+    getDoctors: builder.query<DoctorsResponse, void>({
+      query: () => '/admin/doctors',
+      keepUnusedDataFor: 300,
+    }),
+
     // status changes
     getStatusChanges: builder.mutation<any, StatusChangeRequest>({
       query: (body) => ({
@@ -348,6 +368,7 @@ export const adminApi = baseApi.injectEndpoints({
         method: 'PATCH',
         body,
       }),
+      invalidatesTags: ['AdminBookingRequest', 'AdminFilteredBookings'],
     }),
 
     // reschedule
@@ -372,6 +393,7 @@ export const {
   useGetBookingLookupQueryQuery,
   useGetBookingLookupMutation,
   useGetFilteredAppointmentsQuery,
+  useGetDoctorsQuery,
   useGetAppointmentLookupMutation,
   useGetStatusChangesMutation,
   useRescheduleBookingMutation

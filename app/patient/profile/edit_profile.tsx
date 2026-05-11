@@ -1,12 +1,13 @@
 import { RightAngleIcon } from '@/assets/icons/common_icon/RightAngleIcon'
 import { EditIcon } from '@/assets/icons/patient_icon/EditIcon'
 import { CustomButton } from '@/components/shared/CustomButton'
-import CustomLoader from '@/components/shared/CustomLoader'
+import PageLoader from '@/components/shared/PageLoader'
 import SectionTitle from '@/components/shared/SectionTitle'
 import { showToast } from '@/components/shared/Toast'
 import { Body3, Caption2, H6 } from '@/components/typo/Typography'
 import { IMAGE_COMPONENTS } from '@/constants/image.index'
 import { Colors } from '@/constants/theme'
+import { useRefresh } from '@/hooks/useRefresh'
 import { useGetProfileQuery, useUploadPhotoMutation } from '@/redux/services/authApi'
 import { hp, wp } from '@/utils/responsiveDevice'
 import * as ImagePicker from 'expo-image-picker'
@@ -16,6 +17,7 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -25,11 +27,18 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function EditProfileScreen() {
   const router = useRouter()
-  const { data, isLoading: profileLoading } = useGetProfileQuery({})
+  const { data, isLoading: profileLoading, refetch } = useGetProfileQuery({})
   const [uploadPhoto, { isLoading: uploading }] = useUploadPhotoMutation()
 
   const [photo, setPhoto] = useState<string | null>(null)
   const [photoAsset, setPhotoAsset] = useState<ImagePicker.ImagePickerAsset | null>(null)
+
+  const { refreshing, onRefresh } = useRefresh([refetch])
+
+  // ── Key fix: cache থাকলে loader দেখাবে না ─────────────────────────────────
+  // profileLoading=true + data=undefined → প্রথমবার ঢুকলে (no cache)
+  // profileLoading=true + data=exists  → back করে ফিরলে (cache hit, refetch bg-এ)
+  const showInitialLoader = profileLoading && !data
 
   const name = data?.name ?? '-'
   const icNumber = data?.ic_number ?? '-'
@@ -71,16 +80,23 @@ export default function EditProfileScreen() {
     }
   }
 
-  if (profileLoading) {
-    return (
-      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <CustomLoader size={60} strokeWidth={2} />
-      </SafeAreaView>
-    )
-  }
-
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+
+      {/* প্রথমবার page-এ ঢুকলে — cache নেই */}
+      <PageLoader
+        visible={showInitialLoader}
+        title="LOADING"
+        subtitle="Fetching your profile..."
+      />
+
+      {/* Update বাটন চাপলে */}
+      <PageLoader
+        visible={uploading}
+        title="UPDATING"
+        subtitle="Saving your profile..."
+      />
+
       <SectionTitle title="Edit Profile" />
 
       <KeyboardAvoidingView
@@ -88,8 +104,18 @@ export default function EditProfileScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[Colors.BRAND_PRIMARY]}
+              tintColor={Colors.BRAND_PRIMARY}
+            />
+          }
+        >
           {/* Avatar */}
           <View style={styles.avatarSection}>
             <TouchableOpacity style={styles.avatarWrapper} onPress={handlePickImage} activeOpacity={0.8}>
@@ -121,7 +147,7 @@ export default function EditProfileScreen() {
             </View>
           ))}
 
-          {/* Phone - tap to route */}
+          {/* Phone */}
           <Caption2 style={styles.label}>Contact Number</Caption2>
           <TouchableOpacity
             style={styles.editableField}
@@ -150,20 +176,14 @@ export default function EditProfileScreen() {
           ))}
 
           {/* Update Button */}
-          {uploading ? (
-            <View style={{ alignItems: 'center', marginTop: hp(30) }}>
-              <CustomLoader size={50} strokeWidth={3} />
-            </View>
-          ) : (
-            <CustomButton
-              title='Update Profile'
-              onPress={handleUpdateProfile}
-              height={64}
-              width={"100%"}
-              borderRadius={16}
-              style={{ marginTop: 30 }}
-            />
-          )}
+          <CustomButton
+            title='Update Profile'
+            onPress={handleUpdateProfile}
+            height={64}
+            width={"100%"}
+            borderRadius={16}
+            style={{ marginTop: 30 }}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

@@ -5,6 +5,7 @@ import SectionTitle from '@/components/shared/SectionTitle';
 import { showToast } from '@/components/shared/Toast';
 import { Caption1, H6 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
+import { useRefresh } from '@/hooks/useRefresh';
 import {
   useCreateAppointmentMutation,
   useGetAppointmentMembersQuery,
@@ -13,10 +14,10 @@ import { useGetDoctorByIdQuery } from '@/redux/services/doctorsApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Helpers 
 
 /** "YYYY-MM-DD" → "May 7, 2026 (Thursday)" */
 function formatDisplayDate(dateStr: string): string {
@@ -36,7 +37,7 @@ function formatDisplayTime(timeStr: string): string {
   return `${String(h12).padStart(2, '0')}:${mStr} ${ampm}`;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Component
 
 export default function OverviewScreen() {
   const router = useRouter();
@@ -44,31 +45,33 @@ export default function OverviewScreen() {
   const { doctorId, memberName, patient, reason, details, date, time } =
     useLocalSearchParams<{
       doctorId: string;
-      memberName: string; // "null" string = self, else family member name
-      patient: string;    // display name (always the member's name)
+      memberName: string;
+      patient: string;
       reason: string;
       details: string;
-      date: string;       // "YYYY-MM-DD"
-      time: string;       // "HH:MM" 24h
+      date: string;
+      time: string;
     }>();
 
-  // ── Remote data ────────────────────────────────────────────────────────────
-  const { data: doctorData, isLoading: doctorLoading } = useGetDoctorByIdQuery(
+  // ── Remote data 
+  const { data: doctorData, isLoading: doctorLoading, refetch: refetchDoctor } = useGetDoctorByIdQuery(
     doctorId ?? '',
     { skip: !doctorId },
   );
   const doctor = doctorData?.data ?? doctorData;
 
-  // Get members to find self member_id
-  const { data: membersData } = useGetAppointmentMembersQuery();
+  const { data: membersData, refetch: refetchMembers } = useGetAppointmentMembersQuery();
   const selfMember = membersData?.members?.find((m: any) => m.type === 'self');
 
   const [createAppointment, { isLoading: isBooking }] = useCreateAppointmentMutation();
 
-  // ── Local state ────────────────────────────────────────────────────────────
+  // ── Refresh
+  const { refreshing, onRefresh } = useRefresh([refetchDoctor, refetchMembers]);
+
+  // ── Local state 
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // ── Derived display values ─────────────────────────────────────────────────
+  // ── Derived display values
   const displayDate = useMemo(() => (date ? formatDisplayDate(date) : ''), [date]);
   const displayTime = useMemo(() => (time ? formatDisplayTime(time) : ''), [time]);
 
@@ -78,7 +81,6 @@ export default function OverviewScreen() {
   const handleBookNow = async () => {
     if (!doctorId || !date || !time || !reason) return;
 
-    // self booking → member_id, family booking → member_name
     const payload = {
       date,
       time,
@@ -90,14 +92,12 @@ export default function OverviewScreen() {
       ),
     };
 
-    console.log(' Booking payload:', JSON.stringify(payload, null, 2));
-
     try {
       const result = await createAppointment(payload).unwrap();
-      console.log(' Booking success:', JSON.stringify(result, null, 2));
+      console.log('Booking success:', JSON.stringify(result, null, 2));
       setShowSuccess(true);
     } catch (err: any) {
-      console.log(' Booking failed:', JSON.stringify(err, null, 2));
+      console.log('Booking failed:', JSON.stringify(err, null, 2));
       showToast('Booking Failed. Something went wrong. Please try again.');
     }
   };
@@ -124,6 +124,14 @@ export default function OverviewScreen() {
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.BRAND_PRIMARY]}
+            tintColor={Colors.BRAND_PRIMARY}
+          />
+        }
       >
         {/* Doctor info */}
         <H6 style={styles.doctorName}>{doctor?.name ?? '—'}</H6>

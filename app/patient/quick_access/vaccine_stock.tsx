@@ -1,3 +1,4 @@
+import PageLoader from '@/components/shared/PageLoader';
 import SectionTitle from '@/components/shared/SectionTitle';
 import { Body1, Body3, Caption1, Caption2, Caption4 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
@@ -5,11 +6,10 @@ import { useGetVaccineStockQuery } from '@/redux/services/vaccinesApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import React, { useCallback } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   RefreshControl,
   StyleSheet,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -31,21 +31,22 @@ export default function VaccineStockScreen() {
     refetch();
   }, [refetch]);
 
-  if (isLoading) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <SectionTitle title="Vaccine Stock" />
-        </View>
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={Colors.BRAND_PRIMARY} />
-        </View>
-      </SafeAreaView>
-    );
-  }
+  // if (isLoading) {
+  //   return (
+  //     <SafeAreaView style={styles.container} edges={['top']}>
+  //       <View style={styles.header}>
+  //         <SectionTitle title="Vaccine Stock" />
+  //       </View>
+  //       <View style={styles.loaderContainer}>
+  //         <ActivityIndicator size="large" color={Colors.BRAND_PRIMARY} />
+  //       </View>
+  //     </SafeAreaView>
+  //   );
+  // }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <PageLoader visible={isLoading} title="LOADING" subtitle="Fetching vaccine status..." />
       <View style={styles.header}>
         <SectionTitle title="Vaccine Stock" />
       </View>
@@ -86,7 +87,7 @@ export default function VaccineStockScreen() {
                 </Caption2>
               )}
 
-              {/* Stock count — stockout না হলে */}
+              
               {!isStockout && (
                 <Caption2 style={styles.stockCountText}>
                   Available:{' '}

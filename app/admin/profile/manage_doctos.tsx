@@ -1,15 +1,17 @@
 // app/admin/profile/manage_doctors.tsx
 import { PlusButtonIcon } from '@/assets/icons/patient_icon/PlusButtonIcon'
+import PageLoader from '@/components/shared/PageLoader'
 import { ProfileCard } from '@/components/shared/ProfileCard'
 import SectionTitle from '@/components/shared/SectionTitle'
 import { Colors } from '@/constants/theme'
+import { useRefresh } from '@/hooks/useRefresh'
 import { useGetAllDoctorsQuery } from '@/redux/services/adminDoctors'
 import { hp, wp } from '@/utils/responsiveDevice'
 import { useRouter } from 'expo-router'
 import React from 'react'
 import {
-    ActivityIndicator,
     Image,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
@@ -19,17 +21,14 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function ManageDoctors() {
     const router = useRouter()
-    const { data, isLoading, isError } = useGetAllDoctorsQuery()
+    const { data, isLoading, isError, refetch } = useGetAllDoctorsQuery()
+    const { refreshing, onRefresh } = useRefresh([refetch])
 
     return (
         <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-            <SectionTitle title="Manage Doctors" />
+            <PageLoader visible={isLoading} title="LOADING" subtitle="Fetching doctors..." />
 
-            {isLoading && (
-                <View style={styles.centered}>
-                    <ActivityIndicator color={Colors.BRAND_PRIMARY} />
-                </View>
-            )}
+            <SectionTitle title="Manage Doctors" />
 
             {isError && (
                 <View style={styles.centered}>
@@ -37,10 +36,18 @@ export default function ManageDoctors() {
                 </View>
             )}
 
-            {!isLoading && !isError && (
+            {!isError && (
                 <ScrollView
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.scrollContent}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            colors={[Colors.BRAND_PRIMARY]}
+                            tintColor={Colors.BRAND_PRIMARY}
+                        />
+                    }
                 >
                     <View style={styles.menuSection}>
                         {data?.results.map(doctor => (

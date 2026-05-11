@@ -12,6 +12,7 @@ import { Caption1, H3, H6 } from '@/components/typo/Typography';
 import { IMAGE_COMPONENTS } from '@/constants/image.index';
 import { Colors } from '@/constants/theme';
 import { usePageLoader } from '@/hooks/usePageLoader';
+import { useRefresh } from '@/hooks/useRefresh';
 import { useGetProfileQuery } from '@/redux/services/authApi';
 import { useGetDoctorsQuery } from '@/redux/services/doctorsApi';
 import { useGetPatientNotificationsQuery } from '@/redux/services/notificationApi';
@@ -22,6 +23,7 @@ import React, { useRef } from 'react';
 import {
   FlatList,
   Image,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -45,18 +47,26 @@ export default function HomeScreen() {
   const { loading, navigate } = usePageLoader();
   const router = useRouter();
 
-  const { data: doctorsData } = useGetDoctorsQuery(undefined);
+  const { data: doctorsData, refetch: refetchDoctors } = useGetDoctorsQuery(undefined);
   const doctors = doctorsData?.data ?? [];
 
-  const { data: servicesData } = useGetServicesQuery(undefined);
+  const { data: servicesData, refetch: refetchServices } = useGetServicesQuery(undefined);
   const services = servicesData?.results ?? [];
 
-  const { data, isLoading: profileLoading } = useGetProfileQuery({})
+  const { data, isLoading: profileLoading, refetch: refetchProfile } = useGetProfileQuery({})
   const avatarUrl = data?.profile_picture?.public_url ?? null
 
-  // ── Notification unread count ──────────────────────────────────────────────
-  const { data: notifData } = useGetPatientNotificationsQuery();
+  // ── Notification unread count ──────
+  const { data: notifData, refetch: refetchNotif } = useGetPatientNotificationsQuery();
   const unreadCount = (notifData?.results ?? []).filter((n) => !n.is_read).length;
+
+  const { refreshing, onRefresh } = useRefresh([
+    refetchDoctors,
+    refetchServices,
+    refetchProfile,
+    refetchNotif,
+  ]);
+
 
   const handleServicesArrow = () => {
     servicesScrollRef.current?.scrollTo({ x: 200, animated: true });
@@ -64,6 +74,8 @@ export default function HomeScreen() {
   const handleDoctorsArrow = () => {
     doctorsListRef.current?.scrollToOffset({ offset: 200, animated: true });
   };
+
+
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -90,10 +102,13 @@ export default function HomeScreen() {
                 </View>
               )}
             </TouchableOpacity>
-            <Image
-              source={avatarUrl ? { uri: avatarUrl } : IMAGE_COMPONENTS.patient}
-              style={styles.avatar}
-            />
+            <TouchableOpacity onPress={() => router.push("/patient/(tabs)/profile")}>
+              <Image
+                source={avatarUrl ? { uri: avatarUrl } : IMAGE_COMPONENTS.patient}
+                style={styles.avatar}
+              />
+            </TouchableOpacity>
+
           </View>
         </View>
         <SearchBar onSearchPress={() => navigate('/patient/(tabs)/search')} />
@@ -102,6 +117,14 @@ export default function HomeScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+        <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.BRAND_PRIMARY]}   
+            tintColor={Colors.BRAND_PRIMARY}   
+        />
+    }
       >
         <QuickActionsGrid onItemPress={(route) => navigate(route)} />
 

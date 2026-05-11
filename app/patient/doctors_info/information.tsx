@@ -6,20 +6,22 @@ import PageLoader from '@/components/shared/PageLoader';
 import SectionTitle from '@/components/shared/SectionTitle';
 import { Caption1, SpecialText } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
+import { useRefresh } from '@/hooks/useRefresh';
 import {
-    AppointmentMember,
-    useGetAppointmentMembersQuery,
-    useGetDoctorAvailabilityQuery,
+  AppointmentMember,
+  useGetAppointmentMembersQuery,
+  useGetDoctorAvailabilityQuery,
 } from '@/redux/services/bookingApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -42,9 +44,11 @@ export default function InformationScreen() {
   const router = useRouter();
   const { id, consultationTime } = useLocalSearchParams<{ id: string; consultationTime: string }>();
 
-  const { data: membersData, isLoading: membersLoading } = useGetAppointmentMembersQuery();
-  const { data: availabilityData, isLoading: availabilityLoading } =
+  const { data: membersData, isLoading: membersLoading, refetch: refetchMembers } = useGetAppointmentMembersQuery();
+  const { data: availabilityData, isLoading: availabilityLoading, refetch: refetchAvailability } =
     useGetDoctorAvailabilityQuery(id ?? '', { skip: !id });
+
+  const { refreshing, onRefresh } = useRefresh([refetchMembers, refetchAvailability]);
 
   const [patientOpen, setPatientOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<AppointmentMember | null>(null);
@@ -103,7 +107,7 @@ export default function InformationScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <PageLoader visible={isPageLoading} title="LOADING" subtitle="Fetching availability..." />
+      <PageLoader visible={isPageLoading} title="LOADING" subtitle="Loading availability..." />
 
       <View style={styles.header}>
         <SectionTitle title="Information" />
@@ -118,6 +122,14 @@ export default function InformationScreen() {
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[Colors.BRAND_PRIMARY]}
+              tintColor={Colors.BRAND_PRIMARY}
+            />
+          }
         >
           <SpecialText style={styles.question}>
             What kind of issue do you need treatment for?
@@ -125,7 +137,7 @@ export default function InformationScreen() {
           <Caption1 weight="medium" style={styles.label}>Booking For</Caption1>
 
           <PatientDropdown
-            patients={members.map((m) => m.name)}
+            patients={[...new Map(members.map((m) => [m.name, m])).values()].map((m) => m.name)}
             selected={selectedMember?.name ?? null}
             open={patientOpen}
             onToggle={() => setPatientOpen((o) => !o)}

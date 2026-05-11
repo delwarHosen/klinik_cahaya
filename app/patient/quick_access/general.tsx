@@ -1,3 +1,4 @@
+import PageLoader from '@/components/shared/PageLoader';
 import SectionTitle from '@/components/shared/SectionTitle';
 import { Caption1, Caption4, H6 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
@@ -6,18 +7,18 @@ import { hp, wp } from '@/utils/responsiveDevice';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Image,
+  RefreshControl,
   StyleSheet,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function BookAppointmentScreen() {
   const router = useRouter();
-  const { data: doctorsData, isLoading } = useGetDoctorsQuery(undefined);
+  const { data: doctorsData, isLoading, refetch, isFetching } = useGetDoctorsQuery(undefined);
   const doctors = doctorsData?.data ?? [];
 
   return (
@@ -28,7 +29,7 @@ export default function BookAppointmentScreen() {
 
       {isLoading ? (
         <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={Colors.BRAND_PRIMARY} />
+           <PageLoader visible={isLoading} title="LOADING" subtitle="" />
         </View>
       ) : (
         <FlatList
@@ -36,6 +37,13 @@ export default function BookAppointmentScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isFetching}
+              onRefresh={refetch}
+              colors={[Colors.BRAND_PRIMARY]}
+              tintColor={Colors.BRAND_PRIMARY}
+            />}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.card}
@@ -44,6 +52,7 @@ export default function BookAppointmentScreen() {
                 pathname: '/patient/doctors_info/doctor_details',
                 params: { doctorId: item.id },
               })}
+
             >
               <Image source={{ uri: item.avatar_url }} style={styles.doctorImage} />
               <View style={styles.cardInfo}>

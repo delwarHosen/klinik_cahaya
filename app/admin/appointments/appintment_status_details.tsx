@@ -1,4 +1,3 @@
-import { ExpandableSection, InfoRow } from '@/components/appointment/ExpandableSection'
 import SectionTitle from '@/components/shared/SectionTitle'
 import { Caption1, Caption2, Caption4, H3, SpecialText } from '@/components/typo/Typography'
 import { Colors } from '@/constants/theme'
@@ -7,15 +6,15 @@ import { hp, wp } from '@/utils/responsiveDevice'
 import { useLocalSearchParams } from 'expo-router'
 import React, { useEffect } from 'react'
 import {
-    ActivityIndicator,
-    Image,
-    ScrollView,
-    StyleSheet,
-    View,
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-// ─── Static placeholder (replace with API later) ──────────────────────────────
+// ─── Static placeholder (replace with API later) 
 const STATIC_MEDICAL = {
   bloodGroup: 'A+',
   allergies: 'Food Allergies, Seasonal Allergies, Pet Allergies',
@@ -29,7 +28,7 @@ const STATIC_INSURANCE = {
   memberId: 'AIA-MY-123456789',
 }
 
-// ─── Status config ─────────────────────────────────────────────────────────────
+// ─── Status config 
 const getStatusConfig = (status?: string) => {
   const s = status?.toLowerCase()
   switch (s) {
@@ -76,6 +75,8 @@ export default function AppointmentStatusScreen() {
   const { appointmentId } = useLocalSearchParams<{ appointmentId: string }>()
   const [getLookup, { data, isLoading }] = useGetAppointmentLookupMutation()
 
+  // console.log("medical and insurence info",data)
+
   useEffect(() => {
     if (appointmentId) getLookup({ appointment_id: appointmentId })
   }, [appointmentId])
@@ -121,7 +122,7 @@ export default function AppointmentStatusScreen() {
     timePart = formatDisplayTime(appointment.start)
   }
 
-  // ── Patient info ──────────────────────────────────────────────────────────
+  // ── Patient info
   const patientName  = patient?.normalized_patient?.patient_name ?? appointment.lead?.name ?? '—'
   const patientIC    = appointment.patient?.ic    ?? patient?.yezza_patient_id?.ic    ?? 'N/A'
   const patientPhone = appointment.patient?.phone ?? patient?.yezza_patient_id?.phone ?? 'N/A'
@@ -209,7 +210,7 @@ export default function AppointmentStatusScreen() {
               </View>
             </View>
 
-            <ExpandableSection title="Medical Information">
+            {/* <ExpandableSection title="Medical Information">
               <InfoRow label="Blood Group"       value={STATIC_MEDICAL.bloodGroup} />
               <InfoRow label="Allergies"         value={STATIC_MEDICAL.allergies} />
               <InfoRow label="Medical Condition" value={STATIC_MEDICAL.medicalCondition} />
@@ -220,14 +221,14 @@ export default function AppointmentStatusScreen() {
               <InfoRow label="Provider"  value={STATIC_INSURANCE.provider} />
               <InfoRow label="Plan Type" value={STATIC_INSURANCE.planType} />
               <InfoRow label="Member ID" value={STATIC_INSURANCE.memberId} />
-            </ExpandableSection>
+            </ExpandableSection> */}
           </>
         ) : (
           // ── Family / Other ─────────────────────────────────────────────────
           <>
             <Caption1 style={styles.boldValue}>{patientName}</Caption1>
 
-            <ExpandableSection title="Medical Information">
+            {/* <ExpandableSection title="Medical Information">
               <InfoRow label="Blood Group"       value={STATIC_MEDICAL.bloodGroup} />
               <InfoRow label="Allergies"         value={STATIC_MEDICAL.allergies} />
               <InfoRow label="Medical Condition" value={STATIC_MEDICAL.medicalCondition} />
@@ -238,7 +239,7 @@ export default function AppointmentStatusScreen() {
               <InfoRow label="Provider"  value={STATIC_INSURANCE.provider} />
               <InfoRow label="Plan Type" value={STATIC_INSURANCE.planType} />
               <InfoRow label="Member ID" value={STATIC_INSURANCE.memberId} />
-            </ExpandableSection>
+            </ExpandableSection> */}
 
             {/* Booked By — only when completed */}
             {isCompleted && bookedByName && (
@@ -260,6 +261,7 @@ export default function AppointmentStatusScreen() {
             )}
           </>
         )}
+
 
         {/* Booked By for Own Self + Completed */}
         {isSelf && isCompleted && bookedByName && (

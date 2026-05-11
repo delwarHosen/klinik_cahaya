@@ -1,4 +1,6 @@
 // app/patient/quick_access/medical_record.tsx
+import CustomLoader from '@/components/shared/CustomLoader';
+import PageLoader from '@/components/shared/PageLoader';
 import SectionTitle from '@/components/shared/SectionTitle';
 import { Body4, Caption2, H6 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
@@ -7,12 +9,11 @@ import { hp, wp } from '@/utils/responsiveDevice';
 import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Linking,
   StyleSheet,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -38,7 +39,7 @@ export default function MedicalRecordScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.BRAND_PRIMARY} />
+        <CustomLoader size={50} />
       </View>
     );
   }
@@ -46,6 +47,7 @@ export default function MedicalRecordScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
+         <PageLoader visible={isLoading} title="LOADING" subtitle="Fetching Madical records..." />
         <SectionTitle title="Medical Records" />
       </View>
 

@@ -2,12 +2,13 @@ import PageLoader from '@/components/shared/PageLoader';
 import SectionTitle from '@/components/shared/SectionTitle';
 import { Body1, Body2, Caption1, Caption3, H6 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
+import { useRefresh } from '@/hooks/useRefresh';
 import { useGetAppointmentsByPhoneQuery } from '@/redux/services/appointmentsApi';
 import { useGetProfileQuery } from '@/redux/services/authApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -43,12 +44,7 @@ interface Appointment {
 const TODAY = new Date()
 TODAY.setHours(0, 0, 0, 0)
 
-/**
- * Maps API status + date → UI tab.
- * Upcoming  = future date AND active status (new/received/pending/confirmed)
- * Completed = received/completed with past date
- * Canceled  = cancelled/canceled
- */
+
 function mapStatus(apiStatus: string, dateStr: string): TabType {
   const s = apiStatus?.toLowerCase()
 
@@ -93,7 +89,7 @@ function formatDateTime(date: string, time: string): { displayDate: string; disp
   }
 }
 
-// ─── Status badge style helpers ───────────────────────────────────────────────
+// ─── Status badge style helpers 
 
 const getStatusBg = (s: TabType) => {
   if (s === 'Upcoming') return Colors.ACCENT_YELLOW
@@ -120,14 +116,16 @@ export default function AppointmentScreen() {
   const router = useRouter()
 
   // ── Profile → phone ────────────────────────────────────────────────────────
-  const { data: profileData, isLoading: profileLoading } = useGetProfileQuery({})
+  const { data: profileData, isLoading: profileLoading, refetch: refetchProfile } = useGetProfileQuery({})
   const phone = profileData?.steps?.profile?.data?.phone ?? ''
 
   // ── Appointments ───────────────────────────────────────────────────────────
-  const { data, isLoading: appointmentsLoading } = useGetAppointmentsByPhoneQuery(phone, {
+  const { data, isLoading: appointmentsLoading, refetch: refetchAppointments } = useGetAppointmentsByPhoneQuery(phone, {
     skip: !phone,
   })
 
+  // ── Pull-to-refresh ────────────────────────────────────────────────────────
+  const { refreshing, onRefresh } = useRefresh([refetchProfile, refetchAppointments])
 
   const isLoading = profileLoading || appointmentsLoading
 
@@ -185,6 +183,14 @@ export default function AppointmentScreen() {
       <FlatList
         data={sortedData}
         keyExtractor={(item) => String(item.id)}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.BRAND_PRIMARY]}
+            tintColor={Colors.BRAND_PRIMARY}
+          />
+        }
         renderItem={({ item }) => {
           const mapped = mapStatus(item.status, item.date)
           const { displayDate, displayTime } = formatDateTime(item.date, item.time)

@@ -3,10 +3,12 @@ import { RightAngleIcon } from '@/assets/icons/common_icon/RightAngleIcon'
 import { DayPickerModal } from '@/components/admin/DayPickerModal'
 import { TimePickerModal } from '@/components/admin/Timepickermodal'
 import { CustomButton } from '@/components/shared/CustomButton'
+import PageLoader from '@/components/shared/PageLoader'
 import SectionTitle from '@/components/shared/SectionTitle'
 import { showToast } from '@/components/shared/Toast'
 import { Caption1, H6 } from '@/components/typo/Typography'
 import { Colors } from '@/constants/theme'
+import { useRefresh } from '@/hooks/useRefresh'
 import {
     useDeleteDoctorMutation,
     useGetDoctorByIdQuery,
@@ -22,6 +24,7 @@ import {
     Image,
     KeyboardAvoidingView,
     Platform,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     TextInput,
@@ -50,6 +53,8 @@ export default function EditDoctorProfileScreen() {
     const [updateDoctor, { isLoading: isUpdating }] = useUpdateDoctorProfileMutation()
     const [deleteDoctor, { isLoading: isDeleting }] = useDeleteDoctorMutation()
 
+    const { refreshing, onRefresh } = useRefresh([refetch])
+
     const doctor = data?.data
 
     const [name, setName] = useState('')
@@ -75,7 +80,7 @@ export default function EditDoctorProfileScreen() {
             setAbout(doctor.about ?? '')
             if (doctor.consultation_days) {
                 setSelectedDays(
-                    doctor.consultation_days.split(',').map((d) => d.trim()).filter(Boolean)
+                    doctor.consultation_days.split(',').map((d: string) => d.trim()).filter(Boolean)
                 )
             }
             if (doctor.consultation_time) {
@@ -97,61 +102,43 @@ export default function EditDoctorProfileScreen() {
 
     const timeLabel = `${startTime} - ${endTime}`
 
-    // const handlePickImage = async () => {
-    //     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
-    //     if (status !== 'granted') {
-    //         Alert.alert('Permission required', 'Please allow access to your photo library.')
-    //         return
-    //     }
-    //     const result = await ImagePicker.launchImageLibraryAsync({
-    //         mediaTypes: 'images',
-    //         allowsEditing: true,
-    //         aspect: [1, 1],
-    //         quality: 0.8,
-    //     })
-    //     if (!result.canceled && result.assets.length > 0) {
-    //         setLocalAvatarUri(result.assets[0].uri)
-    //         setAvatarAsset(result.assets[0])
-    //     }
-    // }
+    const handleUpdate = async () => {
+        if (!doctorId) return
+        if (!fullName.trim()) {
+            showToast('Full name is required.', 'error')
+            return
+        }
 
-  const handleUpdate = async () => {
-    if (!doctorId) return
-    if (!fullName.trim()) {
-        showToast('Full name is required.', 'error')
-        return
+        try {
+            await updateDoctor({
+                doctorId,
+                formData: {
+                    name: name.trim() || '',
+                    full_name: fullName.trim(),
+                    designation: designation.trim(),
+                    specialization: doctor?.specialization ?? '',
+                    tier: doctor?.tier,
+                    active: doctor?.active,
+                    consultation_days: selectedDays,
+                    consultation_time: timeLabel,
+                    about: about.trim(),
+                    specialties: doctor?.specialties ?? '',
+                    avatar_url: doctor?.avatar_url ?? '',
+                    yezza_provider_id: doctor?.yezza_provider_id,
+                    yezza_service_id: doctor?.yezza_service_id,
+                    doctor_phone: doctor?.doctor_phone != null ? String(doctor.doctor_phone) : '',
+                },
+            }).unwrap()
+
+            showToast('Profile updated successfully!', 'success')
+            setAvatarAsset(null)
+            await refetch()
+            router.back()
+        } catch (err: any) {
+            console.log('Update error:', JSON.stringify(err, null, 2))
+            showToast(extractErrorMessage(err), 'error')
+        }
     }
-
-    try {
-        await updateDoctor({
-            doctorId,
-            formData: {
-                name: name.trim() || '',
-                full_name: fullName.trim(),
-                designation: designation.trim(),
-                specialization: doctor?.specialization ?? '',
-                tier: doctor?.tier,
-                active: doctor?.active,
-                consultation_days: selectedDays,
-                consultation_time: timeLabel,
-                about: about.trim(),
-                specialties: doctor?.specialties ?? '',
-                avatar_url: doctor?.avatar_url ?? '',
-                yezza_provider_id: doctor?.yezza_provider_id,
-                yezza_service_id: doctor?.yezza_service_id,
-                doctor_phone: doctor?.doctor_phone != null ? String(doctor.doctor_phone) : '',
-            },
-        }).unwrap()
-
-        showToast('Profile updated successfully!', 'success')
-        setAvatarAsset(null)
-        await refetch()
-        router.back()
-    } catch (err: any) {
-        console.log('Update error:', JSON.stringify(err, null, 2))
-        showToast(extractErrorMessage(err), 'error')
-    }
-}
 
     const handleDelete = () => {
         Alert.alert(
@@ -178,14 +165,6 @@ export default function EditDoctorProfileScreen() {
         )
     }
 
-    if (isLoading) {
-        return (
-            <SafeAreaView style={[styles.container, styles.centered]}>
-                <ActivityIndicator color={Colors.BRAND_PRIMARY} size="large" />
-            </SafeAreaView>
-        )
-    }
-
     const avatarSource = localAvatarUri
         ? { uri: localAvatarUri }
         : doctor?.avatar_url
@@ -194,6 +173,10 @@ export default function EditDoctorProfileScreen() {
 
     return (
         <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+
+            {/* PageLoader — শুধু first load এ */}
+            <PageLoader visible={isLoading} title="LOADING" subtitle="Fetching doctor profile..." />
+
             <View style={styles.header}>
                 <SectionTitle title="Edit Profile" />
             </View>
@@ -207,6 +190,14 @@ export default function EditDoctorProfileScreen() {
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.scrollContent}
                     keyboardShouldPersistTaps="handled"
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            colors={[Colors.BRAND_PRIMARY]}
+                            tintColor={Colors.BRAND_PRIMARY}
+                        />
+                    }
                 >
                     {/* ── Avatar ── */}
                     <View style={styles.avatarSection}>
@@ -215,11 +206,8 @@ export default function EditDoctorProfileScreen() {
                             <TouchableOpacity
                                 style={styles.cameraBtn}
                                 activeOpacity={0.8}
-                                onPress={()=>{}}
-                                // onPress={handlePickImage}
-                            >
-                                {/* <EditIcon size={14} color='#FFFFFF' /> */}
-                            </TouchableOpacity>
+                                onPress={() => {}}
+                            />
                         </View>
                     </View>
 
@@ -326,7 +314,6 @@ export default function EditDoctorProfileScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#FFFFFF' },
     flex: { flex: 1 },
-    centered: { justifyContent: 'center', alignItems: 'center' },
     header: { paddingHorizontal: wp(20) },
     scrollContent: { paddingHorizontal: wp(20), paddingBottom: hp(32) },
     avatarSection: { alignItems: 'center', marginVertical: hp(20) },
@@ -335,12 +322,7 @@ const styles = StyleSheet.create({
         width: 115, height: 115, borderRadius: 60,
         backgroundColor: '#E8F5F2', borderWidth: 3, borderColor: '#E8F5F2', overflow: 'hidden',
     },
-    cameraBtn: {
-        // position: 'absolute', bottom: 10, right: 2,
-        // backgroundColor: Colors.BRAND_PRIMARY,
-        // width: 28, height: 28, borderRadius: 14, padding: 5,
-        // justifyContent: 'center', alignItems: 'center',
-    },
+    cameraBtn: {},
     label: { color: Colors.TEXT_COLOR, marginBottom: hp(6), marginTop: hp(16), fontWeight: '600' },
     inputBox: {
         borderWidth: 1, borderColor: '#E8E8E8', borderRadius: 12,

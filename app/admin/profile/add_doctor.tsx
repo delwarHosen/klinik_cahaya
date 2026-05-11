@@ -3,6 +3,7 @@ import { PhotoIcon } from '@/assets/icons/common_icon/PhotoIcon'
 import { DayPickerModal } from '@/components/admin/DayPickerModal'
 import { TimePickerModal } from '@/components/admin/Timepickermodal'
 import { CustomButton } from '@/components/shared/CustomButton'
+import PageLoader from '@/components/shared/PageLoader'
 import SectionTitle from '@/components/shared/SectionTitle'
 import { showToast } from '@/components/shared/Toast'
 import { Caption1 } from '@/components/typo/Typography'
@@ -127,8 +128,8 @@ export default function AddDoctorProfileScreen() {
                 } as any)
             }
 
-           const res= await addDoctor(formData).unwrap()
-           console.log("add Doctor ", res)
+            const res = await addDoctor(formData).unwrap()
+            console.log("add Doctor ", res)
             showToast('Doctor added successfully!', 'success')
             router.back()
         } catch (err: any) {
@@ -139,6 +140,7 @@ export default function AddDoctorProfileScreen() {
 
     return (
         <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+            <PageLoader visible={isLoading} title="SAVING" subtitle="Adding doctor profile..." />
             <View style={styles.header}>
                 <SectionTitle title="Add Doctor" />
             </View>

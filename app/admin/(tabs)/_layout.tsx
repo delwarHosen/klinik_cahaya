@@ -34,15 +34,15 @@ export default function AdminTabsLayout() {
                 tabBarInactiveTintColor: "#13193A",
                 tabBarStyle: {
                     backgroundColor: "#F8F8F8",
-                    height: hp(75),
+                    height: hp(50) + insets.bottom,
                     position: 'absolute',
-                    // bottom: hp(20),
+                    bottom: 0,
                     left: wp(20),
                     right: wp(20),
                     borderTopWidth: 0,
                     elevation: 0,
                     shadowOpacity: 0,
-                    paddingBottom: 0,
+                    paddingBottom: insets.bottom,
                     paddingTop: 8,
                 },
             }}

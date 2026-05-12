@@ -10,17 +10,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const OTP_LENGTH = 6;
+const RESEND_COOLDOWN = 45; // seconds
 
 export default function EmailVerifyScreen() {
   const router = useRouter();
@@ -35,12 +36,46 @@ export default function EmailVerifyScreen() {
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
+  // ── Cooldown timer ────────────────────────────────────────────────────────
+  const [cooldown, setCooldown] = useState(RESEND_COOLDOWN);
+  const [canResend, setCanResend] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startCooldown = () => {
+    setCooldown(RESEND_COOLDOWN);
+    setCanResend(false);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current!);
+          setCanResend(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  useEffect(() => {
+    // Start cooldown on mount — OTP already sent when navigated here
+    startCooldown();
+    const timer = setTimeout(() => {
+      inputRefs.current[0]?.focus();
+    }, 300);
+    return () => {
+      clearTimeout(timer);
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
   const handleOtpChange = (text: string, index: number) => {
     const digit = text.replace(/[^0-9]/g, '').slice(-1);
     const newOtp = [...otp];
     newOtp[index] = digit;
     setOtp(newOtp);
-
     if (digit && index < OTP_LENGTH - 1) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -63,26 +98,19 @@ export default function EmailVerifyScreen() {
 
   const handleVerify = async () => {
     const otpValue = otp.join('');
-
     if (otpValue.length < OTP_LENGTH) {
       showToast('Please enter the complete 6-digit OTP.', 'error');
       return;
     }
-
     try {
-      // 1. Verify OTP
       await verifyOtp({ email, otp: otpValue }).unwrap();
-
-      // 2. Auto-login
       const loginRes = await login({ email, password }).unwrap();
-
       if (loginRes?.access_token) {
         await AsyncStorage.setItem('access_token', loginRes.access_token);
         if (loginRes?.refresh_token) {
           await AsyncStorage.setItem('refresh_token', loginRes.refresh_token);
         }
       }
-
       showToast('Email verified successfully!', 'success');
       router.push('/(auth)/personal_information');
     } catch (err: any) {
@@ -95,25 +123,21 @@ export default function EmailVerifyScreen() {
   };
 
   const handleResendOtp = async () => {
+    if (!canResend) return;
     try {
       await resendOtp({ email }).unwrap();
       setOtp(Array(OTP_LENGTH).fill(''));
       inputRefs.current[0]?.focus();
       showToast('OTP resent! Check your email.', 'success');
+      startCooldown(); // ✅ resend করার পর আবার cooldown শুরু
     } catch (err: any) {
+      console.log('Resend OTP error:', JSON.stringify(err, null, 2));
       showToast(
-        err?.data?.detail?.msg || err?.data?.message || 'Failed to resend OTP.',
+        err?.data?.message || 'Failed to resend OTP.',
         'error'
       );
     }
   };
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      inputRefs.current[0]?.focus();
-    }, 300);
-    return () => clearTimeout(timer);
-  }, []);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -121,7 +145,6 @@ export default function EmailVerifyScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <LeftAngleIcon />
@@ -180,9 +203,13 @@ export default function EmailVerifyScreen() {
             {/* Resend */}
             <View style={styles.resendRow}>
               <Caption2 color={Colors.TEXT_COLOR}>Haven't received the OTP? </Caption2>
-              <TouchableOpacity onPress={handleResendOtp} disabled={resendLoading}>
-                <Caption2 color={Colors.BRAND_PRIMARY}>
-                  {resendLoading ? 'Sending...' : 'Resend OTP'}
+              <TouchableOpacity onPress={handleResendOtp} disabled={!canResend || resendLoading}>
+                <Caption2 color={canResend ? Colors.BRAND_PRIMARY : Colors.PLACEHOLLDER_TEXT}>
+                  {resendLoading
+                    ? 'Sending...'
+                    : canResend
+                      ? 'Resend OTP'
+                      : `Resend in ${cooldown}s`}
                 </Caption2>
               </TouchableOpacity>
             </View>

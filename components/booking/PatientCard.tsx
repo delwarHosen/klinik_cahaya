@@ -50,9 +50,7 @@ export function PatientCard({
             {/* Date & Time */}
             <TouchableOpacity style={styles.row} onPress={onPressDateTime}>
                 <Caption1 style={{ color: selectedDate ? '#1A1A1A' : '#999' }}>
-                    {selectedDate && selectedTime
-                        ? `${selectedDate}  ${selectedTime}`
-                        : 'Date & Time'}
+                    {selectedDate ?? 'Date & Time'}
                 </Caption1>
                 <Caption1 style={{ color: Colors.BRAND_PRIMARY, fontSize: 20 }}>＋</Caption1>
             </TouchableOpacity>

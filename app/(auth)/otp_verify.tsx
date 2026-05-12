@@ -5,8 +5,8 @@ import { showToast } from '@/components/shared/Toast';
 import { Body3, Caption2, H2 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
 import { useResendForgotPasswordOtpMutation, useVerifyForgotPasswordOtpMutation } from '@/redux/services/authApi';
-
 import { hp, wp } from '@/utils/responsiveDevice';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -21,6 +21,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const OTP_LENGTH = 6;
+const RESEND_COOLDOWN = 45;
 
 export default function ForgotPasswordOtpScreen() {
     const router = useRouter();
@@ -31,6 +32,37 @@ export default function ForgotPasswordOtpScreen() {
 
     const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
     const inputRefs = useRef<(TextInput | null)[]>([]);
+
+    const [cooldown, setCooldown] = useState(RESEND_COOLDOWN);
+    const [canResend, setCanResend] = useState(false);
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    const startCooldown = () => {
+        setCooldown(RESEND_COOLDOWN);
+        setCanResend(false);
+        if (timerRef.current) clearInterval(timerRef.current);
+        timerRef.current = setInterval(() => {
+            setCooldown((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timerRef.current!);
+                    setCanResend(true);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    };
+
+    useEffect(() => {
+        startCooldown();
+        const timer = setTimeout(() => {
+            inputRefs.current[0]?.focus();
+        }, 300);
+        return () => {
+            clearTimeout(timer);
+            if (timerRef.current) clearInterval(timerRef.current);
+        };
+    }, []);
 
     const handleOtpChange = (text: string, index: number) => {
         const digit = text.replace(/[^0-9]/g, '').slice(-1);
@@ -64,11 +96,16 @@ export default function ForgotPasswordOtpScreen() {
             return;
         }
         try {
-            await verifyOtp({ email, otp: otpValue }).unwrap();
+            const res = await verifyOtp({ email, otp: otpValue }).unwrap();
+            console.log('Verify response:', JSON.stringify(res, null, 2));
+
+            // ✅ reset_access_token AsyncStorage এ save করুন
+            await AsyncStorage.setItem('reset_access_token', res.access_token);
+
             showToast('OTP verified!', 'success');
             router.push({
                 pathname: '/(auth)/set_new_password' as any,
-                params: { email },
+                params: { email }, // token params এ পাঠানো লাগবে না
             });
         } catch (err: any) {
             showToast(
@@ -79,25 +116,20 @@ export default function ForgotPasswordOtpScreen() {
     };
 
     const handleResend = async () => {
+        if (!canResend) return;
         try {
             await resendOtp({ email }).unwrap();
             setOtp(Array(OTP_LENGTH).fill(''));
             inputRefs.current[0]?.focus();
             showToast('OTP resent! Check your email.', 'success');
+            startCooldown();
         } catch (err: any) {
             showToast(
-                err?.data?.detail?.msg || err?.data?.message || 'Failed to resend OTP.',
+                err?.data?.message || 'Failed to resend OTP.',
                 'error'
             );
         }
     };
-
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            inputRefs.current[0]?.focus();
-        }, 300);
-        return () => clearTimeout(timer);
-    }, []);
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -164,9 +196,13 @@ export default function ForgotPasswordOtpScreen() {
                         {/* Resend */}
                         <View style={styles.resendRow}>
                             <Caption2 color={Colors.TEXT_COLOR}>Haven't received the OTP? </Caption2>
-                            <TouchableOpacity onPress={handleResend} disabled={resendLoading}>
-                                <Caption2 color={Colors.BRAND_PRIMARY}>
-                                    {resendLoading ? 'Sending...' : 'Resend OTP'}
+                            <TouchableOpacity onPress={handleResend} disabled={!canResend || resendLoading}>
+                                <Caption2 color={canResend ? Colors.BRAND_PRIMARY : Colors.PLACEHOLLDER_TEXT}>
+                                    {resendLoading
+                                        ? 'Sending...'
+                                        : canResend
+                                            ? 'Resend OTP'
+                                            : `Resend in ${cooldown}s`}
                                 </Caption2>
                             </TouchableOpacity>
                         </View>

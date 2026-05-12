@@ -10,7 +10,7 @@ import { Colors } from '@/constants/theme';
 import { useForm } from '@/hooks/useForm';
 import { useSignupMutation } from '@/redux/services/authApi';
 import { hp, wp } from '@/utils/responsiveDevice';
-import { validateEmail, validateName, validatePassword, validatePhoneNumber } from '@/utils/validation';
+import { validateEmail, validateICNumber, validateName, validatePassword } from '@/utils/validation';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
@@ -37,9 +37,13 @@ export default function RegisterScreen() {
     validationRules: {
       [FORM_FIELDS.FULL_NAME]: validateName,
       [FORM_FIELDS.EMAIL]: validateEmail,
-      [FORM_FIELDS.CONTACT_NO]: validatePhoneNumber,
+      [FORM_FIELDS.CONTACT_NO]: validateICNumber,
       [FORM_FIELDS.PASSWORD]: validatePassword,
-      [FORM_FIELDS.CONFIRM_PASSWORD]: validatePassword,
+      [FORM_FIELDS.CONFIRM_PASSWORD]: (value) => {
+        if (!value.trim()) return 'Confirm Password is required';
+        if (value.length < 8) return 'Confirm Password must be at least 8 characters';
+        return '';
+      },
     },
     onSubmit: async (values) => {
       try {
@@ -108,7 +112,7 @@ export default function RegisterScreen() {
                 value={values[FORM_FIELDS.CONTACT_NO]}
                 onChangeText={(text) => handleChange(FORM_FIELDS.CONTACT_NO, text)}
                 type="number"
-                placeholder="IC Number"
+                placeholder="IC Number (12 digits)"
                 error={errors[FORM_FIELDS.CONTACT_NO]}
                 touched={touched[FORM_FIELDS.CONTACT_NO]}
               />

@@ -8,11 +8,11 @@ import { showToast } from '@/components/shared/Toast';
 import { Body1, Body2, Body3, Caption1, Caption2, H5, H6 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
 import { useRefresh } from '@/hooks/useRefresh';
-import { useGetAppointmentsByPhoneQuery, useUpdateAppointmentMutation } from '@/redux/services/appointmentsApi';
+import { useGetAppointmentsByPhoneQuery, useRejectAppointmentMutation, useRescheduleAppointmentMutation } from '@/redux/services/appointmentsApi';
 import { useGetDoctorAvailabilityQuery } from '@/redux/services/bookingApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Image,
   RefreshControl,
@@ -53,7 +53,9 @@ export default function AppointmentDetails() {
   // ── Queries ───────────────────────────────────────────────────────────────
   const { data, isLoading, refetch } = useGetAppointmentsByPhoneQuery(PATIENT_PHONE);
   console.log("useGetAppointmentsByPhoneQuery:", data)
-  const [updateAppointment, { isLoading: isUpdating }] = useUpdateAppointmentMutation();
+  const [rejectAppointment, { isLoading: isRejecting }] = useRejectAppointmentMutation();
+  const [rescheduleAppointment, { isLoading: isRescheduling }] = useRescheduleAppointmentMutation();
+
 
   // console.log("updateAppointment", updateAppointment)
   // ── Appointment item 
@@ -70,11 +72,11 @@ export default function AppointmentDetails() {
   });
 
 
-  useEffect(() => {
-    if (data) {
-      console.log("Current Appointment Data:", item);
-    }
-  }, [data]);
+  // useEffect(() => {
+  //   if (data) {
+  //     console.log("Current Appointment Data:", item);
+  //   }
+  // }, [data]);
 
   const availability = availData?.availability ?? [];
   const maxDate = availData?.max_date ?? availData?.range?.to ?? '';
@@ -142,32 +144,23 @@ export default function AppointmentDetails() {
   const handleCancelConfirm = async () => {
     setShowCancelModal(false);
     try {
-      await updateAppointment({
-        appointmentId: String(item.id),
-        status: 'rejected',
-        reschedule_suggestion: null,
-        reschedule_state: null,
-        reschedule_data: null,
-      }).unwrap();
+      await rejectAppointment({ appointmentId: String(item.id) }).unwrap();
     } catch (error: any) {
       showToast('Cancel Failed', error?.data?.message ?? 'Something went wrong.');
     }
   };
 
-
   // Reschedule 
   const handleRescheduleConfirm = async (newDate: string, newTime: string) => {
     setRescheduleVisible(false);
     try {
-      await updateAppointment({
+      await rescheduleAppointment({
         appointmentId: String(item.id),
-        status: 'rescheduled',
-        reschedule_suggestion: `Rescheduled to ${newDate} at ${newTime}`,
-        reschedule_state: 'pending',
         appt_date: newDate,
         appt_time: newTime,
+        reschedule_suggestion: `Rescheduled to ${newDate} at ${newTime}`,
       }).unwrap();
-      await refetch();
+
     } catch (error: any) {
       console.log('Reschedule error:', JSON.stringify(error, null, 2));
       showToast('Reschedule Failed', error?.data?.message ?? 'Something went wrong.');
@@ -181,7 +174,7 @@ export default function AppointmentDetails() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.container}>
-      <PageLoader visible={isUpdating} title="UPDATING" subtitle="Please wait..." />
+      <PageLoader visible={isRejecting || isRescheduling} title="UPDATING" subtitle="Please wait..." />
 
       <SectionTitle title="Details" />
 

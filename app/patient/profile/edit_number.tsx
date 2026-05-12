@@ -12,7 +12,7 @@ export default function EditContactFlowScreen() {
   if (step === 'edit_number') {
     return (
       <EditContactNumberScreen
-        onSendOtp={() => setStep('success')}
+        onSuccess={() => setStep('success')}
       />
     )
   }

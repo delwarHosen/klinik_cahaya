@@ -46,27 +46,41 @@ export default function PersonalInformationScreen() {
     }
   };
 
- const handleContinue = async () => {
-  try {
-    const res = await updateProfile({
-      gender,
-      date_of_birth: dateOfBirth,
-      address,
-      phone: phone || null,
-    }).unwrap();
+  const handleContinue = async () => {
+    if (!gender) {
+      showToast('Please select your gender.', 'error');
+      return;
+    }
+    if (!dateOfBirth) {
+      showToast('Please select your date of birth.', 'error');
+      return;
+    }
+    if (!address.trim()) {
+      showToast('Please enter your address.', 'error');
+      return;
+    }
+    if (!phone.trim()) {
+      showToast('Please enter your phone number.', 'error');
+      return;
+    }
 
-    console.log(' Personal saved:', JSON.stringify(res)); 
-    showToast('Profile saved!', 'success');
-    router.push('/(auth)/medical_information');
-  } catch (err: any) {
-    console.log(' Personal error:', JSON.stringify(err));
-    showToast(err?.data?.detail?.msg || err?.data?.message || 'Failed to save profile.', 'error');
-  }
-};
+    try {
+      const res = await updateProfile({
+        gender,
+        date_of_birth: dateOfBirth,
+        address,
+        phone,
+      }).unwrap();
 
-  const handleSkip = () => {
-    router.push('/(auth)/medical_information');
+      showToast('Profile saved!', 'success');
+      router.push('/(auth)/medical_information');
+    } catch (err: any) {
+      console.log('Personal error:', JSON.stringify(err));
+      showToast(err?.data?.detail?.msg || err?.data?.message || 'Failed to save profile.', 'error');
+    }
   };
+
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -78,9 +92,7 @@ export default function PersonalInformationScreen() {
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <LeftAngleIcon />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleSkip}>
-            <Body3 color={Colors.PLACEHOLLDER_TEXT}>Skip</Body3>
-          </TouchableOpacity>
+
         </View>
 
         <ScrollView

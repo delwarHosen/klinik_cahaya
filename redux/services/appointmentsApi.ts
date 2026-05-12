@@ -1,15 +1,5 @@
 import { baseApi } from '@/redux/baseApi';
 
-export interface UpdateAppointmentRequest {
-  appointmentId: string;
-  status: string;
-  reschedule_suggestion?: string | null;
-  reschedule_state?: string | null;
-  reschedule_data?: { date: string; time: string } | null;
-  appt_date?: string;  
-  appt_time?: string; 
-}
-
 export const appointmentsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
 
@@ -23,10 +13,25 @@ export const appointmentsApi = baseApi.injectEndpoints({
       keepUnusedDataFor: 0,
     }),
 
-    updateAppointment: builder.mutation<any, UpdateAppointmentRequest>({
+    // Cancel/Reject
+    rejectAppointment: builder.mutation<any, { appointmentId: string }>({
+      query: ({ appointmentId }) => ({
+        url: `/approval/patient/${appointmentId}/reject`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Appointments'],
+    }),
+
+    // Reschedule
+    rescheduleAppointment: builder.mutation<any, {
+      appointmentId: string;
+      appt_date: string;
+      appt_time: string;
+      reschedule_suggestion?: string;
+    }>({
       query: ({ appointmentId, ...body }) => ({
-        url: `/approval/appointments/pending/${appointmentId}`,
-        method: 'PATCH',
+        url: `/approval/patient/${appointmentId}/reschedule`,
+        method: 'POST',
         body,
       }),
       invalidatesTags: ['Appointments'],
@@ -38,5 +43,6 @@ export const appointmentsApi = baseApi.injectEndpoints({
 
 export const {
   useGetAppointmentsByPhoneQuery,
-  useUpdateAppointmentMutation,
+  useRejectAppointmentMutation,
+  useRescheduleAppointmentMutation,
 } = appointmentsApi;

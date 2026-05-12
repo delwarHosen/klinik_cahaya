@@ -9,7 +9,7 @@ import { Body3, H2 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
 import { useResetPasswordMutation } from '@/redux/services/authApi';
 import { hp, wp } from '@/utils/responsiveDevice';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Keyboard,
@@ -24,6 +24,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function CreateNewPasswordScreen() {
   const router = useRouter();
+
+  // ✅ token params থেকে নেওয়া লাগবে না — baseApi AsyncStorage থেকে নেবে
+  const { email } = useLocalSearchParams<{ email: string }>();
+
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -36,13 +40,23 @@ export default function CreateNewPasswordScreen() {
       showToast('Please fill all fields.', 'error');
       return;
     }
+    if (newPassword.length < 8) {
+      showToast('Password must be at least 8 characters.', 'error');
+      return;
+    }
     if (newPassword !== confirmPassword) {
       showToast('Passwords do not match.', 'error');
       return;
     }
 
     try {
-      await resetPassword({ new_password: newPassword }).unwrap();
+      
+      await resetPassword({
+        email,
+        new_password: newPassword,
+        confirm_password: confirmPassword,
+      }).unwrap();
+
       setShowSuccessModal(true);
     } catch (err: any) {
       console.log('Reset password error:', JSON.stringify(err));

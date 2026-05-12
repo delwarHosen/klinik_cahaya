@@ -23,6 +23,12 @@ export const validatePhoneNumber = (phone: string): string => {
 };
 
 
+export const validateICNumber = (ic: string): string => {
+  if (!ic.trim()) return 'IC Number is required';
+  if (!/^\d{12}$/.test(ic)) return 'IC Number must be exactly 12 digits';
+  return '';
+};
+
 // export const validatePassword = (password: string): string => {
 //   if (!password.trim()) return 'Password is required';
 

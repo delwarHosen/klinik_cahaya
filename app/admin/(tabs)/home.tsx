@@ -96,7 +96,8 @@ export default function AdminHomeScreen() {
   ]);
 
   // 
-  const hasCache = !!(upcomingData || requestData || countData);
+  // const hasCache = !!(upcomingData || requestData || countData);
+  const hasCache = !!(upcomingData && requestData && countData);
   const isLoading = (upcomingLoading || requestLoading || countLoading) && !hasCache;
 
   // ── Notification unread count

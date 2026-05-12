@@ -33,7 +33,7 @@ export const authApi = baseApi.injectEndpoints({
     // Resend OTP
     resendOtp: builder.mutation({
       query: (data: { email: string }) => ({
-        url: '/auth/signup/resend-otp',
+        url: '/auth/signup/resend_otp',
         method: 'POST',
         body: data,
       }),
@@ -107,7 +107,7 @@ export const authApi = baseApi.injectEndpoints({
       invalidatesTags: ['Auth'],
     }),
 
-    // Forgot Password
+    // Forgot Password — send OTP
     forgotPassword: builder.mutation({
       query: (data) => ({
         url: '/auth/forgot_password',
@@ -116,6 +116,7 @@ export const authApi = baseApi.injectEndpoints({
       }),
     }),
 
+    // Forgot Password — verify OTP (returns access_token)
     verifyForgotPasswordOtp: builder.mutation<any, { email: string; otp: string }>({
       query: (body) => ({
         url: '/auth/forgot_password/verify-otp',
@@ -124,6 +125,7 @@ export const authApi = baseApi.injectEndpoints({
       }),
     }),
 
+    // Forgot Password — resend OTP
     resendForgotPasswordOtp: builder.mutation<any, { email: string }>({
       query: (body) => ({
         url: '/auth/forgot_password',
@@ -132,26 +134,16 @@ export const authApi = baseApi.injectEndpoints({
       }),
     }),
 
-    // Reset Password
-    // resetPassword: builder.mutation({
-    //   query: ({ access_token, new_password, confirm_password }) => ({
-    //     url: '/auth/change_password',
-    //     method: 'POST',
-    //     body: { new_password, confirm_password },
-    //     headers: {
-    //       Authorization: `Bearer ${access_token}`,
-    //     },
-    //   }),
-    // }),
-
-
-    resetPassword: builder.mutation<any, { new_password: string }>({
-      query: (body) => ({
+    // Reset Password — token baseApi AsyncStorage থেকে নেবে (reset_access_token)
+    resetPassword: builder.mutation<any, { email: string; new_password: string; confirm_password?: string }>({
+      query: ({ email, new_password, confirm_password }) => ({
         url: '/auth/reset_password',
         method: 'POST',
-        body,
+        body: { email, new_password, confirm_password },
+        // ✅ headers এখানে নেই — baseApi নিজেই reset_access_token inject করবে
       }),
     }),
+
     // Change Password
     changePassword: builder.mutation({
       query: (data) => ({
@@ -165,7 +157,7 @@ export const authApi = baseApi.injectEndpoints({
     getProfile: builder.query({
       query: () => '/auth/onboarding',
       providesTags: ['Auth'],
-      keepUnusedDataFor: 300,
+      keepUnusedDataFor: 0,
     }),
 
     // Profile — Update Insurance (PATCH)

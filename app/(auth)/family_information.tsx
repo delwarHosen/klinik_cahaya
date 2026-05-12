@@ -53,6 +53,17 @@ const EMPTY_MEMBER = (): FamilyMember => ({
   allergies: [],
 });
 
+
+function isUnder18(dob: string): boolean {
+  if (!dob) return false;
+  const birth = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  return age < 18;
+}
+
 export default function FamilyInformationScreen() {
   const router = useRouter();
   const [members, setMembers] = useState<FamilyMember[]>([EMPTY_MEMBER()]);
@@ -162,7 +173,9 @@ export default function FamilyInformationScreen() {
                 {/* Date of Birth */}
                 <TouchableOpacity style={styles.dropdownInput} onPress={() => setActiveDatePickerId(member.id)} activeOpacity={0.7}>
                   <Body3 color={member.dateOfBirth ? Colors.TEXT_COLOR : '#8C88A3'} style={{ flex: 1 }}>
-                    {member.dateOfBirth || 'Date Of Birth'}
+                    {member.dateOfBirth
+                      ? `${member.dateOfBirth}${isUnder18(member.dateOfBirth) ? '  (Children)' : ''}`
+                      : 'Date Of Birth'}
                   </Body3>
                   <CalenderIcon />
                 </TouchableOpacity>

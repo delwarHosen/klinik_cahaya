@@ -13,40 +13,54 @@ const baseQuery = fetchBaseQuery({
 });
 
 const baseQueryWithAuth = async (args: any, api: any, extraOptions: any) => {
-  const token = await AsyncStorage.getItem('access_token');
+  const url = typeof args === 'string' ? args : args?.url || '';
+  const isResetPassword = url.includes('/auth/reset_password');
+
+ 
+  const token = isResetPassword
+    ? await AsyncStorage.getItem('reset_access_token')
+    : await AsyncStorage.getItem('access_token');
+
   const isFormData = typeof args === 'object' && args?.body instanceof FormData;
 
   const modifiedArgs =
     typeof args === 'string'
       ? {
-          url: args,
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }
+        url: args,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      }
       : {
-          ...args,
-          headers: isFormData
-            ? {
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-              }
-            : {
-                'Content-Type': 'application/json',
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-              },
-        };
+        ...args,
+        headers: isFormData
+          ? {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          }
+          : {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+      };
 
   const result = await baseQuery(modifiedArgs, api, extraOptions);
+
+  
+  if (!result.error && isResetPassword) {
+    await AsyncStorage.removeItem('reset_access_token');
+  }
 
   if (result.error) {
     const status = (result.error as FetchBaseQueryError).status;
     const data = result.error.data as any;
     const message = data?.message || data?.error || getErrorMessage(status);
 
-    const url = typeof args === 'string' ? args : args?.url || '';
     const isAuthEndpoint =
       url.includes('/auth/login') ||
       url.includes('/auth/signup') ||
-      url.includes('/auth/forgot-password') ||
-      url.includes('/auth/onboarding');
+      url.includes('/auth/forgot_password') ||
+      url.includes('/auth/reset_password') ||
+      url.includes('/auth/onboarding') ||
+      url.includes('/auth/signup/verify-otp') ||
+      url.includes('/auth/signup/resend_otp');
 
     if (status === 401 && !isAuthEndpoint) {
       showToast('Session expired. Please login again.', 'error');

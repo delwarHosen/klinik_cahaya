@@ -1,14 +1,15 @@
 import { CustomButton } from '@/components/shared/CustomButton'
 import SectionTitle from '@/components/shared/SectionTitle'
+import { showToast } from '@/components/shared/Toast'
 import { Colors } from '@/constants/theme'
-import { useUpdatePhoneMutation } from '@/redux/services/authApi'
+import { useGetProfileQuery, useUpdatePhoneMutation } from '@/redux/services/authApi'
 import { hp, wp } from '@/utils/responsiveDevice'
 import React, { useState } from 'react'
-import { Alert, StyleSheet, TextInput, View } from 'react-native'
+import { StyleSheet, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 interface Props {
-  onSendOtp: (phone: string) => void
+  onSuccess: () => void
 }
 
 const toE164 = (input: string): string => {
@@ -18,13 +19,15 @@ const toE164 = (input: string): string => {
   return `+880${digits}`
 }
 
-export function EditContactNumberScreen({ onSendOtp }: Props) {
+export function EditContactNumberScreen({ onSuccess }: Props) {
   const [phone, setPhone] = useState('')
   const [updatePhone, { isLoading }] = useUpdatePhoneMutation()
+  const { data } = useGetProfileQuery({})
+  const existingPhone = data?.steps?.personal?.data?.phone ?? data?.phone ?? '+8801XXXXXXXXX'
 
-  const handleSendOtp = async () => {
+  const handleSave = async () => {
     if (!phone.trim()) {
-      Alert.alert('Error', 'Please enter a phone number.')
+      showToast('Please enter a phone number.', 'error')
       return
     }
 
@@ -32,12 +35,9 @@ export function EditContactNumberScreen({ onSendOtp }: Props) {
 
     try {
       await updatePhone({ phone: formatted }).unwrap()
-      onSendOtp(formatted)
+      onSuccess()
     } catch (err: any) {
-      Alert.alert(
-        'Error',
-        err?.data?.detail?.msg ?? err?.data?.message ?? 'Failed to update phone number.'
-      )
+      showToast(err?.data?.detail?.msg ?? err?.data?.message ?? 'Failed to update phone number.', 'error')
     }
   }
 
@@ -48,7 +48,7 @@ export function EditContactNumberScreen({ onSendOtp }: Props) {
       <View style={styles.content}>
         <View style={styles.fieldBox}>
           <TextInput
-            placeholder="+8801XXXXXXXXX"
+            placeholder={existingPhone}
             placeholderTextColor="#AAAAAA"
             value={phone}
             onChangeText={setPhone}
@@ -58,8 +58,8 @@ export function EditContactNumberScreen({ onSendOtp }: Props) {
         </View>
 
         <CustomButton
-          title={isLoading ? 'Sending...' : 'Send OTP'}
-          onPress={handleSendOtp}
+          title={isLoading ? 'Saving...' : 'Save'}
+          onPress={handleSave}
           disabled={isLoading}
           height={64}
           width="100%"

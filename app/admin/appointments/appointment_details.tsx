@@ -68,7 +68,10 @@ export default function AppointmentDetailsScreen() {
     skip: !resolvedId,
   })
 
-  const [changeStatus, { isLoading: isChanging }] = useGetStatusChangesMutation()
+  const [changeStatus] = useGetStatusChangesMutation()
+  const [isAccepting, setIsAccepting] = useState(false)
+  const [isRejecting, setIsRejecting] = useState(false)
+  // const [changeStatus, { isLoading: isChanging }] = useGetStatusChangesMutation()
   const [reschedule, { isLoading: isRescheduling }] = useRescheduleBookingMutation()
 
   const [showRejectConfirm, setShowRejectConfirm] = useState(false)
@@ -123,19 +126,24 @@ export default function AppointmentDetailsScreen() {
 
   const handleAccept = async () => {
     try {
+      setIsAccepting(true)
       await changeStatus({ booking_id: resolvedId, status: 'confirmed' }).unwrap()
       setShowConfirmed(true)
       setTimeout(() => { setShowConfirmed(false); router.back() }, 2000)
     } catch (err) { console.log('Accept error:', err) }
+    finally { setIsAccepting(false) }
   }
 
   const handleReject = async () => {
     try {
+      setIsRejecting(true)
       await changeStatus({ booking_id: resolvedId, status: 'rejected' }).unwrap()
       setShowRejectConfirm(false)
       router.back()
     } catch (err) { console.log('Reject error:', err) }
+    finally { setIsRejecting(false) }
   }
+
 
   const handleDateTimeConfirm = (date: string, time: string) => {
     setPickedDate(date)
@@ -263,7 +271,7 @@ export default function AppointmentDetailsScreen() {
             {Object.entries(medicalInfo).map(([key, value]) => {
               let displayValue: string;
               if (Array.isArray(value)) {
-                
+
                 displayValue = value
                   .map((v: any) => (typeof v === 'object' ? v?.name ?? v?.label ?? JSON.stringify(v) : String(v)))
                   .join(', ') || '—';
@@ -317,14 +325,14 @@ export default function AppointmentDetailsScreen() {
                 borderColor={"#FF383C1A"}
                 borderRadius={12} width={"48%"} height={50}
                 color={"#FF383C"}
-                isLoading={isChanging}
+                isLoading={isRejecting}
               />
               <CustomButton
                 title='Accept'
                 onPress={handleAccept}
                 backgroundColor={Colors.BRAND_PRIMARY}
                 borderRadius={12} width={"48%"} height={50}
-                isLoading={isChanging}
+                isLoading={isAccepting}
               />
             </View>
             <CustomButton

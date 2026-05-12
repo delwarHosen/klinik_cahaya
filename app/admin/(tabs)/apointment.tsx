@@ -221,7 +221,6 @@ export default function AdminAppointmentScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
 
-      {/* প্রথমবার ঢুকলে loader — cache থাকলে দেখাবে না */}
       <PageLoader visible={isInitialLoading} title="LOADING" subtitle="Fetching appointments..." />
 
       <View style={{ marginTop: hp(10) }}>
@@ -454,6 +453,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.APP_BACKGROUND,
     paddingHorizontal: wp(20),
+    marginBottom:hp(50)
   },
 
   // Search

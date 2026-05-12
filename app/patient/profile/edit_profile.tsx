@@ -83,14 +83,14 @@ export default function EditProfileScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
 
-      {/* প্রথমবার page-এ ঢুকলে — cache নেই */}
+      
       <PageLoader
         visible={showInitialLoader}
         title="LOADING"
         subtitle="Fetching your profile..."
       />
 
-      {/* Update বাটন চাপলে */}
+      
       <PageLoader
         visible={uploading}
         title="UPDATING"

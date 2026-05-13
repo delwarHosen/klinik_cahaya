@@ -3,7 +3,7 @@ import { Colors } from '@/constants/theme';
 import { AvailabilitySlot } from '@/redux/services/bookingApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import React, { useMemo, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -14,17 +14,22 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
+// FIX 2: Use screen width to calculate responsive cell size.
+// Card uses paddingHorizontal wp(20) on each side inside a wp(24) outer padding.
+// Total horizontal padding ≈ wp(44)*2. We divide remaining width into 7 equal cells.
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const CARD_HORIZONTAL_PADDING = wp(20) * 2;   // paddingHorizontal inside card (left+right)
+const OUTER_PADDING = wp(24) * 2;              // backdrop paddingHorizontal (left+right)
+const CALENDAR_WIDTH = SCREEN_WIDTH - OUTER_PADDING - CARD_HORIZONTAL_PADDING;
+const CELL_SIZE = Math.floor(CALENDAR_WIDTH / 7);
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * Parses "8:00 PM - 11:00 PM" → { startHour: 20, endHour: 23 }
- * Falls back to 8–23 if parsing fails.
- */
 function parseConsultationTime(timeStr: string): { startHour: number; endHour: number } {
   const DEFAULT = { startHour: 8, endHour: 23 };
   if (!timeStr) return DEFAULT;
 
-  const parts = timeStr.split('-').map((s) => s.trim()); // ["8:00 PM", "11:00 PM"]
+  const parts = timeStr.split('-').map((s) => s.trim());
   if (parts.length !== 2) return DEFAULT;
 
   const toHour24 = (t: string): number | null => {
@@ -44,10 +49,6 @@ function parseConsultationTime(timeStr: string): { startHour: number; endHour: n
   return { startHour, endHour };
 }
 
-/**
- * Builds 30-min interval slots for a given hour range.
- * e.g. startHour=20, endHour=23 → ["20:00","20:30","21:00","21:30","22:00","22:30","23:00"]
- */
 function buildSlotsForRange(startHour: number, endHour: number): string[] {
   const slots: string[] = [];
   for (let h = startHour; h <= endHour; h++) {
@@ -57,7 +58,6 @@ function buildSlotsForRange(startHour: number, endHour: number): string[] {
   return slots;
 }
 
-/** "HH:MM" 24h  →  "08:00 PM" */
 function formatSlot(slot: string): string {
   const [hStr, mStr] = slot.split(':');
   const h = parseInt(hStr, 10);
@@ -66,7 +66,6 @@ function formatSlot(slot: string): string {
   return `${String(h12).padStart(2, '0')}:${mStr} ${ampm}`;
 }
 
-/** year/month(0-based)/day  →  "YYYY-MM-DD" */
 function toDateStr(year: number, month: number, day: number): string {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
@@ -76,16 +75,9 @@ function toDateStr(year: number, month: number, day: number): string {
 interface Props {
   visible: boolean;
   onClose: () => void;
-  /** Returns raw: date = "YYYY-MM-DD", time = "HH:MM" 24h */
   onConfirm: (date: string, time: string) => void;
   availability: AvailabilitySlot[];
-  /** "YYYY-MM-DD" — last bookable date */
   maxDate: string;
-  /**
-   * Doctor's consultation_time string e.g. "8:00 PM - 11:00 PM".
-   * Used to restrict which time slots are shown in the picker.
-   * Defaults to full 8 AM–11 PM range if not provided.
-   */
   consultationTime?: string;
 }
 
@@ -112,19 +104,11 @@ export function DateTimePickerModal({
     return d;
   }, [maxDate]);
 
-  /**
-   * Derive time slots from doctor's consultation_time.
-   * Recomputed only when consultationTime changes.
-   */
   const allTimeSlots = useMemo(() => {
     const { startHour, endHour } = parseConsultationTime(consultationTime);
     return buildSlotsForRange(startHour, endHour);
   }, [consultationTime]);
 
-  /**
-   * availabilityMap: "YYYY-MM-DD" → Set<"HH:MM">
-   * Normalises slots to "HH:MM" so "9:00" and "09:00" both match.
-   */
   const availabilityMap = useMemo<Record<string, Set<string>>>(() => {
     const map: Record<string, Set<string>> = {};
     availability.forEach(({ date, slots }) => {
@@ -199,11 +183,6 @@ export function DateTimePickerModal({
     ? (availabilityMap[selectedDate] ?? new Set())
     : new Set();
 
-  /**
-   * A slot is enabled only if:
-   * 1. It falls within the doctor's consultation time range (allTimeSlots)
-   * 2. The API marks it as available for the selected date
-   */
   const isSlotEnabled = (slot: string) => availableSlotsForDate.has(slot);
 
   // ── Actions ───────────────────────────────────────────────────────────────
@@ -261,18 +240,25 @@ export function DateTimePickerModal({
                 </View>
               </View>
 
+              {/* FIX 2: Day label row — each label takes exactly 1/7 of the calendar width */}
               <View style={styles.dayRow}>
                 {DAY_LABELS.map((d, i) => (
-                  <Caption2 key={i} style={styles.dayLabel}>{d}</Caption2>
+                  <View key={i} style={styles.dayLabelCell}>
+                    <Caption2 style={styles.dayLabel}>{d}</Caption2>
+                  </View>
                 ))}
               </View>
 
+              {/* FIX 2: Grid rows built week-by-week so cells never overflow */}
               <View style={styles.grid}>
+                {/* Leading (prev month) */}
                 {leadingDays.map((d, i) => (
                   <View key={`lead-${i}`} style={styles.cell}>
                     <Caption1 style={styles.fadedText}>{d}</Caption1>
                   </View>
                 ))}
+
+                {/* Current month days */}
                 {currentDays.map((day) => {
                   const dateStr = toDateStr(currentYear, currentMonth, day);
                   const disabled = isDisabledDay(day);
@@ -301,6 +287,8 @@ export function DateTimePickerModal({
                     </TouchableOpacity>
                   );
                 })}
+
+                {/* Trailing (next month) */}
                 {trailingDays.map((d, i) => (
                   <View key={`trail-${i}`} style={styles.cell}>
                     <Caption1 style={styles.fadedText}>{d}</Caption1>
@@ -326,7 +314,6 @@ export function DateTimePickerModal({
             <>
               <H6 style={styles.title}>Select Time</H6>
 
-              {/* ScrollView so it doesn't overflow on small screens */}
               <ScrollView
                 showsVerticalScrollIndicator={false}
                 style={styles.timeScroll}
@@ -437,27 +424,42 @@ const styles = StyleSheet.create({
   },
   navBtnDisabled: { opacity: 0.3 },
 
-  // ── Day headers ──
-  dayRow: { flexDirection: 'row', marginBottom: hp(4) },
+  // ── Day header row ──
+  // FIX 2: Row is a flex container, each label cell takes exactly 1/7 width.
+  dayRow: {
+    flexDirection: 'row',
+    width: '100%',
+    marginBottom: hp(4),
+  },
+  dayLabelCell: {
+    width: CELL_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   dayLabel: {
-    width: '14.28%',
-    textAlign: 'center',
     color: '#888888',
     fontWeight: '600',
     fontSize: 13,
   },
 
   // ── Calendar grid ──
-  grid: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: hp(8) },
+  // FIX 2: grid uses flexWrap; each cell is exactly CELL_SIZE × CELL_SIZE.
+  // This guarantees 7 cells per row on any screen width without overflow.
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    width: CELL_SIZE * 7, // explicit width = exactly 7 columns
+    marginBottom: hp(8),
+  },
   cell: {
-    width: 40,
-    height: 40,
+    width: CELL_SIZE,
+    height: CELL_SIZE,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 20,
+    borderRadius: CELL_SIZE / 2,
   },
-  cellText: { color: '#333333', fontSize: 14 },
-  fadedText: { color: '#CCCCCC', fontSize: 14 },
+  cellText: { color: '#333333', fontSize: 13 },
+  fadedText: { color: '#CCCCCC', fontSize: 13 },
   selectedCell: { backgroundColor: Colors.BRAND_PRIMARY },
   selectedCellText: { color: '#FFFFFF', fontWeight: '600' },
   disabledCell: { opacity: 0.3 },

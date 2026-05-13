@@ -110,7 +110,9 @@ export const baseApi = createApi({
     'AdminBookingCount',
     'AdminFilteredBookings',
     'AdminFilteredAppointments',
-    'Notifications'
+    'Notifications',
+    'PatientNotifications',
+    'AdminNotifications'
   ],
   endpoints: () => ({}),
 });

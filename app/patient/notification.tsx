@@ -62,9 +62,7 @@ export default function PatientNotificationScreen() {
                         <TouchableOpacity
                             style={[styles.card, !item.is_read && styles.cardUnread]}
                             activeOpacity={0.75}
-                            onPress={() => {
-                                if (!item.is_read) markRead(item.id)
-                            }}
+                            onPress={() => markRead({ id: item.id, role: 'patient' })}
                         >
                             {!item.is_read && <View style={styles.dot} />}
 
@@ -88,7 +86,7 @@ export default function PatientNotificationScreen() {
                                     <TouchableOpacity
                                         style={styles.deleteBtn}
                                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                        onPress={() => deleteNotif(item.id)}
+                                        onPress={() => deleteNotif({ id: item.id, role: 'patient' })}
                                     >
                                         <Ionicons name="trash-outline" size={16} color="#FF3B30" />
                                     </TouchableOpacity>

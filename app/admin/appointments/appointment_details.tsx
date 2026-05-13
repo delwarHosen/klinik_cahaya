@@ -68,6 +68,7 @@ export default function AppointmentDetailsScreen() {
     skip: !resolvedId,
   })
 
+  console.log("dataaaaaaa",data)
   const [changeStatus] = useGetStatusChangesMutation()
   const [isAccepting, setIsAccepting] = useState(false)
   const [isRejecting, setIsRejecting] = useState(false)
@@ -88,6 +89,8 @@ export default function AppointmentDetailsScreen() {
 
   const doctorId = data?.doctor?.id ?? ''
   const { data: availData } = useGetDoctorAvailabilityQuery(doctorId, { skip: !doctorId })
+
+  console.log("doctorssss", availData)
 
   if (isInitialLoading) {
     return (
@@ -171,7 +174,7 @@ export default function AppointmentDetailsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.headerWrapper}>
-        <SectionTitle title="Appointment Detail" />
+        <SectionTitle title="Appointment Details" />
       </View>
 
       <ScrollView

@@ -20,6 +20,7 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -27,6 +28,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const GENDER_OPTIONS = ['male', 'female', 'other'];
 
+// ─── Helper ───────────────────────────────────────────────────────────────────
+const calculateAge = (dobString: string): number => {
+  const dob = new Date(dobString);
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const monthDiff = today.getMonth() - dob.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+    age--;
+  }
+  return age;
+};
+
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function PersonalInformationScreen() {
   const router = useRouter();
   const [updateProfile, { isLoading }] = useUpdateProfileMutation();
@@ -38,10 +52,13 @@ export default function PersonalInformationScreen() {
   const [showGenderModal, setShowGenderModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  // Derived: is the selected person a child?
+  const isChild = dateOfBirth !== '' && calculateAge(dateOfBirth) < 18;
+
   const handleDateChange = (_: any, selected?: Date) => {
     setShowDatePicker(false);
     if (selected) {
-      const formatted = selected.toISOString().split('T')[0];
+      const formatted = selected.toISOString().split('T')[0]; // YYYY-MM-DD
       setDateOfBirth(formatted);
     }
   };
@@ -65,9 +82,10 @@ export default function PersonalInformationScreen() {
     }
 
     try {
-      const res = await updateProfile({
+      await updateProfile({
         gender,
         date_of_birth: dateOfBirth,
+        is_child: isChild,
         address,
         phone,
       }).unwrap();
@@ -80,8 +98,6 @@ export default function PersonalInformationScreen() {
     }
   };
 
-
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
@@ -92,7 +108,6 @@ export default function PersonalInformationScreen() {
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <LeftAngleIcon />
           </TouchableOpacity>
-
         </View>
 
         <ScrollView
@@ -117,7 +132,7 @@ export default function PersonalInformationScreen() {
               <DownArrowIcon />
             </TouchableOpacity>
 
-            {/* Date of Birth */}
+            {/* ── Date of Birth ── */}
             <TouchableOpacity
               style={styles.inputWrapper}
               onPress={() => setShowDatePicker(true)}
@@ -126,6 +141,14 @@ export default function PersonalInformationScreen() {
               <Body3 color={dateOfBirth ? Colors.TEXT_COLOR : '#8C88A3'} style={{ flex: 1 }}>
                 {dateOfBirth || 'Date Of Birth'}
               </Body3>
+
+              {/* Children badge – shown when age < 18 */}
+              {isChild && (
+                <View style={styles.childBadge}>
+                  <Text style={styles.childBadgeText}>Children</Text>
+                </View>
+              )}
+
               <CalenderIcon />
             </TouchableOpacity>
 
@@ -161,7 +184,12 @@ export default function PersonalInformationScreen() {
       </KeyboardAvoidingView>
 
       {/* Gender Modal */}
-      <Modal visible={showGenderModal} transparent animationType="fade" onRequestClose={() => setShowGenderModal(false)}>
+      <Modal
+        visible={showGenderModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowGenderModal(false)}
+      >
         <View style={styles.modalOverlay}>
           <TouchableOpacity
             style={[StyleSheet.absoluteFill, { zIndex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }]}
@@ -178,8 +206,14 @@ export default function PersonalInformationScreen() {
             {GENDER_OPTIONS.map((option) => (
               <TouchableOpacity
                 key={option}
-                style={[styles.genderOption, gender === option && styles.genderOptionSelected]}
-                onPress={() => { setGender(option); setShowGenderModal(false); }}
+                style={[
+                  styles.genderOption,
+                  gender === option && styles.genderOptionSelected,
+                ]}
+                onPress={() => {
+                  setGender(option);
+                  setShowGenderModal(false);
+                }}
               >
                 <Body3 color={Colors.TEXT_COLOR}>
                   {option.charAt(0).toUpperCase() + option.slice(1)}
@@ -200,51 +234,105 @@ export default function PersonalInformationScreen() {
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Colors.APP_BACKGROUND },
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: wp(20), paddingTop: hp(20),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: wp(20),
+    paddingTop: hp(20),
   },
   backButton: {
-    width: 52, height: 52, borderRadius: 26,
-    backgroundColor: '#F8F8F8', justifyContent: 'center', alignItems: 'center',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#F8F8F8',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollContent: { flexGrow: 1, paddingHorizontal: wp(20), paddingBottom: hp(40) },
   container: { flex: 1, paddingTop: hp(35) },
   titleBlock: { marginBottom: hp(30) },
+
   inputWrapper: {
-    flexDirection: 'row', alignItems: 'center', borderRadius: 16,
-    borderWidth: 1, borderColor: Colors.BORDER_COLOR,
-    paddingHorizontal: wp(16), paddingVertical: hp(24),
-    backgroundColor: 'transparent', marginBottom: hp(12),
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.BORDER_COLOR,
+    paddingHorizontal: wp(16),
+    paddingVertical: hp(24),
+    backgroundColor: 'transparent',
+    marginBottom: hp(12),
   },
+
+  // ── Children badge
+  childBadge: {
+    backgroundColor: Colors.BRAND_PRIMARY,
+    borderRadius: 20,
+    paddingHorizontal: wp(10),
+    paddingVertical: 3,
+    marginRight: wp(8),
+  },
+  childBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+
+  // Gender modal
   modalOverlay: {
-    flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: wp(20),
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: wp(20),
   },
   genderModalContainer: {
-    width: '100%', zIndex: 2, backgroundColor: '#fff', borderRadius: 24,
-    paddingHorizontal: wp(20), paddingTop: hp(16),
-    paddingBottom: Platform.OS === 'ios' ? hp(40) : hp(30), gap: hp(8),
+    width: '100%',
+    zIndex: 2,
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    paddingHorizontal: wp(20),
+    paddingTop: hp(16),
+    paddingBottom: Platform.OS === 'ios' ? hp(40) : hp(30),
+    gap: hp(8),
     elevation: 5,
   },
   genderModalHeader: {
-    flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between', marginBottom: hp(16),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: hp(16),
   },
   genderOption: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#F5F5F5', borderRadius: 12,
-    paddingHorizontal: wp(16), paddingVertical: hp(14),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    paddingHorizontal: wp(16),
+    paddingVertical: hp(14),
   },
   genderOptionSelected: { backgroundColor: '#F0F8FF' },
   checkboxSelected: {
-    width: 22, height: 22, borderRadius: 4, borderWidth: 1.5,
-    borderColor: Colors.BRAND_PRIMARY, backgroundColor: '#E8F4FD',
-    justifyContent: 'center', alignItems: 'center',
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: Colors.BRAND_PRIMARY,
+    backgroundColor: '#E8F4FD',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   checkboxEmpty: {
-    width: 22, height: 22, borderRadius: 4,
-    borderWidth: 1.5, borderColor: '#ccc', backgroundColor: '#fff',
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: '#ccc',
+    backgroundColor: '#fff',
   },
 });

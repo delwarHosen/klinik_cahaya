@@ -31,16 +31,24 @@ const DOWNLOAD_ITEMS = [
   { key: 'billing', label: 'Billing receipt' },
 ];
 
-function mapStatus(apiStatus: string): string {
-  switch (apiStatus) {
+function mapStatus(apiStatus: string): 'Upcoming' | 'Completed' | 'Canceled' {
+  const s = (apiStatus ?? '').toLowerCase();
+  switch (s) {
     case 'received':
     case 'confirmed':
-    case 'pending': return 'Upcoming';
-    case 'completed': return 'Completed';
-    case 'cancelled':
-    case 'canceled': return 'Canceled';
+    case 'pending':
+    case 'new':
     case 'rescheduled':
-    default: return 'Upcoming';
+      return 'Upcoming';
+    case 'completed':
+      return 'Completed';
+    case 'cancelled':
+    case 'canceled':
+    case 'rejected':
+    case 'reject':
+      return 'Canceled';
+    default:
+      return 'Upcoming';
   }
 }
 
@@ -49,16 +57,14 @@ export default function AppointmentDetails() {
   const { appointmentId } = useLocalSearchParams<{ appointmentId: string }>();
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [rescheduleVisible, setRescheduleVisible] = useState(false);
+  const [localStatus, setLocalStatus] = useState<string | null>(null);
 
   // ── Queries ───────────────────────────────────────────────────────────────
   const { data, isLoading, refetch } = useGetAppointmentsByPhoneQuery(PATIENT_PHONE);
-  console.log("useGetAppointmentsByPhoneQuery:", data)
   const [rejectAppointment, { isLoading: isRejecting }] = useRejectAppointmentMutation();
   const [rescheduleAppointment, { isLoading: isRescheduling }] = useRescheduleAppointmentMutation();
 
-
-  // console.log("updateAppointment", updateAppointment)
-  // ── Appointment item 
+  // ── Appointment item ──────────────────────────────────────────────────────
   const appointments: any[] = Array.isArray(data)
     ? data
     : data?.appointments ?? [];
@@ -70,13 +76,6 @@ export default function AppointmentDetails() {
   const { data: availData, refetch: refetchAvail } = useGetDoctorAvailabilityQuery(doctorId, {
     skip: !doctorId,
   });
-
-
-  // useEffect(() => {
-  //   if (data) {
-  //     console.log("Current Appointment Data:", item);
-  //   }
-  // }, [data]);
 
   const availability = availData?.availability ?? [];
   const maxDate = availData?.max_date ?? availData?.range?.to ?? '';
@@ -95,10 +94,11 @@ export default function AppointmentDetails() {
   if (!item) return null;
 
   // ── Derived values ────────────────────────────────────────────────────────
-  const status = mapStatus(item.status);
+  const rawStatus  = localStatus ?? item.status;
+  const status     = mapStatus(rawStatus);
   const isCompleted = status === 'Completed';
-  const isCanceled = status === 'Canceled';
-  const isUpcoming = status === 'Upcoming';
+  const isCanceled  = status === 'Canceled';
+  const isUpcoming  = status === 'Upcoming';
 
   const dateStr = item.appt_date ?? item.date ?? item.start ?? '';
   const timeStr = item.appt_time ?? item.time ?? '';
@@ -124,12 +124,12 @@ export default function AppointmentDetails() {
     });
   }
 
-  const doctorInfo = item.doctor_info ?? item.provider ?? {};
-  const doctorName = doctorInfo.name ?? doctorInfo.full_name ?? item.doctor_name ?? '-';
-  const doctorAvatar = doctorInfo.avatar_url ?? doctorInfo.profile_image?.file ?? '';
+  const doctorInfo       = item.doctor_info ?? item.provider ?? {};
+  const doctorName       = doctorInfo.name ?? doctorInfo.full_name ?? item.doctor_name ?? '-';
+  const doctorAvatar     = doctorInfo.avatar_url ?? doctorInfo.profile_image?.file ?? '';
   const consultationTime = doctorInfo.consultation_time ?? '';
-  const patientName = item.patient_name ?? item.lead?.name ?? '-';
-  const reason = item.reason ?? item.services?.[0]?.name ?? '-';
+  const patientName      = item.patient_name ?? item.lead?.name ?? '-';
+  const reason           = item.reason ?? item.services?.[0]?.name ?? '-';
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleDoctorPress = () => {
@@ -145,12 +145,13 @@ export default function AppointmentDetails() {
     setShowCancelModal(false);
     try {
       await rejectAppointment({ appointmentId: String(item.id) }).unwrap();
+      setLocalStatus('rejected');
+      refetch();
     } catch (error: any) {
       showToast('Cancel Failed', error?.data?.message ?? 'Something went wrong.');
     }
   };
 
-  // Reschedule 
   const handleRescheduleConfirm = async (newDate: string, newTime: string) => {
     setRescheduleVisible(false);
     try {
@@ -160,7 +161,8 @@ export default function AppointmentDetails() {
         appt_time: newTime,
         reschedule_suggestion: `Rescheduled to ${newDate} at ${newTime}`,
       }).unwrap();
-
+      setLocalStatus('rescheduled');
+      refetch();
     } catch (error: any) {
       console.log('Reschedule error:', JSON.stringify(error, null, 2));
       showToast('Reschedule Failed', error?.data?.message ?? 'Something went wrong.');
@@ -264,7 +266,7 @@ export default function AppointmentDetails() {
           </View>
         )}
 
-        {/* Actions — Upcoming only */}
+        {/* Upcoming — Cancel + Reschedule side by side */}
         {isUpcoming && (
           <View style={styles.actionsContainer}>
             <View style={styles.buttonRow}>
@@ -289,6 +291,22 @@ export default function AppointmentDetails() {
                 color={Colors.TEXT_COLOR}
               />
             </View>
+          </View>
+        )}
+
+        {/* Canceled — Reschedule full width only */}
+        {isCanceled && (
+          <View style={styles.actionsContainer}>
+            <CustomButton
+              title="Reschedule"
+              onPress={() => setRescheduleVisible(true)}
+              backgroundColor={Colors.APP_BACKGROUND}
+              borderColor={Colors.BORDER_COLOR}
+              borderRadius={12}
+              width="100%"
+              height={50}
+              color={Colors.TEXT_COLOR}
+            />
           </View>
         )}
       </ScrollView>

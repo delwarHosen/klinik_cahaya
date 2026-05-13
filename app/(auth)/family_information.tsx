@@ -19,6 +19,8 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -37,6 +39,7 @@ interface FamilyMember {
   id: string;
   memberName: string;
   icNumber: string;
+  icError: string;        // ← inline error per member
   dateOfBirth: string;
   relationship: string;
   gender: string;
@@ -47,12 +50,12 @@ const EMPTY_MEMBER = (): FamilyMember => ({
   id: Date.now().toString() + Math.random().toString(),
   memberName: '',
   icNumber: '',
+  icError: '',
   dateOfBirth: '',
   relationship: '',
   gender: '',
   allergies: [],
 });
-
 
 function isUnder18(dob: string): boolean {
   if (!dob) return false;
@@ -75,6 +78,18 @@ export default function FamilyInformationScreen() {
 
   const handleChange = (id: string, field: keyof Omit<FamilyMember, 'id'>, value: any) => {
     setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, [field]: value } : m)));
+  };
+
+  // ── IC Number: digits only, max 12, inline error ──────────────────────────
+  const handleIcChange = (id: string, val: string) => {
+    const digits = val.replace(/\D/g, '').slice(0, 12);
+    const error =
+      digits.length > 0 && digits.length < 12
+        ? 'IC Number must be exactly 12 digits'
+        : '';
+    setMembers((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, icNumber: digits, icError: error } : m))
+    );
   };
 
   const handleDateChange = (id: string, _: any, selected?: Date) => {
@@ -106,6 +121,23 @@ export default function FamilyInformationScreen() {
   };
 
   const handleContinue = () => {
+    // Validate all IC numbers before proceeding
+    const invalidIc = members.find(
+      (m) => m.icNumber.length > 0 && m.icNumber.length !== 12
+    );
+    if (invalidIc) {
+      showToast('IC Number must be exactly 12 digits.', 'error');
+      // Mark errors on all invalid members
+      setMembers((prev) =>
+        prev.map((m) =>
+          m.icNumber.length > 0 && m.icNumber.length !== 12
+            ? { ...m, icError: 'IC Number must be exactly 12 digits' }
+            : m
+        )
+      );
+      return;
+    }
+
     const filledMembers = members.filter((m) => m.memberName.trim() !== '');
     if (filledMembers.length === 0) {
       showToast('Please add at least one family member.', 'error');
@@ -141,7 +173,11 @@ export default function FamilyInformationScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.container}>
             <View style={styles.titleBlock}>
               <AuthHeading title="Set-up your Profile" description="Family Information" />
@@ -152,27 +188,49 @@ export default function FamilyInformationScreen() {
                 {members.length > 1 && (
                   <View style={styles.memberHeader}>
                     <Body2 color={Colors.TEXT_COLOR}>Member {index + 1}</Body2>
-                    <TouchableOpacity onPress={() => setMembers((prev) => prev.filter((m) => m.id !== member.id))}>
+                    <TouchableOpacity
+                      onPress={() => setMembers((prev) => prev.filter((m) => m.id !== member.id))}
+                    >
                       <Caption1 color="#E24B4A">Remove</Caption1>
                     </TouchableOpacity>
                   </View>
                 )}
 
+                {/* Member Name */}
                 <FormInput
                   value={member.memberName}
                   onChangeText={(t) => handleChange(member.id, 'memberName', t)}
                   placeholder="Member Name"
                 />
-                <FormInput
-                  value={member.icNumber}
-                  onChangeText={(t) => handleChange(member.id, 'icNumber', t)}
-                  placeholder="IC Number"
-                  type="number"
-                />
+
+                {/* ── IC Number — custom input for digit control ── */}
+                <View style={styles.icWrapper}>
+                  <View style={[styles.icBox, !!member.icError && styles.icBoxError]}>
+                    <TextInput
+                      value={member.icNumber}
+                      onChangeText={(t) => handleIcChange(member.id, t)}
+                      placeholder="IC Number (12 digits)"
+                      placeholderTextColor={Colors.PLACEHOLLDER_TEXT ?? '#8C88A3'}
+                      keyboardType="numeric"
+                      maxLength={12}
+                      style={styles.icInput}
+                    />
+                  </View>
+                  {!!member.icError && (
+                    <Text style={styles.errorText}>{member.icError}</Text>
+                  )}
+                </View>
 
                 {/* Date of Birth */}
-                <TouchableOpacity style={styles.dropdownInput} onPress={() => setActiveDatePickerId(member.id)} activeOpacity={0.7}>
-                  <Body3 color={member.dateOfBirth ? Colors.TEXT_COLOR : '#8C88A3'} style={{ flex: 1 }}>
+                <TouchableOpacity
+                  style={styles.dropdownInput}
+                  onPress={() => setActiveDatePickerId(member.id)}
+                  activeOpacity={0.7}
+                >
+                  <Body3
+                    color={member.dateOfBirth ? Colors.TEXT_COLOR : '#8C88A3'}
+                    style={{ flex: 1 }}
+                  >
                     {member.dateOfBirth
                       ? `${member.dateOfBirth}${isUnder18(member.dateOfBirth) ? '  (Children)' : ''}`
                       : 'Date Of Birth'}
@@ -189,6 +247,7 @@ export default function FamilyInformationScreen() {
                   />
                 )}
 
+                {/* Relationship */}
                 <FormInput
                   value={member.relationship}
                   onChangeText={(t) => handleChange(member.id, 'relationship', t)}
@@ -196,17 +255,34 @@ export default function FamilyInformationScreen() {
                 />
 
                 {/* Gender */}
-                <TouchableOpacity style={styles.dropdownInput} onPress={() => setActiveGenderModalId(member.id)} activeOpacity={0.7}>
-                  <Body3 color={member.gender ? Colors.TEXT_COLOR : '#8C88A3'} style={{ flex: 1 }}>
+                <TouchableOpacity
+                  style={styles.dropdownInput}
+                  onPress={() => setActiveGenderModalId(member.id)}
+                  activeOpacity={0.7}
+                >
+                  <Body3
+                    color={member.gender ? Colors.TEXT_COLOR : '#8C88A3'}
+                    style={{ flex: 1 }}
+                  >
                     {member.gender || 'Gender'}
                   </Body3>
                   <DownArrowIcon />
                 </TouchableOpacity>
 
                 {/* Allergies */}
-                <TouchableOpacity style={styles.dropdownInput} onPress={() => setActiveAllergyModalId(member.id)} activeOpacity={0.7}>
-                  <Body3 color={member.allergies.length > 0 ? Colors.TEXT_COLOR : '#8C88A3'} style={{ flex: 1 }} numberOfLines={1}>
-                    {member.allergies.length > 0 ? member.allergies.map((a) => a.name).join(', ') : 'Allergies'}
+                <TouchableOpacity
+                  style={styles.dropdownInput}
+                  onPress={() => setActiveAllergyModalId(member.id)}
+                  activeOpacity={0.7}
+                >
+                  <Body3
+                    color={member.allergies.length > 0 ? Colors.TEXT_COLOR : '#8C88A3'}
+                    style={{ flex: 1 }}
+                    numberOfLines={1}
+                  >
+                    {member.allergies.length > 0
+                      ? member.allergies.map((a) => a.name).join(', ')
+                      : 'Allergies'}
                   </Body3>
                   <DownArrowIcon />
                 </TouchableOpacity>
@@ -235,10 +311,19 @@ export default function FamilyInformationScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Gender Modal */}
-      <Modal visible={!!activeGenderModalId} transparent animationType="fade" onRequestClose={() => setActiveGenderModalId(null)}>
+      {/* ── Gender Modal ── */}
+      <Modal
+        visible={!!activeGenderModalId}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setActiveGenderModalId(null)}
+      >
         <View style={styles.modalOverlay}>
-          <TouchableOpacity style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)' }]} onPress={() => setActiveGenderModalId(null)} activeOpacity={1} />
+          <TouchableOpacity
+            style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
+            onPress={() => setActiveGenderModalId(null)}
+            activeOpacity={1}
+          />
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <Body2 color={Colors.TEXT_COLOR}>Choose Gender</Body2>
@@ -253,7 +338,10 @@ export default function FamilyInformationScreen() {
                 <TouchableOpacity
                   key={option}
                   style={[styles.modalOption, selected && styles.modalOptionSelected]}
-                  onPress={() => { handleChange(activeGenderModalId!, 'gender', option); setActiveGenderModalId(null); }}
+                  onPress={() => {
+                    handleChange(activeGenderModalId!, 'gender', option);
+                    setActiveGenderModalId(null);
+                  }}
                 >
                   <Body3 color={Colors.TEXT_COLOR}>{option}</Body3>
                   <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
@@ -266,10 +354,19 @@ export default function FamilyInformationScreen() {
         </View>
       </Modal>
 
-      {/* Allergy Modal */}
-      <Modal visible={!!activeAllergyModalId} transparent animationType="fade" onRequestClose={() => setActiveAllergyModalId(null)}>
+      {/* ── Allergy Modal ── */}
+      <Modal
+        visible={!!activeAllergyModalId}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setActiveAllergyModalId(null)}
+      >
         <View style={styles.modalOverlay}>
-          <TouchableOpacity style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)' }]} onPress={() => setActiveAllergyModalId(null)} activeOpacity={1} />
+          <TouchableOpacity
+            style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
+            onPress={() => setActiveAllergyModalId(null)}
+            activeOpacity={1}
+          />
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <Body2 color={Colors.TEXT_COLOR}>Choose Allergies</Body2>
@@ -305,7 +402,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.APP_BACKGROUND,
   },
-
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -314,7 +410,6 @@ const styles = StyleSheet.create({
     paddingTop: hp(20),
     paddingBottom: hp(5),
   },
-
   backButton: {
     width: 52,
     height: 52,
@@ -323,32 +418,55 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: wp(20),
     paddingBottom: hp(40),
   },
-
   container: {
     flex: 1,
     paddingTop: hp(30),
   },
-
   titleBlock: {
     marginBottom: hp(30),
   },
-
   memberBlock: {
     marginBottom: hp(16),
   },
-
   memberHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: hp(8),
     paddingHorizontal: wp(4),
+  },
+
+  // ── IC Number styles ──
+  icWrapper: {
+    marginBottom: hp(12),
+  },
+  icBox: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.BORDER_COLOR,
+    paddingHorizontal: wp(16),
+    backgroundColor: 'transparent',
+  },
+  icBoxError: {
+    borderColor: '#F04438',
+  },
+  icInput: {
+    fontSize: 14,
+    color: Colors.TEXT_COLOR,
+    paddingVertical: hp(24),
+    fontFamily: 'Poppins_400Regular',
+  },
+  errorText: {
+    marginTop: 4,
+    marginLeft: 4,
+    fontSize: 12,
+    color: '#F04438',
+    fontFamily: 'Poppins_400Regular',
   },
 
   dropdownInput: {
@@ -362,13 +480,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     marginBottom: hp(12),
   },
-
   plusRow: {
     alignItems: 'flex-end',
     marginBottom: hp(8),
     marginTop: hp(4),
   },
-
   plusButton: {
     width: 64,
     height: 64,
@@ -379,14 +495,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
   },
-
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: wp(20),
   },
-
   modalContainer: {
     width: '100%',
     zIndex: 2,
@@ -398,14 +512,12 @@ const styles = StyleSheet.create({
     gap: hp(8),
     elevation: 5,
   },
-
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: hp(16),
   },
-
   modalOption: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -415,11 +527,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: wp(16),
     paddingVertical: hp(14),
   },
-
   modalOptionSelected: {
     backgroundColor: '#F0F8FF',
   },
-
   checkbox: {
     width: 22,
     height: 22,
@@ -430,7 +540,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
   checkboxSelected: {
     borderColor: Colors.BRAND_PRIMARY,
     backgroundColor: '#E8F4FD',

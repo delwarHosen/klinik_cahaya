@@ -34,10 +34,7 @@ export default function EditProfileScreen() {
   const [photoAsset, setPhotoAsset] = useState<ImagePicker.ImagePickerAsset | null>(null)
 
   const { refreshing, onRefresh } = useRefresh([refetch])
-
-  // ── Key fix: cache থাকলে loader দেখাবে না ─────────────────────────────────
-  // profileLoading=true + data=undefined → প্রথমবার ঢুকলে (no cache)
-  // profileLoading=true + data=exists  → back করে ফিরলে (cache hit, refetch bg-এ)
+  
   const showInitialLoader = profileLoading && !data
 
   const name = data?.name ?? '-'

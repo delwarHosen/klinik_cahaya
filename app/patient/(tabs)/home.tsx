@@ -52,6 +52,7 @@ export default function HomeScreen() {
 
   const { data: servicesData, refetch: refetchServices } = useGetServicesQuery(undefined);
   const services = servicesData?.results ?? [];
+  // console.log("All services from Home:", services)
 
   const { data, isLoading: profileLoading, refetch: refetchProfile } = useGetProfileQuery({})
   const avatarUrl = data?.profile_picture?.public_url ?? null
@@ -118,13 +119,13 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-        <RefreshControl
+          <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={[Colors.BRAND_PRIMARY]}   
-            tintColor={Colors.BRAND_PRIMARY}   
-        />
-    }
+            colors={[Colors.BRAND_PRIMARY]}
+            tintColor={Colors.BRAND_PRIMARY}
+          />
+        }
       >
         <QuickActionsGrid onItemPress={(route) => navigate(route)} />
 
@@ -208,13 +209,24 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   stickyTop: {
     backgroundColor: Colors.APP_BACKGROUND,
-    paddingHorizontal: wp(20), paddingTop: hp(10), paddingBottom: hp(12),
+    paddingHorizontal: wp(20),
+    paddingTop: hp(10),
+    paddingBottom: hp(12),
     zIndex: 10, elevation: 1,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
   },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: hp(10) },
-  logoContainer: { flexDirection: 'row', alignItems: 'center' },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: hp(10)
+  },
+  logoContainer: {
+    flexDirection: 'row', alignItems: 'center'
+  },
   logo: { height: hp(54), width: wp(138), resizeMode: 'contain' },
   headerIcons: { flexDirection: 'row', alignItems: 'center' },
   iconBtn: {

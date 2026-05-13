@@ -25,77 +25,67 @@ export interface NotificationListResponse {
 export const notificationApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
 
-        // GET admin notifications
-        getAdminNotifications: builder.query<NotificationListResponse, void>({
-            query: () => ({ url: '/notifications/admin', method: 'GET' }),
-            providesTags: ['Notifications'],
-        }),
+       // redux/services/notificationApi.ts
 
-        // GET patient notifications
-        getPatientNotifications: builder.query<NotificationListResponse, void>({
-            query: () => ({ url: '/notifications/patient', method: 'GET' }),
-            providesTags: ['Notifications'],
-        }),
+getAdminNotifications: builder.query<NotificationListResponse, void>({
+    query: () => ({ url: '/notifications/admin', method: 'GET' }),
+    providesTags: ['AdminNotifications'], 
+}),
 
-        // PATCH mark as read
-        markNotificationRead: builder.mutation<any, string>({
-            query: (notification_id) => ({
-                url: '/notifications/read',
-                method: 'PATCH',
-                body: { notification_id },
-            }),
-            // Optimistic update — flip is_read without full refetch
-            async onQueryStarted(notification_id, { dispatch, queryFulfilled }) {
-                const patchAdmin = dispatch(
-                    notificationApi.util.updateQueryData('getAdminNotifications', undefined, (draft) => {
-                        const n = draft.results.find((r) => r.id === notification_id);
-                        if (n) n.is_read = true;
-                    })
-                );
-                const patchPatient = dispatch(
-                    notificationApi.util.updateQueryData('getPatientNotifications', undefined, (draft) => {
-                        const n = draft.results.find((r) => r.id === notification_id);
-                        if (n) n.is_read = true;
-                    })
-                );
-                try {
-                    await queryFulfilled;
-                } catch {
-                    patchAdmin.undo();
-                    patchPatient.undo();
-                }
-            },
-        }),
+getPatientNotifications: builder.query<NotificationListResponse, void>({
+    query: () => ({ url: '/notifications/patient', method: 'GET' }),
+    providesTags: ['PatientNotifications'], 
+}),
 
-        // DELETE notification
-        deleteNotification: builder.mutation<any, string>({
-            query: (notification_id) => ({
-                url: `/notifications/${notification_id}`,
-                method: 'DELETE',
-            }),
-            // Optimistic update — remove from list instantly
-            async onQueryStarted(notification_id, { dispatch, queryFulfilled }) {
-                const patchAdmin = dispatch(
-                    notificationApi.util.updateQueryData('getAdminNotifications', undefined, (draft) => {
-                        draft.results = draft.results.filter((r) => r.id !== notification_id);
-                        draft.count = Math.max(0, draft.count - 1);
-                    })
-                );
-                const patchPatient = dispatch(
-                    notificationApi.util.updateQueryData('getPatientNotifications', undefined, (draft) => {
-                        draft.results = draft.results.filter((r) => r.id !== notification_id);
-                        draft.count = Math.max(0, draft.count - 1);
-                    })
-                );
-                try {
-                    await queryFulfilled;
-                } catch {
-                    patchAdmin.undo();
-                    patchPatient.undo();
-                }
-            },
-        }),
+markNotificationRead: builder.mutation<any, { id: string; role: 'admin' | 'patient' }>({
+    query: ({ id }) => ({
+        url: '/notifications/read',
+        method: 'PATCH',
+        body: { notification_id: id },
+    }),
+    async onQueryStarted({ id, role }, { dispatch, queryFulfilled }) {
+        
+        const queryName = role === 'admin'
+            ? 'getAdminNotifications'
+            : 'getPatientNotifications';
 
+        const patch = dispatch(
+            notificationApi.util.updateQueryData(queryName, undefined, (draft) => {
+                const n = draft.results.find((r) => r.id === id);
+                if (n) n.is_read = true;
+            })
+        );
+        try {
+            await queryFulfilled;
+        } catch {
+            patch.undo();
+        }
+    },
+}),
+
+deleteNotification: builder.mutation<any, { id: string; role: 'admin' | 'patient' }>({
+    query: ({ id }) => ({
+        url: `/notifications/${id}`,
+        method: 'DELETE',
+    }),
+    async onQueryStarted({ id, role }, { dispatch, queryFulfilled }) {
+        const queryName = role === 'admin'
+            ? 'getAdminNotifications'
+            : 'getPatientNotifications';
+
+        const patch = dispatch(
+            notificationApi.util.updateQueryData(queryName, undefined, (draft) => {
+                draft.results = draft.results.filter((r) => r.id !== id);
+                draft.count = Math.max(0, draft.count - 1);
+            })
+        );
+        try {
+            await queryFulfilled;
+        } catch {
+            patch.undo();
+        }
+    },
+}),
     }),
     overrideExisting: true,
 });

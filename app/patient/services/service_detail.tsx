@@ -38,19 +38,13 @@ export default function ServiceDetailScreen() {
     const { data, isLoading, refetch } = useGetServiceByIdQuery(serviceId ?? '1');
     const { refreshing, onRefresh } = useRefresh([refetch]);
 
-    // if (isLoading) {
-    //     return (
-    //         <SafeAreaView style={styles.container} edges={['top']}>
-    //             <SectionTitle title="Service Details" />
-    //             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    //                 <PageLoader visible={isLoading} title="LOADING" subtitle="Service details loading" />
-    //             </View>
-    //         </SafeAreaView>
-    //     );
-    // }
+    console.log("All Service Data", data)
 
     const service = data?.service;
     const doctors: any[] = data?.doctors ?? [];
+
+    console.log("services", service)
+    console.log("Doctors", doctors)
 
     if (!service) return null;
 
@@ -103,7 +97,7 @@ export default function ServiceDetailScreen() {
                 {/* Description */}
                 <View style={styles.section}>
                     <H6 style={styles.sectionTitle}>About Service</H6>
-                    <Body2 style={styles.description}>{service.description}</Body2>
+                    <Body2 weight='medium' style={styles.description}>{service.description}</Body2>
                 </View>
 
                 {/* Doctors */}
@@ -223,8 +217,9 @@ const styles = StyleSheet.create({
         marginBottom: hp(12)
     },
     description: {
-        color: '#444444',
-        lineHeight: 24
+        color: Colors.PLACEHOLLDER_TEXT,
+        lineHeight: 24,
+        fontSize: 15
     },
     doctorsList: {
         gap: hp(10)

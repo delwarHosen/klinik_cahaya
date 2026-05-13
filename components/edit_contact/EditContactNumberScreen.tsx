@@ -15,15 +15,15 @@ interface Props {
 const toE164 = (input: string): string => {
   const digits = input.replace(/\D/g, '')
   if (input.trim().startsWith('+')) return `+${digits}`
-  if (digits.startsWith('0')) return `+880${digits.slice(1)}`
-  return `+880${digits}`
+  if (digits.startsWith('0')) return `${digits.slice(1)}`
+  return `${digits}`
 }
 
 export function EditContactNumberScreen({ onSuccess }: Props) {
   const [phone, setPhone] = useState('')
   const [updatePhone, { isLoading }] = useUpdatePhoneMutation()
   const { data } = useGetProfileQuery({})
-  const existingPhone = data?.steps?.personal?.data?.phone ?? data?.phone ?? '+8801XXXXXXXXX'
+  const existingPhone = data?.steps?.personal?.data?.phone ?? data?.phone ?? 'Enter Add New Number'
 
   const handleSave = async () => {
     if (!phone.trim()) {

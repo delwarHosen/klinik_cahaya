@@ -7,6 +7,7 @@ import { useLazyGetMedicalRecordsQuery } from '@/redux/services/medicalRecordApi
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     StyleSheet,
     TextInput,
@@ -15,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function IcVerificationScreen() {
+    const { t } = useTranslation();
     const router = useRouter();
     const [digits, setDigits] = useState(['', '', '', '']);
     const inputs = useRef<(TextInput | null)[]>([]);
@@ -50,23 +52,21 @@ export default function IcVerificationScreen() {
                     params: { icLast4: code }
                 });
             } else {
-                showToast("No records found for this IC");
+                showToast(t('no_records_found'));
             }
         } catch (error) {
-            showToast("Verification failed");
+            showToast(t('verification_failed'));
         }
     };
 
-
-    // const isComplete = digits.every(d => d !== '');
-
     return (
         <SafeAreaView style={styles.container}>
-            
-            <SectionTitle title="IC Verification" />
+
+            <SectionTitle title={t('ic_verification')} />
+
             <View style={styles.content}>
                 <H6 style={styles.subtitle} align="center">
-                    4-digit IC verification{'\n'}(last 4 digits)
+                    {t('ic_subtitle')}
                 </H6>
 
                 <View style={styles.boxRow}>
@@ -87,7 +87,7 @@ export default function IcVerificationScreen() {
                 </View>
 
                 <CustomButton
-                    title="Verify"
+                    title={t('verify')}
                     onPress={handleVerify}
                     isLoading={isLoading}
                     style={{ marginTop: hp(40) }}

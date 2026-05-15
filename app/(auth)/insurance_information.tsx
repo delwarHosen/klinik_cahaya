@@ -10,6 +10,7 @@ import { useUpdateInsuranceMutation } from '@/redux/services/authApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next'; // ১. ইম্পোর্ট
 import {
   KeyboardAvoidingView,
   Platform,
@@ -22,20 +23,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function InsuranceInformationScreen() {
   const router = useRouter();
+  const { t } = useTranslation(); // ২. হুক কল
+  
   const [providerName, setProviderName] = useState('');
   const [planType, setPlanType] = useState('');
   const [memberId, setMemberId] = useState('');
   const [coverageType, setCoverageType] = useState('');
   const [updateInsurance, { isLoading }] = useUpdateInsuranceMutation();
 
-  // const handleContinue = () => {
-  //   router.push('/(auth)/family_information');
-  // };
-
   const handleSkip = () => {
     router.push('/(auth)/family_information');
   };
-
 
   const handleContinue = async () => {
     try {
@@ -46,25 +44,17 @@ export default function InsuranceInformationScreen() {
         coverage_type: coverageType,
       }).unwrap();
 
-      console.log(' Insurance saved:', JSON.stringify(res));
-      showToast('Insurance info saved!', 'success');
+      // console.log(' Insurance saved:', JSON.stringify(res));
+      showToast(t('insurance_saved'), 'success'); 
       router.push('/(auth)/family_information');
     } catch (err: any) {
       console.log(' Insurance error:', JSON.stringify(err));
-      showToast(err?.data?.detail?.msg || err?.data?.message || 'Failed to save insurance info.', 'error');
+      showToast(
+        err?.data?.detail?.msg || err?.data?.message || t('insurance_save_failed'), 
+        'error'
+      );
     }
   };
-
-  // Button replace:
-  {
-    isLoading ? (
-      <View style={{ alignItems: 'center', marginTop: hp(12) }}>
-        <CustomLoader size={50} strokeWidth={3} />
-      </View>
-    ) : (
-      <CustomButton title="Continue" onPress={handleContinue} width="100%" height={hp(70)} borderRadius={16} style={{ marginTop: hp(12) }} />
-    )
-  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -78,7 +68,8 @@ export default function InsuranceInformationScreen() {
             <LeftAngleIcon />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleSkip}>
-            <Body3 color={Colors.PLACEHOLLDER_TEXT}>Skip</Body3>
+            {/* Skip বাটনের অনুবাদ */}
+            <Body3 color={Colors.PLACEHOLLDER_TEXT}>{t('skip')}</Body3> 
           </TouchableOpacity>
         </View>
 
@@ -88,36 +79,36 @@ export default function InsuranceInformationScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.container}>
-            {/* Title */}
+            {/* Title - ডাইনামিক অনুবাদ */}
             <View style={styles.titleBlock}>
               <AuthHeading
-                title='Set-up your Profile'
-                description="Insurance Information"
+                title={t('setup_profile')}
+                description={t('insurance_info')}
               />
             </View>
 
             <FormInput
               value={providerName}
               onChangeText={setProviderName}
-              placeholder="Provider Name"
+              placeholder={t('provider_name')}
             />
 
             <FormInput
               value={planType}
               onChangeText={setPlanType}
-              placeholder="Plan Type"
+              placeholder={t('plan_type')}
             />
 
             <FormInput
               value={memberId}
               onChangeText={setMemberId}
-              placeholder="Member ID"
+              placeholder={t('member_id')}
             />
 
             <FormInput
               value={coverageType}
               onChangeText={setCoverageType}
-              placeholder="Coverage Type"
+              placeholder={t('coverage_type')}
             />
 
             {isLoading ? (
@@ -126,7 +117,7 @@ export default function InsuranceInformationScreen() {
               </View>
             ) : (
               <CustomButton
-                title="Continue"
+                title={t('continue')}
                 onPress={handleContinue}
                 width="100%"
                 height={hp(70)}

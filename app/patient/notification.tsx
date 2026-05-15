@@ -10,6 +10,7 @@ import {
 import { hp, wp } from '@/utils/responsiveDevice'
 import { Ionicons } from '@expo/vector-icons'
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import {
     ActivityIndicator,
     FlatList,
@@ -19,28 +20,30 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-function timeAgo(isoString: string): string {
-    const diff = Date.now() - new Date(isoString).getTime()
-    const mins = Math.floor(diff / 60000)
-    if (mins < 1) return 'Just now'
-    if (mins < 60) return `${mins}m ago`
-    const hrs = Math.floor(mins / 60)
-    if (hrs < 24) return `${hrs}h ago`
-    const days = Math.floor(hrs / 24)
-    return `${days}d ago`
-}
-
 export default function PatientNotificationScreen() {
+    const { t } = useTranslation() 
     const { data, isLoading } = useGetPatientNotificationsQuery()
     const [markRead] = useMarkNotificationReadMutation()
     const [deleteNotif] = useDeleteNotificationMutation()
 
     const notifications = data?.results ?? []
 
+    
+    function timeAgo(isoString: string): string {
+        const diff = Date.now() - new Date(isoString).getTime()
+        const mins = Math.floor(diff / 60000)
+        if (mins < 1) return t('time_just_now')
+        if (mins < 60) return t('time_m_ago', { count: mins })
+        const hrs = Math.floor(mins / 60)
+        if (hrs < 24) return t('time_h_ago', { count: hrs })
+        const days = Math.floor(hrs / 24)
+        return t('time_d_ago', { count: days })
+    }
+
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             <View style={styles.header}>
-                <SectionTitle title="Notification" />
+                <SectionTitle title={t('notification')} />
             </View>
 
             {isLoading ? (
@@ -55,7 +58,7 @@ export default function PatientNotificationScreen() {
                     showsVerticalScrollIndicator={false}
                     ListEmptyComponent={
                         <View style={styles.centered}>
-                            <Caption1 style={{ color: '#999' }}>No notifications</Caption1>
+                            <Caption1 style={{ color: '#999' }}>{t('no_notifications')}</Caption1>
                         </View>
                     }
                     renderItem={({ item }) => (

@@ -13,6 +13,7 @@ import { hp, wp } from '@/utils/responsiveDevice'
 import * as ImagePicker from 'expo-image-picker'
 import { useRouter } from 'expo-router'
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Image,
   KeyboardAvoidingView,
@@ -26,21 +27,26 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function EditProfileScreen() {
+  const { t } = useTranslation();
   const router = useRouter()
   const { data, isLoading: profileLoading, refetch } = useGetProfileQuery({})
   const [uploadPhoto, { isLoading: uploading }] = useUploadPhotoMutation()
+
+  // console.log("Profile Data", data)
+
 
   const [photo, setPhoto] = useState<string | null>(null)
   const [photoAsset, setPhotoAsset] = useState<ImagePicker.ImagePickerAsset | null>(null)
 
   const { refreshing, onRefresh } = useRefresh([refetch])
-  
+
   const showInitialLoader = profileLoading && !data
 
   const name = data?.name ?? '-'
   const icNumber = data?.ic_number ?? '-'
   const dob = data?.steps?.profile?.data?.date_of_birth ?? '-'
-  const phone = data?.steps?.profile?.data?.phone ?? '-'
+  // const phone = data?.steps?.profile?.data?.phone ?? '-'
+  const phone = data?.phone_verification?.profile_phone ?? '-'
   const email = data?.email ?? '-'
   const avatarUrl = photo ?? data?.profile_picture?.public_url ?? null
 
@@ -70,31 +76,29 @@ export default function EditProfileScreen() {
         } as any)
         await uploadPhoto(formData).unwrap()
       }
-      showToast('Profile updated successfully', 'success')
+      showToast(t('profile_success'), 'success')
       router.back()
     } catch (err: any) {
-      showToast(err?.data?.message || 'Failed to update profile', 'error')
+      showToast(err?.data?.message || t('profile_failed'), 'error')
     }
   }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
 
-      
       <PageLoader
         visible={showInitialLoader}
-        title="LOADING"
-        subtitle="Fetching your profile..."
+        title={t('loading')}
+        subtitle={t('fetching_profile')}
       />
 
-      
       <PageLoader
         visible={uploading}
-        title="UPDATING"
-        subtitle="Saving your profile..."
+        title={t('updating')}
+        subtitle={t('saving_profile')}
       />
 
-      <SectionTitle title="Edit Profile" />
+      <SectionTitle title={t('edit_profile')} />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -128,24 +132,24 @@ export default function EditProfileScreen() {
 
           {/* Read-Only Fields */}
           {[
-            { label: 'Name', value: name },
-            { label: 'IC Number', value: icNumber },
-            { label: 'Date of Birth', value: dob },
-            { label: 'Email Address', value: email },
+            { label: t('label_name'), value: name },
+            { label: t('label_ic'), value: icNumber },
+            { label: t('label_dob'), value: dob },
+            { label: t('label_email'), value: email },
           ].map(field => (
             <View key={field.label}>
               <Caption2 style={styles.label}>{field.label}</Caption2>
               <View style={styles.readOnlyField}>
                 <Body3 color="#0000004D">{field.value}</Body3>
                 <View style={styles.readOnlyBadge}>
-                  <Caption2 color="#00000099">Read-Only</Caption2>
+                  <Caption2 color="#00000099">{t('read_only')}</Caption2>
                 </View>
               </View>
             </View>
           ))}
 
           {/* Phone */}
-          <Caption2 style={styles.label}>Contact Number</Caption2>
+          <Caption2 style={styles.label}>{t('label_contact')}</Caption2>
           <TouchableOpacity
             style={styles.editableField}
             activeOpacity={0.75}
@@ -157,9 +161,9 @@ export default function EditProfileScreen() {
 
           {/* Sub-section Links */}
           {[
-            { label: 'Medical Information', route: '/patient/profile/medical_information' },
-            { label: 'Insurance Information', route: '/patient/profile/insurance_information' },
-            { label: 'Family Information', route: '/patient/profile/family_information' },
+            { label: t('medical_info'), route: '/patient/profile/medical_information' },
+            { label: t('insurance_info'), route: '/patient/profile/insurance_information' },
+            { label: t('family_info'), route: '/patient/profile/family_information' },
           ].map(item => (
             <TouchableOpacity
               key={item.label}
@@ -174,7 +178,7 @@ export default function EditProfileScreen() {
 
           {/* Update Button */}
           <CustomButton
-            title='Update Profile'
+            title={t('update_profile')}
             onPress={handleUpdateProfile}
             height={64}
             width={"100%"}

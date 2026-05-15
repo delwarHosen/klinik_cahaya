@@ -9,6 +9,7 @@ import { hp, wp } from '@/utils/responsiveDevice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next'; // ১. ইম্পোর্ট
 import {
   KeyboardAvoidingView,
   Platform,
@@ -21,10 +22,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const OTP_LENGTH = 6;
-const RESEND_COOLDOWN = 45; // seconds
+const RESEND_COOLDOWN = 45;
 
 export default function EmailVerifyScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { email, password } = useLocalSearchParams<{ email: string; password: string }>();
 
   const [verifyOtp, { isLoading: verifyLoading }] = useVerifyOtpMutation();
@@ -36,7 +38,6 @@ export default function EmailVerifyScreen() {
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
-  // ── Cooldown timer ────────────────────────────────────────────────────────
   const [cooldown, setCooldown] = useState(RESEND_COOLDOWN);
   const [canResend, setCanResend] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -48,7 +49,7 @@ export default function EmailVerifyScreen() {
     timerRef.current = setInterval(() => {
       setCooldown((prev) => {
         if (prev <= 1) {
-          clearInterval(timerRef.current!);
+          if (timerRef.current) clearInterval(timerRef.current);
           setCanResend(true);
           return 0;
         }
@@ -58,7 +59,6 @@ export default function EmailVerifyScreen() {
   };
 
   useEffect(() => {
-    // Start cooldown on mount — OTP already sent when navigated here
     startCooldown();
     const timer = setTimeout(() => {
       inputRefs.current[0]?.focus();
@@ -68,8 +68,6 @@ export default function EmailVerifyScreen() {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
-
-  // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleOtpChange = (text: string, index: number) => {
     const digit = text.replace(/[^0-9]/g, '').slice(-1);
@@ -99,7 +97,7 @@ export default function EmailVerifyScreen() {
   const handleVerify = async () => {
     const otpValue = otp.join('');
     if (otpValue.length < OTP_LENGTH) {
-      showToast('Please enter the complete 6-digit OTP.', 'error');
+      showToast(t('otp_complete_error'), 'error');
       return;
     }
     try {
@@ -111,12 +109,11 @@ export default function EmailVerifyScreen() {
           await AsyncStorage.setItem('refresh_token', loginRes.refresh_token);
         }
       }
-      showToast('Email verified successfully!', 'success');
+      showToast(t('otp_verified_success'), 'success');
       router.push('/(auth)/personal_information');
     } catch (err: any) {
-      console.log('OTP verify error:', JSON.stringify(err));
       showToast(
-        err?.data?.detail?.msg || err?.data?.message || 'Invalid OTP. Please try again.',
+        err?.data?.detail?.msg || err?.data?.message || t('invalid_otp', 'Invalid OTP. Please try again.'),
         'error'
       );
     }
@@ -128,14 +125,10 @@ export default function EmailVerifyScreen() {
       await resendOtp({ email }).unwrap();
       setOtp(Array(OTP_LENGTH).fill(''));
       inputRefs.current[0]?.focus();
-      showToast('OTP resent! Check your email.', 'success');
-      startCooldown(); // ✅ resend করার পর আবার cooldown শুরু
+      showToast(t('otp_resent_success'), 'success');
+      startCooldown(); 
     } catch (err: any) {
-      console.log('Resend OTP error:', JSON.stringify(err, null, 2));
-      showToast(
-        err?.data?.message || 'Failed to resend OTP.',
-        'error'
-      );
+      showToast(err?.data?.message || t('resend_failed', 'Failed to resend OTP.'), 'error');
     }
   };
 
@@ -158,13 +151,12 @@ export default function EmailVerifyScreen() {
         >
           <View style={styles.container}>
             <H2 color={Colors.TEXT_COLOR} style={styles.title}>
-              Enter your 6 digit code
+              {t('otp_title')}
             </H2>
             <Body3 color={Colors.PLACEHOLLDER_TEXT} style={styles.subtitle}>
-              Enter the code we have sent to your Email
+              {t('otp_subtitle')}
             </Body3>
 
-            {/* OTP Inputs */}
             <View style={styles.otpRow}>
               {otp.map((digit, index) => (
                 <TextInput
@@ -184,14 +176,13 @@ export default function EmailVerifyScreen() {
               ))}
             </View>
 
-            {/* Verify Button */}
             {isLoading ? (
               <View style={{ alignItems: 'center', marginTop: hp(24) }}>
                 <CustomLoader size={50} strokeWidth={1} />
               </View>
             ) : (
               <CustomButton
-                title="Verify"
+                title={t('verify')}
                 onPress={handleVerify}
                 width="100%"
                 height={hp(70)}
@@ -200,16 +191,15 @@ export default function EmailVerifyScreen() {
               />
             )}
 
-            {/* Resend */}
             <View style={styles.resendRow}>
-              <Caption2 color={Colors.TEXT_COLOR}>Haven't received the OTP? </Caption2>
+              <Caption2 color={Colors.TEXT_COLOR}>{t('havent_received_otp')}</Caption2>
               <TouchableOpacity onPress={handleResendOtp} disabled={!canResend || resendLoading}>
                 <Caption2 color={canResend ? Colors.BRAND_PRIMARY : Colors.PLACEHOLLDER_TEXT}>
                   {resendLoading
-                    ? 'Sending...'
+                    ? t('sending')
                     : canResend
-                      ? 'Resend OTP'
-                      : `Resend in ${cooldown}s`}
+                      ? t('resend_otp')
+                      : t('resend_in', { seconds: cooldown })} 
                 </Caption2>
               </TouchableOpacity>
             </View>
@@ -219,6 +209,8 @@ export default function EmailVerifyScreen() {
     </SafeAreaView>
   );
 }
+
+
 
 const styles = StyleSheet.create({
   safeArea: {

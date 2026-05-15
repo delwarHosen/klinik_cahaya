@@ -12,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next'; // ১. ইম্পোর্ট
 import {
     Image,
     StyleSheet,
@@ -24,6 +25,7 @@ import { useDispatch } from 'react-redux';
 export default function WelcomeProfileScreen() {
     const router = useRouter();
     const dispatch = useDispatch();
+    const { t } = useTranslation(); // ২. হুক কল
     const [photo, setPhoto] = useState<string | null>(null);
     const [photoAsset, setPhotoAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
     const [uploadPhoto, { isLoading }] = useUploadPhotoMutation();
@@ -55,13 +57,11 @@ export default function WelcomeProfileScreen() {
                     type: photoAsset.mimeType ?? 'image/jpeg',
                 } as any);
 
-                const uploadRes = await uploadPhoto(formData).unwrap();
-                console.log(' Photo uploaded:', JSON.stringify(uploadRes));
+                await uploadPhoto(formData).unwrap();
             }
 
             const accessToken = await AsyncStorage.getItem('access_token');
             const refreshToken = await AsyncStorage.getItem('refresh_token');
-            console.log(' Token on GetStarted:', accessToken);
 
             dispatch(setCredentials({
                 access_token: accessToken ?? '',
@@ -73,10 +73,9 @@ export default function WelcomeProfileScreen() {
             router.replace('/patient/(tabs)/home');
         } catch (err: any) {
             console.log(' Upload error:', JSON.stringify(err));
-            showToast(err?.data?.detail?.msg || err?.data?.message || 'Failed to upload photo.', 'error');
+            showToast(err?.data?.detail?.msg || err?.data?.message || t('upload_failed'), 'error');
         }
     };
-
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -86,9 +85,9 @@ export default function WelcomeProfileScreen() {
 
             <View style={styles.container}>
                 <View style={styles.titleBlock}>
-                    <H1>Welcome to, KNC</H1>
+                    <H1>{t('welcome_to')}</H1>
                     <Body3 color={Colors.PLACEHOLLDER_TEXT} style={styles.description}>
-                        Manage your appointments, insurance, and medical info—all in one place.
+                        {t('welcome_desc')}
                     </Body3>
                 </View>
 
@@ -105,7 +104,7 @@ export default function WelcomeProfileScreen() {
                                 </View>
                             </View>
                             <Body3 color={Colors.PLACEHOLLDER_TEXT} style={styles.uploadLabel}>
-                                Upload Photo
+                                {t('upload_photo')}
                             </Body3>
                         </View>
                     )}
@@ -117,7 +116,7 @@ export default function WelcomeProfileScreen() {
                     </View>
                 ) : (
                     <CustomButton
-                        title="Get Started"
+                        title={t('get_started')}
                         onPress={handleGetStarted}
                         width="100%"
                         height={hp(70)}
@@ -135,14 +134,6 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: Colors.APP_BACKGROUND,
         paddingHorizontal: wp(20),
-    },
-    backButton: {
-        width: 52,
-        height: 52,
-        borderRadius: 26,
-        backgroundColor: '#F8F8F8',
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     container: {
         flex: 1,

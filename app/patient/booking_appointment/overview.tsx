@@ -14,12 +14,12 @@ import { useGetDoctorByIdQuery } from '@/redux/services/doctorsApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // ─── Helpers 
 
-/** "YYYY-MM-DD" → "May 7, 2026 (Thursday)" */
 function formatDisplayDate(dateStr: string): string {
   const [year, month, day] = dateStr.split('-').map(Number);
   const d = new Date(year, month - 1, day);
@@ -28,7 +28,6 @@ function formatDisplayDate(dateStr: string): string {
   return `${monthName} ${day}, ${year} (${dayName})`;
 }
 
-/** "HH:MM" 24h → "08:00 PM" */
 function formatDisplayTime(timeStr: string): string {
   const [hStr, mStr] = timeStr.split(':');
   const h    = parseInt(hStr, 10);
@@ -37,9 +36,8 @@ function formatDisplayTime(timeStr: string): string {
   return `${String(h12).padStart(2, '0')}:${mStr} ${ampm}`;
 }
 
-// ─── Component
-
 export default function OverviewScreen() {
+  const { t } = useTranslation(); 
   const router = useRouter();
 
   const { doctorId, memberName, patient, reason, details, date, time } =
@@ -65,13 +63,9 @@ export default function OverviewScreen() {
 
   const [createAppointment, { isLoading: isBooking }] = useCreateAppointmentMutation();
 
-  // ── Refresh
   const { refreshing, onRefresh } = useRefresh([refetchDoctor, refetchMembers]);
-
-  // ── Local state 
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // ── Derived display values
   const displayDate = useMemo(() => (date ? formatDisplayDate(date) : ''), [date]);
   const displayTime = useMemo(() => (time ? formatDisplayTime(time) : ''), [time]);
 
@@ -93,12 +87,10 @@ export default function OverviewScreen() {
     };
 
     try {
-      const result = await createAppointment(payload).unwrap();
-      console.log('Booking success:', JSON.stringify(result, null, 2));
+      await createAppointment(payload).unwrap();
       setShowSuccess(true);
     } catch (err: any) {
-      console.log('Booking failed:', JSON.stringify(err, null, 2));
-      showToast('Booking Failed. Something went wrong. Please try again.');
+      showToast(t('booking_failed_msg'));
     }
   };
 
@@ -107,18 +99,17 @@ export default function OverviewScreen() {
     router.replace('/patient/(tabs)/home');
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
 
       <PageLoader
         visible={doctorLoading}
-        title="LOADING"
-        subtitle="Preparing your overview..."
+        title={t('loading')}
+        subtitle={t('preparing_overview')}
       />
 
       <View style={styles.header}>
-        <SectionTitle title="Overview" />
+        <SectionTitle title={t('overview')} />
       </View>
 
       <ScrollView
@@ -133,15 +124,13 @@ export default function OverviewScreen() {
           />
         }
       >
-        {/* Doctor info */}
         <H6 style={styles.doctorName}>{doctor?.name ?? '—'}</H6>
         <Caption1 style={styles.specialty}>{doctor?.specialization ?? ''}</Caption1>
 
         <View style={styles.divider} />
 
-        {/* Patient + Date / Time */}
         <View style={styles.row}>
-          <Caption1 weight="semiBold" style={styles.rowLabel}>Patients</Caption1>
+          <Caption1 weight="semiBold" style={styles.rowLabel}>{t('patients')}</Caption1>
           <View style={{ alignItems: 'flex-end' }}>
             <Caption1 weight="semiBold" style={styles.dateValue}>{displayDate}</Caption1>
             <Caption1 weight="semiBold" style={styles.dateValue}>{displayTime}</Caption1>
@@ -151,11 +140,9 @@ export default function OverviewScreen() {
 
         <View style={styles.divider} />
 
-        {/* Visit Reason */}
-        <Caption1 weight="semiBold" style={styles.rowLabel}>Visit Reason</Caption1>
+        <Caption1 weight="semiBold" style={styles.rowLabel}>{t('visit_reason')}</Caption1>
         <Caption1 weight="semiBold" style={styles.reasonValue}>{reason}</Caption1>
 
-        {/* Details (optional) */}
         {!!details && (
           <>
             <View style={styles.divider} />
@@ -166,10 +153,9 @@ export default function OverviewScreen() {
         <View style={styles.divider} />
       </ScrollView>
 
-      {/* Book Now CTA */}
       <View style={styles.bottomBar}>
         <CustomButton
-          title={isBooking ? 'Booking...' : 'Book Now'}
+          title={isBooking ? t('booking_status') : t('book_now')}
           height={54}
           width="100%"
           onPress={handleBookNow}
@@ -177,16 +163,15 @@ export default function OverviewScreen() {
         />
       </View>
 
-      {/* ── Success Modal ── */}
       <Modal visible={showSuccess} transparent animationType="fade" statusBarTranslucent>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <SuccessVerifyIcon />
             <H6 style={styles.successText}>
-              Your Booking Has Been Confirmed{'\n'}Successfully
+              {t('booking_success_title')}
             </H6>
             <CustomButton
-              title="Back To Home"
+              title={t('back_to_home')}
               height={54}
               width="100%"
               onPress={handleBackToHome}
@@ -202,24 +187,71 @@ export default function OverviewScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
-  header:    { paddingHorizontal: wp(20), paddingTop: hp(10) },
-  scroll:    { paddingHorizontal: wp(20), paddingTop: hp(20), paddingBottom: hp(20) },
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
 
-  doctorName:   { fontWeight: '700', color: '#1A1A1A', marginBottom: hp(4) },
-  specialty:    { color: '#888888', lineHeight: 20 },
+  header: {
+    paddingHorizontal: wp(20),
+    paddingTop: hp(10),
+  },
 
-  divider: { height: 1, backgroundColor: '#F0F0F0', marginVertical: hp(16) },
+  scroll: {
+    paddingHorizontal: wp(20),
+    paddingTop: hp(20),
+    paddingBottom: hp(20),
+  },
 
-  row:          { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  rowLabel:     { color: '#888888', marginBottom: hp(4) },
-  dateValue:    { color: '#1A1A1A', textAlign: 'right', marginBottom: hp(2) },
-  patientValue: { color: '#1A1A1A', marginTop: hp(4) },
-  reasonValue:  { color: '#1A1A1A', marginTop: hp(4) },
-  detailText:   { color: '#333333', lineHeight: 22 },
+  doctorName: {
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: hp(4),
+  },
+
+  specialty: {
+    color: '#888888',
+    lineHeight: 20,
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+    marginVertical: hp(16),
+  },
+
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+
+  rowLabel: {
+    color: '#888888',
+    marginBottom: hp(4),
+  },
+
+  dateValue: {
+    color: '#1A1A1A',
+    textAlign: 'right',
+    marginBottom: hp(2),
+  },
+
+  patientValue: {
+    color: '#1A1A1A',
+    marginTop: hp(4),
+  },
+
+  reasonValue: {
+    color: '#1A1A1A',
+    marginTop: hp(4),
+  },
+
+  detailText: {
+    color: '#333333',
+    lineHeight: 22,
+  },
 
   bottomBar: {
     backgroundColor: '#FFFFFF',
@@ -237,6 +269,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: wp(32),
   },
+
   modalCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
@@ -245,11 +278,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     gap: hp(16),
+
     elevation: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
     shadowOpacity: 0.15,
     shadowRadius: 16,
   },
-  successText: { textAlign: 'center', color: '#1A1A1A', lineHeight: 26 },
+
+  successText: {
+    textAlign: 'center',
+    color: '#1A1A1A',
+    lineHeight: 26,
+  },
 });

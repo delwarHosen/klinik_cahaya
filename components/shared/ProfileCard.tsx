@@ -1,7 +1,5 @@
-
-import { Colors } from '@/constants/theme';
-
 import { RightAngleIcon } from '@/assets/icons/common_icon/RightAngleIcon';
+import { Colors } from '@/constants/theme';
 import { hp } from '@/utils/responsiveDevice';
 import React, { ReactNode } from 'react';
 import { StyleSheet, TouchableOpacity, View, ViewStyle } from 'react-native';

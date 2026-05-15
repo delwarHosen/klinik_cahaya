@@ -15,6 +15,7 @@ import {
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -24,8 +25,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-const REASONS = ['Demam/Sakit', 'Checkup', 'Follow-up', 'Vaksin'];
 
 function formatDisplayDateTime(dateStr: string, timeStr: string): string {
   const [year, month, day] = dateStr.split('-').map(Number);
@@ -41,7 +40,17 @@ function formatDisplayDateTime(dateStr: string, timeStr: string): string {
 }
 
 export default function InformationScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
+
+
+  const REASONS = [
+    t('reason_fever'),
+    t('reason_checkup'),
+    t('reason_followup'),
+    t('reason_vaccine')
+  ];
+
   const { id, consultationTime } = useLocalSearchParams<{ id: string; consultationTime: string }>();
 
   const { data: membersData, isLoading: membersLoading, refetch: refetchMembers } = useGetAppointmentMembersQuery();
@@ -87,16 +96,14 @@ export default function InformationScreen() {
   const handleContinue = () => {
     if (!canContinue || !id) return;
 
-    // member_name: self → "null" string, family → family member's name
-    // OverviewScreen converts "null" string back to null before POST
     const memberName = selectedMember!.type === 'self' ? 'null' : selectedMember!.name;
 
     router.push({
       pathname: '/patient/booking_appointment/overview' as any,
       params: {
         doctorId: id,
-        memberName,                    // "null" = self, else family name
-        patient: selectedMember!.name, // always display name
+        memberName,
+        patient: selectedMember!.name,
         reason: selectedReason!,
         details,
         date: selectedDate!,
@@ -107,10 +114,14 @@ export default function InformationScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <PageLoader visible={isPageLoading} title="LOADING" subtitle="Loading availability..." />
+      <PageLoader
+        visible={isPageLoading}
+        title={t('loading')}
+        subtitle={t('loading_availability')}
+      />
 
       <View style={styles.header}>
-        <SectionTitle title="Information" />
+        <SectionTitle title={t('information')} />
       </View>
 
       <KeyboardAvoidingView
@@ -132,9 +143,9 @@ export default function InformationScreen() {
           }
         >
           <SpecialText style={styles.question}>
-            What kind of issue do you need treatment for?
+            {t('treatment_question')}
           </SpecialText>
-          <Caption1 weight="medium" style={styles.label}>Booking For</Caption1>
+          <Caption1 weight="medium" style={styles.label}>{t('booking_for')}</Caption1>
 
           <PatientDropdown
             patients={[...new Map(members.map((m) => [m.name, m])).values()].map((m) => m.name)}
@@ -163,7 +174,7 @@ export default function InformationScreen() {
 
         <View style={styles.bottomBar}>
           <CustomButton
-            title="Continue"
+            title={t('continue')}
             height={54}
             width="100%"
             onPress={handleContinue}
@@ -186,16 +197,37 @@ export default function InformationScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
-  flex: { flex: 1 },
-  header: { paddingHorizontal: wp(20), paddingTop: hp(10) },
-  scroll: { paddingHorizontal: wp(20), paddingTop: hp(20), paddingBottom: hp(20) },
-  question: { fontSize: 16, fontWeight: '600', color: '#1A1A1A', marginBottom: hp(16) },
-  label: { color: Colors.TEXT_COLOR, marginVertical: hp(12) },
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF'
+  },
+  flex: {
+    flex: 1
+  },
+  header: {
+    paddingHorizontal: wp(20),
+    paddingTop: hp(10)
+  },
+  scroll: {
+    paddingHorizontal: wp(20),
+    paddingTop: hp(20),
+    paddingBottom: hp(20)
+  },
+  question: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: hp(16)
+  },
+  label: {
+    color: Colors.TEXT_COLOR,
+    marginVertical: hp(12)
+  },
   bottomBar: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: wp(20),
     paddingTop: hp(12),
+    paddingBottom: hp(12),
     borderTopWidth: 1,
     borderTopColor: Colors.BORDER_COLOR,
     width: '100%',

@@ -10,6 +10,7 @@ import { useForgotPasswordMutation } from '@/redux/services/authApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next'; // ১. ইম্পোর্ট
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -22,13 +23,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
+  const { t } = useTranslation(); // ২. হুক ইনিশিয়ালাইজ
   const [email, setEmail] = useState('');
   const [forgotPassword, { isLoading }] = useForgotPasswordMutation();
 
   const handleSend = async () => {
     Keyboard.dismiss();
     if (!email.trim()) {
-      showToast('Please enter your email.', 'error');
+      showToast(t('enter_email_error'), 'error');
       return;
     }
 
@@ -37,14 +39,14 @@ export default function ForgotPasswordScreen() {
         email: email.trim().toLowerCase(),
       }).unwrap();
 
-      showToast('OTP sent! Check your email.', 'success');
+      showToast(t('otp_sent_success'), 'success');
       router.push({
         pathname: '/(auth)/otp_verify' as any,
         params: { email: email.trim().toLowerCase() },
       });
     } catch (err: any) {
       showToast(
-        err?.data?.detail?.msg || err?.data?.message || 'Failed to send OTP.',
+        err?.data?.detail?.msg || err?.data?.message || t('otp_send_failed'),
         'error'
       );
     }
@@ -64,8 +66,8 @@ export default function ForgotPasswordScreen() {
 
         <View style={styles.container}>
           <AuthHeading
-            title="Forgot Password"
-            description="We'll send an OTP to this email"
+            title={t('forgot_password_title')}
+            description={t('forgot_password_desc')}
             style={{ marginBottom: hp(30) }}
           />
 
@@ -73,7 +75,7 @@ export default function ForgotPasswordScreen() {
             value={email}
             onChangeText={setEmail}
             type="email"
-            placeholder="Enter Email Address"
+            placeholder={t('email_placeholder')}
           />
 
           {isLoading ? (
@@ -82,7 +84,7 @@ export default function ForgotPasswordScreen() {
             </View>
           ) : (
             <CustomButton
-              title="Send OTP"
+              title={t('send_otp_btn')}
               onPress={handleSend}
               width="100%"
               height={hp(70)}
@@ -92,9 +94,9 @@ export default function ForgotPasswordScreen() {
           )}
 
           <View style={styles.footer}>
-            <Caption2 color={Colors.TEXT_COLOR}>Remember your password?</Caption2>
+            <Caption2 color={Colors.TEXT_COLOR}>{t('remember_password')}</Caption2>
             <TouchableOpacity onPress={() => router.back()}>
-              <Caption2 color={Colors.BRAND_PRIMARY}> Sign in</Caption2>
+              <Caption2 color={Colors.BRAND_PRIMARY}>{t('sign_in')}</Caption2>
             </TouchableOpacity>
           </View>
         </View>
@@ -129,5 +131,6 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: hp(20),
     flexDirection: 'row',
+    justifyContent: 'center', 
   },
 });

@@ -9,6 +9,7 @@ import { hp, wp } from '@/utils/responsiveDevice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next'; // ১. ইম্পোর্ট
 import {
     KeyboardAvoidingView,
     Platform,
@@ -25,6 +26,7 @@ const RESEND_COOLDOWN = 45;
 
 export default function ForgotPasswordOtpScreen() {
     const router = useRouter();
+    const { t } = useTranslation(); // ২. হুক ইনিশিয়ালাইজ
     const { email } = useLocalSearchParams<{ email: string }>();
 
     const [verifyOtp, { isLoading: verifyLoading }] = useVerifyForgotPasswordOtpMutation();
@@ -92,24 +94,21 @@ export default function ForgotPasswordOtpScreen() {
     const handleVerify = async () => {
         const otpValue = otp.join('');
         if (otpValue.length < OTP_LENGTH) {
-            showToast('Please enter the complete 6-digit OTP.', 'error');
+            showToast(t('otp_incomplete'), 'error');
             return;
         }
         try {
             const res = await verifyOtp({ email, otp: otpValue }).unwrap();
-            console.log('Verify response:', JSON.stringify(res, null, 2));
-
-            // ✅ reset_access_token AsyncStorage এ save করুন
             await AsyncStorage.setItem('reset_access_token', res.access_token);
 
-            showToast('OTP verified!', 'success');
+            showToast(t('otp_verified'), 'success');
             router.push({
                 pathname: '/(auth)/set_new_password' as any,
-                params: { email }, // token params এ পাঠানো লাগবে না
+                params: { email },
             });
         } catch (err: any) {
             showToast(
-                err?.data?.detail?.msg || err?.data?.message || 'Invalid OTP. Please try again.',
+                err?.data?.detail?.msg || err?.data?.message || t('otp_invalid'),
                 'error'
             );
         }
@@ -121,11 +120,11 @@ export default function ForgotPasswordOtpScreen() {
             await resendOtp({ email }).unwrap();
             setOtp(Array(OTP_LENGTH).fill(''));
             inputRefs.current[0]?.focus();
-            showToast('OTP resent! Check your email.', 'success');
+            showToast(t('otp_resent'), 'success');
             startCooldown();
         } catch (err: any) {
             showToast(
-                err?.data?.message || 'Failed to resend OTP.',
+                err?.data?.message || t('resend_failed'),
                 'error'
             );
         }
@@ -150,10 +149,10 @@ export default function ForgotPasswordOtpScreen() {
                 >
                     <View style={styles.container}>
                         <H2 color={Colors.TEXT_COLOR} style={styles.title}>
-                            Enter your 6 digit code
+                            {t('enter_otp_title')}
                         </H2>
                         <Body3 color={Colors.PLACEHOLLDER_TEXT} style={styles.subtitle}>
-                            We sent a code to{'\n'}
+                            {t('we_sent_code')}{'\n'}
                             <Body3 color={Colors.BRAND_PRIMARY}>{email}</Body3>
                         </Body3>
 
@@ -184,7 +183,7 @@ export default function ForgotPasswordOtpScreen() {
                             </View>
                         ) : (
                             <CustomButton
-                                title="Verify OTP"
+                                title={t('verify_otp')}
                                 onPress={handleVerify}
                                 width="100%"
                                 height={hp(70)}
@@ -195,14 +194,14 @@ export default function ForgotPasswordOtpScreen() {
 
                         {/* Resend */}
                         <View style={styles.resendRow}>
-                            <Caption2 color={Colors.TEXT_COLOR}>Haven't received the OTP? </Caption2>
+                            <Caption2 color={Colors.TEXT_COLOR}>{t('no_otp_received')}</Caption2>
                             <TouchableOpacity onPress={handleResend} disabled={!canResend || resendLoading}>
                                 <Caption2 color={canResend ? Colors.BRAND_PRIMARY : Colors.PLACEHOLLDER_TEXT}>
                                     {resendLoading
-                                        ? 'Sending...'
+                                        ? t('sending')
                                         : canResend
-                                            ? 'Resend OTP'
-                                            : `Resend in ${cooldown}s`}
+                                            ? t('resend_otp')
+                                            : t('resend_in', { seconds: cooldown })}
                                 </Caption2>
                             </TouchableOpacity>
                         </View>

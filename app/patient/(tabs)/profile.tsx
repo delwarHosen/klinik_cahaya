@@ -19,6 +19,7 @@ import { hp, wp } from '@/utils/responsiveDevice'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useFocusEffect, useRouter } from 'expo-router'
 import React, { useCallback, useState } from 'react'
+import { useTranslation } from 'react-i18next'; // ১. ইম্পোর্ট
 import {
   Image,
   RefreshControl,
@@ -30,6 +31,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useDispatch } from 'react-redux'
 
 export default function ProfileScreen() {
+  const { t } = useTranslation() // ২. হুক ইনিশিয়ালাইজ
   const router = useRouter()
   const dispatch = useDispatch()
   const [logoutApi, { isLoading: logoutLoading }] = useLogoutMutation()
@@ -81,8 +83,8 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-     <PageLoader visible={focusLoading} title="LOADING" subtitle="" />
-      <SectionTitle title="Profile" />
+      <PageLoader visible={focusLoading} title={t('loading')} subtitle="" />
+      <SectionTitle title={t('profile')} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -122,27 +124,27 @@ export default function ProfileScreen() {
           <View style={styles.infoBox}>
             <View style={styles.infoBoxHeader}>
               <View style={styles.medicalBadge}>
-                <Caption4 color="#FFFFFF">Medical</Caption4>
+                <Caption4 color="#FFFFFF">{t('medical')}</Caption4>
               </View>
             </View>
             <Caption1 style={{ marginBottom: hp(8) }} color="#00000099">
-              <Caption1 weight="semiBold" color="#555">Blood Group: </Caption1>
+              <Caption1 weight="semiBold" color="#555">{t('blood_group')}: </Caption1>
               <Caption1 color={Colors.BRAND_PRIMARY}>{bloodGroup}</Caption1>
             </Caption1>
             <Caption1 style={{ marginBottom: hp(8) }} color="#00000099">
-              <Caption1 weight="semiBold" color="#555">Allergies: </Caption1>
+              <Caption1 weight="semiBold" color="#555">{t('allergies')}: </Caption1>
               <Caption1 color={Colors.BRAND_PRIMARY}>
                 {allergies.length > 0 ? allergies.join(', ') : '-'}
               </Caption1>
             </Caption1>
             <Caption1 style={{ marginBottom: hp(8) }} color="#00000099">
-              <Caption1 weight="semiBold" color="#555">Medical Condition: </Caption1>
+              <Caption1 weight="semiBold" color="#555">{t('medical_condition')}: </Caption1>
               <Caption1 color={Colors.BRAND_PRIMARY}>
                 {conditions.length > 0 ? conditions.join(', ') : '-'}
               </Caption1>
             </Caption1>
             <Caption1 style={{ marginBottom: hp(8) }} color="#00000099">
-              <Caption1 weight="semiBold" color="#555">Medication: </Caption1>
+              <Caption1 weight="semiBold" color="#555">{t('medication')}: </Caption1>
               <Caption1 color={Colors.BRAND_PRIMARY}>
                 {medication.length > 0 ? medication.join(', ') : '-'}
               </Caption1>
@@ -152,21 +154,21 @@ export default function ProfileScreen() {
           {/* Insurance Info */}
           <View style={styles.insuranceBox}>
             <View style={styles.insuranceBadge}>
-              <Caption4 color="#00000099">Insurance</Caption4>
+              <Caption4 color="#00000099">{t('insurance')}</Caption4>
             </View>
             <H6 color={Colors.BRAND_PRIMARY}>{insurance.provider}</H6>
             <Caption1 color="#00000099" style={{ marginBottom: hp(8) }}>
-              <Caption1 weight="semiBold" color="#00000099">Plan Type: </Caption1>
+              <Caption1 weight="semiBold" color="#00000099">{t('plan_type')}: </Caption1>
               <Caption1 color={Colors.BRAND_PRIMARY}>{insurance.planType}</Caption1>
             </Caption1>
             <Caption1 color="#00000099" style={{ marginBottom: hp(8) }}>
-              <Caption1 weight="semiBold" color="#00000099">Member ID: </Caption1>
+              <Caption1 weight="semiBold" color="#00000099">{t('member_id')}: </Caption1>
               <Caption1 color={Colors.BRAND_PRIMARY}>{insurance.memberId}</Caption1>
             </Caption1>
           </View>
 
           <CustomButton
-            title='Edit Profile'
+            title={t('edit_profile')}
             onPress={() => router.push('/patient/profile/edit_profile')}
             height={56}
             width="100%"
@@ -178,31 +180,31 @@ export default function ProfileScreen() {
         <View style={styles.menuSection}>
           <ProfileCard
             icon={<LanguageIcon size={22} color={Colors.BRAND_PRIMARY} />}
-            label="Language"
+            label={t('language')}
             iconBG={`${Colors.BRAND_PRIMARY}1A`}
             onPress={() => router.push('/patient/profile/language')}
           />
           <ProfileCard
             icon={<ChangePasswordIcon size={22} color={Colors.BRAND_PRIMARY} />}
-            label="Change Password"
+            label={t('change_password')}
             iconBG={`${Colors.BRAND_PRIMARY}1A`}
             onPress={() => router.push('/patient/profile/change_password')}
           />
           <ProfileCard
             icon={<ContactSupportIcon size={16} color={Colors.BRAND_PRIMARY} />}
-            label="Contact & Support"
+            label={t('contact_support')}
             iconBG={`${Colors.BRAND_PRIMARY}1A`}
             onPress={() => router.push('/patient/profile/contact_support')}
           />
           <ProfileCard
             icon={<TermsConditionIcon size={16} color={Colors.BRAND_PRIMARY} />}
-            label="Terms & Conditions"
+            label={t('terms_conditions')}
             iconBG={`${Colors.BRAND_PRIMARY}1A`}
             onPress={() => router.push('/patient/profile/terms_condition')}
           />
           <ProfileCard
             icon={<PrivacyPolicyIcon size={16} color={Colors.BRAND_PRIMARY} />}
-            label="Privacy & Policy"
+            label={t('privacy_policy')}
             iconBG={`${Colors.BRAND_PRIMARY}1A`}
             onPress={() => router.push('/patient/profile/privacy_policy')}
           />
@@ -214,7 +216,7 @@ export default function ProfileScreen() {
           ) : (
             <ProfileCard
               icon={<LogoutIcon size={16} color={Colors.COLOR_DANGER} />}
-              label="Logout"
+              label={t('logout')}
               iconBG={`${Colors.COLOR_DANGER}1A`}
               textColor={Colors.COLOR_DANGER}
               borderColor={`${Colors.COLOR_DANGER}33`}

@@ -9,6 +9,7 @@ import { logout } from '@/redux/authSlice'
 import { hp, wp } from '@/utils/responsiveDevice'
 import { useRouter } from 'expo-router'
 import React from 'react'
+import { useTranslation } from 'react-i18next'; // ১. ইম্পোর্ট করুন
 import {
   ScrollView,
   StyleSheet,
@@ -17,11 +18,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useDispatch } from 'react-redux'
 
-
-
 export default function SettingScreen() {
   const router = useRouter()
   const dispatch = useDispatch()
+  const { t } = useTranslation() // ২. হুক ইনিশিয়ালাইজ করুন
 
   const handleLogout = () => {
     dispatch(logout())
@@ -30,9 +30,7 @@ export default function SettingScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <SectionTitle title="Profile"
-      //  showBackButton={false}
-      />
+      <SectionTitle title={t('profile')} />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
@@ -40,28 +38,28 @@ export default function SettingScreen() {
         <View style={styles.menuSection}>
           <ProfileCard
             icon={<ProfileIcon size={22} color={Colors.BRAND_PRIMARY} />}
-            label="Manage Doctors"
+            label={t('manage_doctors')}
             iconBG={`${Colors.BRAND_PRIMARY}1A`}
             onPress={() => router.push('/admin/profile/manage_doctos')}
           />
 
           <ProfileCard
             icon={<LanguageIcon size={22} color={Colors.BRAND_PRIMARY} />}
-            label="Language"
+            label={t('language')}
             iconBG={`${Colors.BRAND_PRIMARY}1A`}
             onPress={() => router.push('/admin/profile/language')}
           />
 
           <ProfileCard
             icon={<ChangePasswordIcon size={22} color={Colors.BRAND_PRIMARY} />}
-            label="Change Password"
+            label={t('change_password')}
             iconBG={`${Colors.BRAND_PRIMARY}1A`}
             onPress={() => router.push('/admin/profile/change_password')}
           />
 
           <ProfileCard
             icon={<LogoutIcon size={16} color={Colors.COLOR_DANGER} />}
-            label="Logout"
+            label={t('logout')}
             iconBG={`${Colors.COLOR_DANGER}1A`}
             textColor={Colors.COLOR_DANGER}
             borderColor={`${Colors.COLOR_DANGER}33`}
@@ -85,8 +83,5 @@ const styles = StyleSheet.create({
     paddingBottom: hp(100),
     paddingTop: hp(10)
   },
-
-
-
   menuSection: { gap: 0 },
 })

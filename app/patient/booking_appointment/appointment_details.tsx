@@ -13,6 +13,7 @@ import { useGetDoctorAvailabilityQuery } from '@/redux/services/bookingApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Image,
   RefreshControl,
@@ -25,13 +26,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const PATIENT_PHONE = '60179224970';
 
-const DOWNLOAD_ITEMS = [
-  { key: 'diagnosis', label: 'Diagnosis Report' },
-  { key: 'prescription', label: 'Prescription' },
-  { key: 'billing', label: 'Billing receipt' },
-];
-
-function mapStatus(apiStatus: string): 'Upcoming' | 'Completed' | 'Canceled' {
+function mapStatus(apiStatus: string): 'upcoming' | 'completed' | 'canceled' {
   const s = (apiStatus ?? '').toLowerCase();
   switch (s) {
     case 'received':
@@ -39,39 +34,46 @@ function mapStatus(apiStatus: string): 'Upcoming' | 'Completed' | 'Canceled' {
     case 'pending':
     case 'new':
     case 'rescheduled':
-      return 'Upcoming';
+      return 'upcoming';
     case 'completed':
-      return 'Completed';
+      return 'completed';
     case 'cancelled':
     case 'canceled':
     case 'rejected':
     case 'reject':
-      return 'Canceled';
+      return 'canceled';
     default:
-      return 'Upcoming';
+      return 'upcoming';
   }
 }
 
 export default function AppointmentDetails() {
+  const { t } = useTranslation(); 
   const router = useRouter();
   const { appointmentId } = useLocalSearchParams<{ appointmentId: string }>();
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [rescheduleVisible, setRescheduleVisible] = useState(false);
   const [localStatus, setLocalStatus] = useState<string | null>(null);
 
-  // ── Queries ───────────────────────────────────────────────────────────────
+  const DOWNLOAD_ITEMS = [
+    { key: 'diagnosis', label: t('diagnosis_report') },
+    { key: 'prescription', label: t('prescription') },
+    { key: 'billing', label: t('billing_receipt') },
+  ];
+
+  // ── Queries 
   const { data, isLoading, refetch } = useGetAppointmentsByPhoneQuery(PATIENT_PHONE);
   const [rejectAppointment, { isLoading: isRejecting }] = useRejectAppointmentMutation();
   const [rescheduleAppointment, { isLoading: isRescheduling }] = useRescheduleAppointmentMutation();
 
-  // ── Appointment item ──────────────────────────────────────────────────────
+  // ── Appointment item 
   const appointments: any[] = Array.isArray(data)
     ? data
     : data?.appointments ?? [];
 
   const item = appointments.find((a: any) => String(a.id) === String(appointmentId));
 
-  // ── Doctor availability ───────────────────────────────────────────────────
+  // ── Doctor availability
   const doctorId = item?.doctor_id ?? item?.doctor_info?.id ?? item?.provider?.id ?? '';
   const { data: availData, refetch: refetchAvail } = useGetDoctorAvailabilityQuery(doctorId, {
     skip: !doctorId,
@@ -82,23 +84,23 @@ export default function AppointmentDetails() {
 
   const { refreshing, onRefresh } = useRefresh([refetch, refetchAvail]);
 
-  // ── Loading ───────────────────────────────────────────────────────────────
+  // ── Loading 
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
-        <PageLoader visible title="LOADING" subtitle="Fetching appointment details..." />
+        <PageLoader visible title={t('loading')} subtitle={t('fetching_details')} />
       </SafeAreaView>
     );
   }
 
   if (!item) return null;
 
-  // ── Derived values ────────────────────────────────────────────────────────
+  // ── Derived values
   const rawStatus  = localStatus ?? item.status;
-  const status     = mapStatus(rawStatus);
-  const isCompleted = status === 'Completed';
-  const isCanceled  = status === 'Canceled';
-  const isUpcoming  = status === 'Upcoming';
+  const statusKey  = mapStatus(rawStatus);
+  const isCompleted = statusKey === 'completed';
+  const isCanceled  = statusKey === 'canceled';
+  const isUpcoming  = statusKey === 'upcoming';
 
   const dateStr = item.appt_date ?? item.date ?? item.start ?? '';
   const timeStr = item.appt_time ?? item.time ?? '';
@@ -131,7 +133,7 @@ export default function AppointmentDetails() {
   const patientName      = item.patient_name ?? item.lead?.name ?? '-';
   const reason           = item.reason ?? item.services?.[0]?.name ?? '-';
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
+  // ── Handlers 
   const handleDoctorPress = () => {
     const id = doctorInfo.id ?? item.doctor_id;
     if (!id) return;
@@ -148,7 +150,7 @@ export default function AppointmentDetails() {
       setLocalStatus('rejected');
       refetch();
     } catch (error: any) {
-      showToast('Cancel Failed', error?.data?.message ?? 'Something went wrong.');
+      showToast(t('cancel_failed'), error?.data?.message ?? t('something_went_wrong'));
     }
   };
 
@@ -164,8 +166,7 @@ export default function AppointmentDetails() {
       setLocalStatus('rescheduled');
       refetch();
     } catch (error: any) {
-      console.log('Reschedule error:', JSON.stringify(error, null, 2));
-      showToast('Reschedule Failed', error?.data?.message ?? 'Something went wrong.');
+      showToast(t('reschedule_failed'), error?.data?.message ?? t('something_went_wrong'));
     }
   };
 
@@ -173,12 +174,24 @@ export default function AppointmentDetails() {
     console.log('Download:', key);
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  const getStatusBg = (s: string) => {
+    if (s === 'upcoming') return Colors.ACCENT_YELLOW;
+    return 'transparent';
+  };
+
+  const getStatusTextColor = (s: string) => {
+    if (s === 'upcoming') return '#000';
+    if (s === 'completed') return Colors.SUCCESS_COLOR;
+    if (s === 'canceled') return Colors.COLOR_DANGER;
+    return '#666';
+  };
+
+  // --- Render 
   return (
     <SafeAreaView style={styles.container}>
-      <PageLoader visible={isRejecting || isRescheduling} title="UPDATING" subtitle="Please wait..." />
+      <PageLoader visible={isRejecting || isRescheduling} title={t('updating')} subtitle={t('please_wait')} />
 
-      <SectionTitle title="Details" />
+      <SectionTitle title={t('details')} />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -192,7 +205,6 @@ export default function AppointmentDetails() {
           />
         }
       >
-        {/* Doctor Card */}
         <TouchableOpacity style={styles.doctorCard} onPress={handleDoctorPress} activeOpacity={0.8}>
           {doctorAvatar ? (
             <Image source={{ uri: doctorAvatar }} style={styles.doctorImg} />
@@ -207,22 +219,21 @@ export default function AppointmentDetails() {
           </View>
         </TouchableOpacity>
 
-        <H5 style={styles.sectionTitle} weight="semiBold">Appointment Details</H5>
+        <H5 style={styles.sectionTitle} weight="semiBold">{t('appointment_details')}</H5>
 
-        {/* Status + Date/Time */}
         <View style={styles.statusSectionContainer}>
-          <Caption1 color={Colors.TEXT_COLOR} style={{ marginBottom: 6 }}>Status</Caption1>
+          <Caption1 color={Colors.TEXT_COLOR} style={{ marginBottom: 6 }}>{t('status')}</Caption1>
           <View style={styles.badgeAndDateRow}>
             <View style={[
               styles.statusBadge,
               {
-                backgroundColor: getStatusBg(status),
+                backgroundColor: getStatusBg(statusKey),
                 borderWidth: (isCompleted || isCanceled) ? 1 : 0,
                 borderColor: isCompleted ? Colors.SUCCESS_COLOR : Colors.COLOR_DANGER,
               },
             ]}>
-              <Caption2 weight="semiBold" color={getStatusTextColor(status)}>
-                {status}
+              <Caption2 weight="semiBold" color={getStatusTextColor(statusKey)}>
+                {t(statusKey)}
               </Caption2>
             </View>
             <View style={styles.dateTimeWrapper}>
@@ -232,24 +243,21 @@ export default function AppointmentDetails() {
           </View>
         </View>
 
-        {/* Visit Reason */}
         <View style={styles.infoBlock}>
-          <Body3 color={Colors.TEXT_COLOR}>Visit Reason</Body3>
+          <Body3 color={Colors.TEXT_COLOR}>{t('visit_reason')}</Body3>
           <Body2 weight="bold" style={{ marginTop: 4 }}>{reason}</Body2>
         </View>
 
-        {/* Patient */}
         <View style={styles.infoBlock}>
-          <Caption1 color={Colors.TEXT_COLOR}>Patient</Caption1>
+          <Caption1 color={Colors.TEXT_COLOR}>{t('patient')}</Caption1>
           <Body2 weight="bold" style={{ marginTop: 4 }}>{patientName}</Body2>
           {item.patient_phone ? (
             <Caption2 color="#888" style={{ marginTop: 2 }}>
-              Phone: {item.patient_phone}
+              {t('phone')}: {item.patient_phone}
             </Caption2>
           ) : null}
         </View>
 
-        {/* Download — Completed only */}
         {isCompleted && (
           <View style={styles.downloadSection}>
             {DOWNLOAD_ITEMS.map((dl) => (
@@ -266,12 +274,11 @@ export default function AppointmentDetails() {
           </View>
         )}
 
-        {/* Upcoming — Cancel + Reschedule side by side */}
         {isUpcoming && (
           <View style={styles.actionsContainer}>
             <View style={styles.buttonRow}>
               <CustomButton
-                title="Cancel Appointment"
+                title={t('cancel_appointment')}
                 onPress={() => setShowCancelModal(true)}
                 backgroundColor={Colors.APP_BACKGROUND}
                 borderColor="#FF383C1A"
@@ -281,7 +288,7 @@ export default function AppointmentDetails() {
                 color={Colors.COLOR_DANGER}
               />
               <CustomButton
-                title="Reschedule"
+                title={t('reschedule')}
                 onPress={() => setRescheduleVisible(true)}
                 backgroundColor={Colors.APP_BACKGROUND}
                 borderColor={Colors.BORDER_COLOR}
@@ -294,11 +301,10 @@ export default function AppointmentDetails() {
           </View>
         )}
 
-        {/* Canceled — Reschedule full width only */}
         {isCanceled && (
           <View style={styles.actionsContainer}>
             <CustomButton
-              title="Reschedule"
+              title={t('reschedule')}
               onPress={() => setRescheduleVisible(true)}
               backgroundColor={Colors.APP_BACKGROUND}
               borderColor={Colors.BORDER_COLOR}
@@ -329,18 +335,6 @@ export default function AppointmentDetails() {
     </SafeAreaView>
   );
 }
-
-const getStatusBg = (s: string) => {
-  if (s === 'Upcoming') return Colors.ACCENT_YELLOW;
-  return 'transparent';
-};
-
-const getStatusTextColor = (s: string) => {
-  if (s === 'Upcoming') return '#000';
-  if (s === 'Completed') return Colors.SUCCESS_COLOR;
-  if (s === 'Canceled') return Colors.COLOR_DANGER;
-  return '#666';
-};
 
 const styles = StyleSheet.create({
   container: {

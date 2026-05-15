@@ -5,6 +5,7 @@ import { Colors } from '@/constants/theme';
 import { useGetQueueQuery } from '@/redux/services/queueApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Image,
   RefreshControl,
@@ -14,42 +15,19 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// ─── Traffic config — "traffic" field এর উপর নির্ভর করে ──────────────────────
-
+// Traffic config logic (Keep logic same as database/API handles label names)
 function getTrafficConfig(traffic: string) {
   switch (traffic) {
     case 'light':
-      return {
-        color: Colors.SUCCESS_COLOR,
-        bg: '#E8F5E9',
-        border: '#A5D6A7',
-        signalCount: 1,
-      };
+      return { color: Colors.SUCCESS_COLOR, bg: '#E8F5E9', border: '#A5D6A7', signalCount: 1 };
     case 'medium':
-      return {
-        color: '#FF9800',
-        bg: '#FFF3E0',
-        border: '#FFCC80',
-        signalCount: 2,
-      };
+      return { color: '#FF9800', bg: '#FFF3E0', border: '#FFCC80', signalCount: 2 };
     case 'busy':
-      return {
-        color: '#F44336',
-        bg: '#FFEBEE',
-        border: '#EF9A9A',
-        signalCount: 3,
-      };
-    default: // closed / unknown
-      return {
-        color: '#9E9E9E',
-        bg: '#F5F5F5',
-        border: '#E0E0E0',
-        signalCount: 0,
-      };
+      return { color: '#F44336', bg: '#FFEBEE', border: '#EF9A9A', signalCount: 3 };
+    default:
+      return { color: '#9E9E9E', bg: '#F5F5F5', border: '#E0E0E0', signalCount: 0 };
   }
 }
-
-// ─── Traffic Signal dots ──────────────────────────────────────────────────────
 
 function TrafficSignal({ count, color }: { count: number; color: string }) {
   return (
@@ -69,15 +47,14 @@ const signal = StyleSheet.create({
   dot: { width: 16, height: 16, borderRadius: 8 },
 });
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
-
 export default function QueueStatusScreen() {
+  const { t } = useTranslation();
   const { data, isLoading, refetch, isFetching } = useGetQueueQuery(undefined);
 
   const totalWaiting = data?.totalWaiting ?? 0;
   const estimatedWait = data?.estimatedWaitMin ?? 0;
   const isOpen = data?.is_open ?? false;
-  const traffic = data?.traffic ?? 'unknown';       // ← "light" | "medium" | "busy"
+  const traffic = data?.traffic ?? 'unknown';
   const trafficLabelMs = data?.traffic_label_ms ?? '-';
   const trafficAdviceMs = data?.traffic_advice_ms ?? '';
   const doctors: any[] = data?.doctors ?? [];
@@ -87,7 +64,7 @@ export default function QueueStatusScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <PageLoader visible title="LOADING" subtitle="Fetching queue status..." />
+        <PageLoader visible title={t('loading')} subtitle={t('fetching_queue')} />
       </SafeAreaView>
     );
   }
@@ -95,7 +72,7 @@ export default function QueueStatusScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <SectionTitle title="Queue Status" />
+        <SectionTitle title={t('queue_status')} />
       </View>
 
       <ScrollView
@@ -115,6 +92,7 @@ export default function QueueStatusScreen() {
         <View style={[styles.trafficCard, { backgroundColor: config.bg, borderColor: config.border }]}>
           <View style={styles.trafficTop}>
             <View style={styles.trafficLeft}>
+              {/* API provides localized label here, so we keep it */}
               <H3 style={[styles.trafficLabel, { color: config.color }]}>{trafficLabelMs}</H3>
               <Caption1 style={[styles.trafficAdvice, { color: config.color }]}>{trafficAdviceMs}</Caption1>
             </View>
@@ -124,19 +102,19 @@ export default function QueueStatusScreen() {
           <View style={styles.trafficStats}>
             <View style={styles.statItem}>
               <H6 style={{ color: config.color }}>{totalWaiting}</H6>
-              <Caption2 style={styles.statLabel}>Waiting</Caption2>
+              <Caption2 style={styles.statLabel}>{t('waiting')}</Caption2>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <H6 style={{ color: config.color }}>
-                {estimatedWait === 0 ? 'Now' : `${estimatedWait} min`}
+                {estimatedWait === 0 ? t('now') : `${estimatedWait} ${t('min')}`}
               </H6>
-              <Caption2 style={styles.statLabel}>Est. Wait</Caption2>
+              <Caption2 style={styles.statLabel}>{t('est_wait')}</Caption2>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <H6 style={{ color: config.color }}>{isOpen ? 'Open' : 'Closed'}</H6>
-              <Caption2 style={styles.statLabel}>Status</Caption2>
+              <H6 style={{ color: config.color }}>{isOpen ? t('open') : t('closed')}</H6>
+              <Caption2 style={styles.statLabel}>{t('status')}</Caption2>
             </View>
           </View>
         </View>
@@ -144,7 +122,7 @@ export default function QueueStatusScreen() {
         {/* ── Doctors on Shift ── */}
         {doctors.length > 0 && (
           <View style={styles.doctorsSection}>
-            <H6 style={styles.sectionTitle}>Doctors on Shift</H6>
+            <H6 style={styles.sectionTitle}>{t('doctors_on_shift')}</H6>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -166,11 +144,14 @@ export default function QueueStatusScreen() {
   );
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: { paddingHorizontal: wp(20) },
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF'
+  },
+  header: {
+    paddingHorizontal: wp(20)
+  },
   scrollContent: {
     paddingHorizontal: wp(20),
     paddingTop: hp(8),
@@ -202,10 +183,22 @@ const styles = StyleSheet.create({
   },
   statItem: { alignItems: 'center', gap: 4 },
   statLabel: { color: '#888888' },
-  statDivider: { width: 1, height: 36, backgroundColor: 'rgba(0,0,0,0.08)' },
-  doctorsSection: { gap: hp(12) },
-  sectionTitle: { color: '#1A1A1A', fontWeight: '700' },
-  doctorsList: { gap: wp(12), paddingBottom: hp(4) },
+  statDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: 'rgba(0,0,0,0.08)'
+  },
+  doctorsSection: {
+    gap: hp(12)
+  },
+  sectionTitle: {
+    color: '#1A1A1A',
+    fontWeight: '700'
+  },
+  doctorsList: {
+    gap: wp(12),
+    paddingBottom: hp(4)
+  },
   doctorCard: {
     width: wp(100),
     alignItems: 'center',
@@ -223,6 +216,14 @@ const styles = StyleSheet.create({
     borderRadius: wp(28),
     backgroundColor: '#E0E0E0',
   },
-  doctorName: { color: Colors.BRAND_PRIMARY, fontWeight: '600', textAlign: 'center' },
-  doctorSpec: { color: '#888888', textAlign: 'center', fontSize: 10 },
+  doctorName: {
+    color: Colors.BRAND_PRIMARY,
+    fontWeight: '600',
+    textAlign: 'center'
+  },
+  doctorSpec: {
+    color: '#888888',
+    textAlign: 'center',
+    fontSize: 10
+  },
 });

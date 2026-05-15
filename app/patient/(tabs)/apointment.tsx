@@ -8,6 +8,7 @@ import { useGetProfileQuery } from '@/redux/services/authApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -109,22 +110,23 @@ const getStatusTextColor = (s: TabType) => {
   return '#666'
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Component 
 
 export default function AppointmentScreen() {
   const [activeTab, setActiveTab] = useState<TabType>('Upcoming')
-  const router = useRouter()
+  const router = useRouter();
+  const { t } = useTranslation()
 
-  // ── Profile → phone ────────────────────────────────────────────────────────
+  // ── Profile → phone 
   const { data: profileData, isLoading: profileLoading, refetch: refetchProfile } = useGetProfileQuery({})
   const phone = profileData?.steps?.profile?.data?.phone ?? ''
 
-  // ── Appointments ───────────────────────────────────────────────────────────
+  // ── Appointments 
   const { data, isLoading: appointmentsLoading, refetch: refetchAppointments } = useGetAppointmentsByPhoneQuery(phone, {
     skip: !phone,
   })
 
-  // ── Pull-to-refresh ────────────────────────────────────────────────────────
+  // ── Pull-to-refresh 
   const { refreshing, onRefresh } = useRefresh([refetchProfile, refetchAppointments])
 
   const isLoading = profileLoading || appointmentsLoading
@@ -155,11 +157,11 @@ export default function AppointmentScreen() {
     <SafeAreaView style={styles.container}>
       <PageLoader
         visible={isLoading}
-        title="LOADING"
-        subtitle="Fetching your appointments..."
+        title={t('loading')}
+        subtitle={t('loading_appointments')}
       />
 
-      <SectionTitle title="Appointments" />
+      <SectionTitle title={t('appointments')} />
 
       {/* ── Tabs ── */}
       <View style={styles.tabContainer}>
@@ -267,7 +269,7 @@ export default function AppointmentScreen() {
   )
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// ─── Styles 
 
 const styles = StyleSheet.create({
   container: {

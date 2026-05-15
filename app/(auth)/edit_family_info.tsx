@@ -14,6 +14,7 @@ import { hp, wp } from '@/utils/responsiveDevice'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'; // ১. ইম্পোর্ট
 import {
   KeyboardAvoidingView,
   Modal,
@@ -25,8 +26,19 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-const GENDER_OPTIONS = ['Male', 'Female', 'Other']
-const ALLERGY_OPTIONS = ['Food Allergies', 'Seasonal Allergies', 'Animal Allergies', 'Dust Allergies']
+// অনুবাদ কী (Key) সহ অপশন
+const GENDER_OPTIONS = [
+  { label: 'male', value: 'Male' },
+  { label: 'female', value: 'Female' },
+  { label: 'other', value: 'Other' },
+];
+
+const ALLERGY_OPTIONS = [
+  { label: 'food_allergies', value: 'Food Allergies' },
+  { label: 'seasonal_allergies', value: 'Seasonal Allergies' },
+  { label: 'animal_allergies', value: 'Animal Allergies' },
+  { label: 'dust_allergies', value: 'Dust Allergies' },
+];
 
 interface Allergy {
   name: string
@@ -37,19 +49,21 @@ interface Allergy {
 export default function EditFamilyInfoScreen() {
   const router = useRouter()
   const params = useLocalSearchParams()
+  const { t } = useTranslation() // ২. হুক কল
   const [updateFamilyPatch, { isLoading }] = useUpdateFamilyPatchMutation()
-
 
   const [memberName, setMemberName] = useState((params.member_name as string) ?? '')
   const [icNumber, setIcNumber] = useState((params.ic_number as string) ?? '')
   const [dateOfBirth, setDateOfBirth] = useState((params.date_of_birth as string) ?? '')
   const [relationship, setRelationship] = useState((params.relationship as string) ?? '')
   const [gender, setGender] = useState((params.gender as string) ?? '')
+  
   const [allergies, setAllergies] = useState<Allergy[]>(() => {
     try {
       return params.allergies ? JSON.parse(params.allergies as string) : []
     } catch { return [] }
   })
+
   const allMembers: any[] = (() => {
     try {
       return params.all_members ? JSON.parse(params.all_members as string) : []
@@ -86,9 +100,8 @@ export default function EditFamilyInfoScreen() {
 
     try {
       await updateFamilyPatch({ family_members: updatedMembers }).unwrap()
-      showToast('Family member updated!', 'success')
+      showToast(t('update_success'), 'success')
 
-     
       router.replace({
         pathname: '/(auth)/get_family_info',
         params: {
@@ -97,11 +110,9 @@ export default function EditFamilyInfoScreen() {
       })
     } catch (err: any) {
       console.log('Update error:', JSON.stringify(err))
-      showToast(err?.data?.detail?.msg || err?.data?.message || 'Update failed.', 'error')
+      showToast(err?.data?.detail?.msg || err?.data?.message || t('update_failed'), 'error')
     }
   }
-
-
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -109,15 +120,19 @@ export default function EditFamilyInfoScreen() {
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          <AuthHeading title="Edit Member" style={{ marginBottom: hp(30) }} description="Family Information" />
+          <AuthHeading 
+            title={t('edit_member')} 
+            style={{ marginBottom: hp(30) }} 
+            description={t('family_info')} 
+          />
 
-          <FormInput value={memberName} onChangeText={setMemberName} placeholder="Member Name" />
-          <FormInput value={icNumber} onChangeText={setIcNumber} placeholder="IC Number" type="number" />
+          <FormInput value={memberName} onChangeText={setMemberName} placeholder={t('member_name')} />
+          <FormInput value={icNumber} onChangeText={setIcNumber} placeholder={t('ic_placeholder')} type="number" />
 
           {/* Date of Birth */}
           <TouchableOpacity style={styles.dropdownBox} onPress={() => setShowDatePicker(true)} activeOpacity={0.7}>
             <Body3 color={dateOfBirth ? Colors.TEXT_COLOR : '#8C88A3'} style={{ flex: 1 }}>
-              {dateOfBirth || 'Date Of Birth'}
+              {dateOfBirth || t('dob')}
             </Body3>
             <CalenderIcon />
           </TouchableOpacity>
@@ -131,12 +146,12 @@ export default function EditFamilyInfoScreen() {
             />
           )}
 
-          <FormInput value={relationship} onChangeText={setRelationship} placeholder="Relationship" />
+          <FormInput value={relationship} onChangeText={setRelationship} placeholder={t('relationship')} />
 
           {/* Gender */}
           <TouchableOpacity style={styles.dropdownBox} onPress={() => setGenderModalOpen(true)} activeOpacity={0.7}>
             <Body3 color={gender ? Colors.TEXT_COLOR : '#8C88A3'} style={{ flex: 1 }}>
-              {gender || 'Gender'}
+              {gender ? t(GENDER_OPTIONS.find(opt => opt.value === gender)?.label || '') : t('gender')}
             </Body3>
             <DownArrowIcon />
           </TouchableOpacity>
@@ -144,7 +159,9 @@ export default function EditFamilyInfoScreen() {
           {/* Allergies */}
           <TouchableOpacity style={styles.dropdownBox} onPress={() => setAllergyModalOpen(true)} activeOpacity={0.7}>
             <Body3 color={allergies.length > 0 ? Colors.TEXT_COLOR : '#8C88A3'} style={{ flex: 1 }} numberOfLines={1}>
-              {allergies.length > 0 ? allergies.map((a) => a.name).join(', ') : 'Allergies'}
+              {allergies.length > 0 
+                ? allergies.map((a) => t(ALLERGY_OPTIONS.find(opt => opt.value === a.name)?.label || a.name)).join(', ') 
+                : t('allergies')}
             </Body3>
             <DownArrowIcon />
           </TouchableOpacity>
@@ -155,7 +172,7 @@ export default function EditFamilyInfoScreen() {
                 <CustomLoader size={50} strokeWidth={3} />
               </View>
             ) : (
-              <CustomButton title="Update" onPress={handleUpdate} height={hp(70)} width="100%" borderRadius={16} />
+              <CustomButton title={t('update')} onPress={handleUpdate} height={hp(70)} width="100%" borderRadius={16} />
             )}
           </View>
         </ScrollView>
@@ -167,20 +184,20 @@ export default function EditFamilyInfoScreen() {
           <TouchableOpacity style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)' }]} onPress={() => setGenderModalOpen(false)} activeOpacity={1} />
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
-              <Body2 color={Colors.TEXT_COLOR}>Choose Gender</Body2>
+              <Body2 color={Colors.TEXT_COLOR}>{t('choose_gender')}</Body2>
               <TouchableOpacity onPress={() => setGenderModalOpen(false)}>
                 <UpArrowIcon />
               </TouchableOpacity>
             </View>
             {GENDER_OPTIONS.map((option) => {
-              const selected = gender === option
+              const selected = gender === option.value
               return (
                 <TouchableOpacity
-                  key={option}
+                  key={option.value}
                   style={[styles.modalOption, selected && styles.modalOptionSelected]}
-                  onPress={() => { setGender(option); setGenderModalOpen(false) }}
+                  onPress={() => { setGender(option.value); setGenderModalOpen(false) }}
                 >
-                  <Body3 color={Colors.TEXT_COLOR}>{option}</Body3>
+                  <Body3 color={Colors.TEXT_COLOR}>{t(option.label)}</Body3>
                   <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
                     {selected && <Caption1 color={Colors.BRAND_PRIMARY} style={{ fontSize: 12 }}>✓</Caption1>}
                   </View>
@@ -197,20 +214,20 @@ export default function EditFamilyInfoScreen() {
           <TouchableOpacity style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)' }]} onPress={() => setAllergyModalOpen(false)} activeOpacity={1} />
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
-              <Body2 color={Colors.TEXT_COLOR}>Choose Allergies</Body2>
+              <Body2 color={Colors.TEXT_COLOR}>{t('choose_allergies')}</Body2>
               <TouchableOpacity onPress={() => setAllergyModalOpen(false)}>
                 <UpArrowIcon />
               </TouchableOpacity>
             </View>
             {ALLERGY_OPTIONS.map((option) => {
-              const selected = !!allergies.find((a) => a.name === option)
+              const selected = !!allergies.find((a) => a.name === option.value)
               return (
                 <TouchableOpacity
-                  key={option}
+                  key={option.value}
                   style={[styles.modalOption, selected && styles.modalOptionSelected]}
-                  onPress={() => toggleAllergy(option)}
+                  onPress={() => toggleAllergy(option.value)}
                 >
-                  <Body3 color={Colors.TEXT_COLOR}>{option}</Body3>
+                  <Body3 color={Colors.TEXT_COLOR}>{t(option.label)}</Body3>
                   <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
                     {selected && <Caption1 color={Colors.BRAND_PRIMARY} style={{ fontSize: 12 }}>✓</Caption1>}
                   </View>

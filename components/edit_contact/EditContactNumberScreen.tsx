@@ -5,6 +5,7 @@ import { Colors } from '@/constants/theme'
 import { useGetProfileQuery, useUpdatePhoneMutation } from '@/redux/services/authApi'
 import { hp, wp } from '@/utils/responsiveDevice'
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { StyleSheet, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -20,14 +21,17 @@ const toE164 = (input: string): string => {
 }
 
 export function EditContactNumberScreen({ onSuccess }: Props) {
+  const { t } = useTranslation() 
   const [phone, setPhone] = useState('')
   const [updatePhone, { isLoading }] = useUpdatePhoneMutation()
   const { data } = useGetProfileQuery({})
-  const existingPhone = data?.steps?.personal?.data?.phone ?? data?.phone ?? 'Enter Add New Number'
+  
+ 
+  const existingPhone = data?.steps?.personal?.data?.phone ?? data?.phone ?? t('enter_add_new_number')
 
   const handleSave = async () => {
     if (!phone.trim()) {
-      showToast('Please enter a phone number.', 'error')
+      showToast(t('err_phone_req'), 'error')
       return
     }
 
@@ -37,13 +41,13 @@ export function EditContactNumberScreen({ onSuccess }: Props) {
       await updatePhone({ phone: formatted }).unwrap()
       onSuccess()
     } catch (err: any) {
-      showToast(err?.data?.detail?.msg ?? err?.data?.message ?? 'Failed to update phone number.', 'error')
+      showToast(err?.data?.detail?.msg ?? err?.data?.message ?? t('err_phone_update_fail'), 'error')
     }
   }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <SectionTitle title="Edit Contact Number" />
+      <SectionTitle title={t('edit_contact_number')} />
 
       <View style={styles.content}>
         <View style={styles.fieldBox}>
@@ -58,7 +62,7 @@ export function EditContactNumberScreen({ onSuccess }: Props) {
         </View>
 
         <CustomButton
-          title={isLoading ? 'Saving...' : 'Save'}
+          title={isLoading ? t('saving') : t('save')}
           onPress={handleSave}
           disabled={isLoading}
           height={64}

@@ -1,4 +1,3 @@
-// app/patient/quick_access/medical_record.tsx
 import CustomLoader from '@/components/shared/CustomLoader';
 import PageLoader from '@/components/shared/PageLoader';
 import SectionTitle from '@/components/shared/SectionTitle';
@@ -8,6 +7,7 @@ import { useLazyGetMedicalRecordsQuery } from '@/redux/services/medicalRecordApi
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   FlatList,
   Linking,
@@ -18,9 +18,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function MedicalRecordScreen() {
+  const { t } = useTranslation();
   const { icLast4 } = useLocalSearchParams<{ icLast4: string }>();
   const [getRecords, { data, isLoading }] = useLazyGetMedicalRecordsQuery();
-
 
   React.useEffect(() => {
     if (icLast4) {
@@ -34,8 +34,6 @@ export default function MedicalRecordScreen() {
     }
   };
 
-
-
   if (isLoading) {
     return (
       <View style={styles.centered}>
@@ -47,8 +45,13 @@ export default function MedicalRecordScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-         <PageLoader visible={isLoading} title="LOADING" subtitle="Fetching Madical records..." />
-        <SectionTitle title="Medical Records" />
+
+        <PageLoader
+          visible={isLoading}
+          title={t('loading')}
+          subtitle={t('fetching_records')}
+        />
+        <SectionTitle title={t('medical_records')} />
       </View>
 
       <FlatList
@@ -58,32 +61,39 @@ export default function MedicalRecordScreen() {
         renderItem={({ item }) => (
           <View style={styles.card}>
             <H6 style={styles.doctorName}>{item.patient_name}</H6>
-            <Caption2 style={styles.specialty}>Result Type: {item.result_type}</Caption2>
+
+
+            <Caption2 style={styles.specialty}>
+              {t('result_type')}: {item.result_type}
+            </Caption2>
 
             <View style={styles.divider} />
 
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
-                <Caption2 style={styles.label}>Test Date</Caption2>
-                <Body4 weight='semiBold' style={styles.dateTime}>{item.test_date}</Body4>
+                <Caption2 style={styles.label}>{t('test_date')}</Caption2>
+                <Body4 weight='semiBold' style={styles.dateTime}>
+                  {item.test_date}
+                </Body4>
               </View>
 
-              {/* ডাউনলোড বা ভিউ বাটন */}
               <TouchableOpacity
                 style={styles.downloadBtn}
                 onPress={() => handleDownload(item.file_url)}
               >
-                <Caption2 style={{ color: '#fff' }}>View File</Caption2>
+                <Caption2 style={{ color: '#fff' }}>{t('view_file')}</Caption2>
               </TouchableOpacity>
             </View>
 
             <Caption2 style={styles.fileName} numberOfLines={1}>
-              File: {item.filename}
+              {t('file')}: {item.filename}
             </Caption2>
           </View>
         )}
         ListEmptyComponent={() => (
-          <View style={styles.centered}><H6>No records found.</H6></View>
+          <View style={styles.centered}>
+            <H6>{t('no_records_founds')}</H6>
+          </View>
         )}
       />
     </SafeAreaView>

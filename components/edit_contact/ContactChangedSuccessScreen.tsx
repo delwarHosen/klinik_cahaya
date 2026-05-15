@@ -4,6 +4,7 @@ import { H3 } from '@/components/typo/Typography'
 import { Colors } from '@/constants/theme'
 import { hp, wp } from '@/utils/responsiveDevice'
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { StyleSheet, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -12,13 +13,20 @@ interface Props {
 }
 
 export function ContactChangedSuccessScreen({ onContinue }: Props) {
+  const { t } = useTranslation() 
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.content}>
         <SuccessVerifyIcon />
-        <H3 style={styles.title}>Your Contact Number Has Been{'\n'}Changed</H3>
+        
+        
+        <H3 style={styles.title}>
+          {t('contact_success_titles')}
+        </H3>
+        
         <CustomButton
-          title="Continue"
+          title={t('continue')}
           onPress={onContinue}
           height={64}
           width="100%"

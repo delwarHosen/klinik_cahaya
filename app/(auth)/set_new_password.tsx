@@ -11,6 +11,7 @@ import { useResetPasswordMutation } from '@/redux/services/authApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next'; // ১. ইম্পোর্ট
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -24,8 +25,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function CreateNewPasswordScreen() {
   const router = useRouter();
-
-  // ✅ token params থেকে নেওয়া লাগবে না — baseApi AsyncStorage থেকে নেবে
+  const { t } = useTranslation(); // ২. হুক ইনিশিয়ালাইজ
   const { email } = useLocalSearchParams<{ email: string }>();
 
   const [newPassword, setNewPassword] = useState('');
@@ -37,20 +37,19 @@ export default function CreateNewPasswordScreen() {
     Keyboard.dismiss();
 
     if (!newPassword.trim() || !confirmPassword.trim()) {
-      showToast('Please fill all fields.', 'error');
+      showToast(t('fill_all_fields'), 'error');
       return;
     }
     if (newPassword.length < 8) {
-      showToast('Password must be at least 8 characters.', 'error');
+      showToast(t('password_length_error'), 'error');
       return;
     }
     if (newPassword !== confirmPassword) {
-      showToast('Passwords do not match.', 'error');
+      showToast(t('passwords_not_match'), 'error');
       return;
     }
 
     try {
-      
       await resetPassword({
         email,
         new_password: newPassword,
@@ -61,7 +60,7 @@ export default function CreateNewPasswordScreen() {
     } catch (err: any) {
       console.log('Reset password error:', JSON.stringify(err));
       showToast(
-        err?.data?.detail?.[0]?.msg || err?.data?.message || 'Failed to reset password.',
+        err?.data?.detail?.[0]?.msg || err?.data?.message || t('password_reset_failed'),
         'error'
       );
     }
@@ -88,8 +87,8 @@ export default function CreateNewPasswordScreen() {
 
         <View style={styles.container}>
           <AuthHeading
-            title="Set New Password"
-            description="Create your new password"
+            title={t('set_new_password_title')}
+            description={t('set_new_password_desc')}
             style={{ marginBottom: hp(30) }}
           />
 
@@ -97,14 +96,14 @@ export default function CreateNewPasswordScreen() {
             value={newPassword}
             onChangeText={setNewPassword}
             type="password"
-            placeholder="New Password"
+            placeholder={t('new_password_placeholder')}
           />
 
           <FormInput
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             type="password"
-            placeholder="Confirm New Password"
+            placeholder={t('confirm_password_placeholder')}
           />
 
           {isLoading ? (
@@ -113,7 +112,7 @@ export default function CreateNewPasswordScreen() {
             </View>
           ) : (
             <CustomButton
-              title="Change Password"
+              title={t('change_password_btn')}
               onPress={handleChangePassword}
               width="100%"
               height={hp(60)}
@@ -136,12 +135,12 @@ export default function CreateNewPasswordScreen() {
             <View style={styles.successIconWrapper}>
               <SuccessVerifyIcon />
             </View>
-            <H2 style={styles.modalTitle}>Password Changed!</H2>
+            <H2 style={styles.modalTitle}>{t('password_changed_success')}</H2>
             <Body3 color={Colors.PLACEHOLLDER_TEXT} style={styles.modalDescription}>
-              Your password has been changed successfully.
+              {t('password_changed_desc')}
             </Body3>
             <CustomButton
-              title="Back to Login"
+              title={t('back_to_login')}
               onPress={handleGoToLogin}
               width="100%"
               height={hp(60)}
@@ -156,26 +155,77 @@ export default function CreateNewPasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: Colors.APP_BACKGROUND },
-  header: { paddingHorizontal: wp(20), paddingTop: hp(20), paddingBottom: hp(5) },
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.APP_BACKGROUND,
+  },
+
+  header: {
+    paddingHorizontal: wp(20),
+    paddingTop: hp(20),
+    paddingBottom: hp(5),
+  },
+
   backButton: {
-    width: 52, height: 52, borderRadius: 26,
-    backgroundColor: '#F8F8F8', justifyContent: 'center', alignItems: 'center',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#F8F8F8',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  container: { flex: 1, paddingHorizontal: wp(20), paddingTop: hp(35) },
+
+  container: {
+    flex: 1,
+    paddingHorizontal: wp(20),
+    paddingTop: hp(35),
+  },
+
   modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center', alignItems: 'center',
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
+
   modalContainer: {
-    width: wp(320), alignItems: 'center', backgroundColor: '#fff',
-    borderRadius: 24, paddingHorizontal: wp(24), paddingVertical: hp(32),
+    width: wp(320),
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    paddingHorizontal: wp(24),
+    paddingVertical: hp(32),
+
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.25, shadowRadius: 10 },
-      android: { elevation: 10 },
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: {
+          width: 0,
+          height: 10,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 10,
+      },
+
+      android: {
+        elevation: 10,
+      },
     }),
   },
-  successIconWrapper: { marginBottom: hp(16) },
-  modalTitle: { textAlign: 'center', fontSize: 22, marginBottom: hp(8) },
-  modalDescription: { textAlign: 'center', lineHeight: 22, paddingHorizontal: wp(10) },
+
+  successIconWrapper: {
+    marginBottom: hp(16),
+  },
+
+  modalTitle: {
+    textAlign: 'center',
+    fontSize: 22,
+    marginBottom: hp(8),
+  },
+
+  modalDescription: {
+    textAlign: 'center',
+    lineHeight: 22,
+    paddingHorizontal: wp(10),
+  },
 });

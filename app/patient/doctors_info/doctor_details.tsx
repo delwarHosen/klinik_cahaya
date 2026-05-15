@@ -8,6 +8,7 @@ import { useGetDoctorByIdQuery } from '@/redux/services/doctorsApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Image,
   RefreshControl,
@@ -18,6 +19,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function DoctorDetailsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { id, doctorId } = useLocalSearchParams<{ id: string; doctorId: string }>();
   const resolvedId = doctorId ?? id;
@@ -36,9 +38,13 @@ export default function DoctorDetailsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <PageLoader visible={isLoading} title="LOADING" subtitle="Loading doctor details..." />
+      <PageLoader
+        visible={isLoading}
+        title={t('loading')}
+        subtitle={t('loading_doctor_details')}
+      />
 
-      <SectionTitle title="Doctor Details" />
+      <SectionTitle title={t('doctor_details')} />
 
       <ScrollView
         style={styles.scroll}
@@ -70,7 +76,7 @@ export default function DoctorDetailsScreen() {
 
             {/* Consultation Time */}
             <SpecialText style={styles.sectionTitle}>
-              Appointment Consultation Time
+              {t('consultation_time_title')}
             </SpecialText>
             <View style={styles.timeRow}>
               <View style={styles.timeDot} />
@@ -81,17 +87,19 @@ export default function DoctorDetailsScreen() {
             </View>
 
             {/* About */}
-            <SpecialText style={styles.sectionTitle}>About</SpecialText>
+            <SpecialText style={styles.sectionTitle}>{t('about')}</SpecialText>
             <Caption1 style={styles.aboutText}>{doctor.about}</Caption1>
 
             {/* Services */}
-            <SpecialText style={styles.sectionTitle}>Services</SpecialText>
-            {specialties.map((service: string, index: number) => (
-              <View key={index} style={styles.serviceRow}>
-                <View style={styles.bullet} />
-                <Caption1 style={styles.serviceText}>{service}</Caption1>
-              </View>
-            ))}
+            <SpecialText style={styles.sectionTitle}>{t('services')}</SpecialText>
+            <View style={{ gap: hp(8) }}>
+              {specialties.map((service: string, index: number) => (
+                <View key={index} style={styles.serviceRow}>
+                  <View style={styles.bullet} />
+                  <Caption1 style={styles.serviceText}>{service}</Caption1>
+                </View>
+              ))}
+            </View>
           </>
         )}
       </ScrollView>
@@ -100,7 +108,7 @@ export default function DoctorDetailsScreen() {
       {!isLoading && doctor && (
         <View style={styles.bottomBar}>
           <CustomButton
-            title="Book Appointment"
+            title={t('book_appointment')}
             height={54}
             width="100%"
             borderRadius={16}
@@ -181,7 +189,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: wp(10),
-    marginBottom: hp(8),
   },
   bullet: {
     width: 8,

@@ -13,6 +13,7 @@ import { hp, wp } from '@/utils/responsiveDevice';
 import { validateEmail, validateICNumber, validateName, validatePassword } from '@/utils/validation';
 import { useRouter } from 'expo-router';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -24,6 +25,7 @@ import {
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { t } = useTranslation(); 
   const [signup, { isLoading }] = useSignupMutation();
 
   const { values, errors, touched, handleChange, handleSubmit } = useForm({
@@ -40,8 +42,8 @@ export default function RegisterScreen() {
       [FORM_FIELDS.CONTACT_NO]: validateICNumber,
       [FORM_FIELDS.PASSWORD]: validatePassword,
       [FORM_FIELDS.CONFIRM_PASSWORD]: (value) => {
-        if (!value.trim()) return 'Confirm Password is required';
-        if (value.length < 8) return 'Confirm Password must be at least 8 characters';
+        if (!value.trim()) return t('confirm_password_required', 'Confirm Password is required');
+        if (value.length < 8) return t('password_too_short', 'Must be at least 8 characters');
         return '';
       },
     },
@@ -55,9 +57,8 @@ export default function RegisterScreen() {
           confirm_password: values[FORM_FIELDS.CONFIRM_PASSWORD],
         }).unwrap();
 
-        showToast('Check your email for the OTP code.', 'success');
+        showToast(t('check_email_otp', 'Check your email for the OTP code.'), 'success');
 
-        // Navigate to OTP verification page, passing email & password
         router.push({
           pathname: '/(auth)/email_verify',
           params: {
@@ -66,8 +67,7 @@ export default function RegisterScreen() {
           },
         });
       } catch (err: any) {
-        console.log('Signup error:', JSON.stringify(err));
-        showToast(err?.data?.detail?.msg || err?.data?.message || 'Register failed.', 'error');
+        showToast(err?.data?.detail?.msg || err?.data?.message || t('register_failed', 'Register failed.'), 'error');
       }
     },
   });
@@ -87,16 +87,16 @@ export default function RegisterScreen() {
           <View style={{ width: '100%', maxWidth: 500 }}>
             <AuthHeading
               imageSource={IMAGE_COMPONENTS.logo}
-              title="Register"
+              title={t('sign_up')} // ৩. JSON থেকে 'Sign up'
               style={{ marginBottom: hp(30) }}
-              description="Hello! Register to get started"
+              description={t('register_desc', 'Hello! Register to get started')} 
             />
 
             <View style={styles.form}>
               <FormInput
                 value={values[FORM_FIELDS.FULL_NAME]}
                 onChangeText={(text) => handleChange(FORM_FIELDS.FULL_NAME, text)}
-                placeholder="Enter Your Name"
+                placeholder={t('enter_full_name', 'Enter Your Name')}
                 error={errors[FORM_FIELDS.FULL_NAME]}
                 touched={touched[FORM_FIELDS.FULL_NAME]}
               />
@@ -104,7 +104,7 @@ export default function RegisterScreen() {
                 value={values[FORM_FIELDS.EMAIL]}
                 onChangeText={(text) => handleChange(FORM_FIELDS.EMAIL, text)}
                 type="email"
-                placeholder="Enter Your Email Address"
+                placeholder={t('enter_your_email')} // ৪. JSON থেকে ইমেল
                 error={errors[FORM_FIELDS.EMAIL]}
                 touched={touched[FORM_FIELDS.EMAIL]}
               />
@@ -112,14 +112,14 @@ export default function RegisterScreen() {
                 value={values[FORM_FIELDS.CONTACT_NO]}
                 onChangeText={(text) => handleChange(FORM_FIELDS.CONTACT_NO, text)}
                 type="number"
-                placeholder="IC Number (12 digits)"
+                placeholder={t('ic_number_placeholder', 'IC Number (12 digits)')}
                 error={errors[FORM_FIELDS.CONTACT_NO]}
                 touched={touched[FORM_FIELDS.CONTACT_NO]}
               />
               <FormInput
                 value={values[FORM_FIELDS.PASSWORD]}
                 onChangeText={(text) => handleChange(FORM_FIELDS.PASSWORD, text)}
-                placeholder="Enter Your Password"
+                placeholder={t('enter_password', 'Enter Your Password')}
                 type="password"
                 error={errors[FORM_FIELDS.PASSWORD]}
                 touched={touched[FORM_FIELDS.PASSWORD]}
@@ -127,7 +127,7 @@ export default function RegisterScreen() {
               <FormInput
                 value={values[FORM_FIELDS.CONFIRM_PASSWORD]}
                 onChangeText={(text) => handleChange(FORM_FIELDS.CONFIRM_PASSWORD, text)}
-                placeholder="Confirm Password"
+                placeholder={t('confirm_password', 'Confirm Password')}
                 type="password"
                 error={errors[FORM_FIELDS.CONFIRM_PASSWORD]}
                 touched={touched[FORM_FIELDS.CONFIRM_PASSWORD]}
@@ -139,7 +139,7 @@ export default function RegisterScreen() {
                 </View>
               ) : (
                 <CustomButton
-                  title="Sign Up"
+                  title={t('sign_up')}
                   onPress={handleSubmit}
                   width="100%"
                   height={hp(70)}
@@ -150,9 +150,11 @@ export default function RegisterScreen() {
             </View>
 
             <View style={styles.footer}>
-              <Caption2 color={Colors.TEXT_COLOR}>Already have an account?</Caption2>
+              <Caption2 color={Colors.TEXT_COLOR}>
+                {t('already_have_account', 'Already have an account?')}
+              </Caption2>
               <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
-                <Caption2 color={Colors.BRAND_PRIMARY}> Sign in</Caption2>
+                <Caption2 color={Colors.BRAND_PRIMARY}> {t('login')}</Caption2>
               </TouchableOpacity>
             </View>
           </View>
@@ -178,5 +180,6 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: hp(20),
     flexDirection: 'row',
+    justifyContent: 'center',
   },
 });

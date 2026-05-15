@@ -6,6 +6,7 @@ import { getImageSource } from '@/utils/imageSource';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   FlatList,
   Image,
@@ -16,13 +17,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function BookAppointmentScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <SectionTitle title="Book Appointment" />
+        <SectionTitle title={t('book_appointment')} />
       </View>
 
       <FlatList
@@ -31,7 +33,7 @@ export default function BookAppointmentScreen() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => {
-          const isExpanded = expandedId === item.id; 
+          const isExpanded = expandedId === item.id;
 
           return (
             <TouchableOpacity

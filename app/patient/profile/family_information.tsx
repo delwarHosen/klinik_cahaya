@@ -11,11 +11,12 @@ import { EMPTY_MEMBER, FamilyMember, MAX_MEMBERS } from '@/types/familyTypes'
 import { hp, wp } from '@/utils/responsiveDevice'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-
 export default function FamilyInformationScreen() {
+  const { t } = useTranslation()
   const router = useRouter()
   const { data, refetch } = useGetProfileQuery({})
   const [updateFamily, { isLoading }] = useUpdateFamilyPatchMutation()
@@ -33,13 +34,14 @@ export default function FamilyInformationScreen() {
 
   const openEdit = (index: number) => {
     setEditingIndex(index)
-    setModalData({ ...members[index] })
+    setModalData({ ...EMPTY_MEMBER, ...members[index] })
     setModalVisible(true)
   }
 
   const openAdd = () => {
     if (members.length >= MAX_MEMBERS) {
-      showToast(`Maximum ${MAX_MEMBERS} family members allowed`, 'error')
+
+      showToast(t('max_members_error', { count: MAX_MEMBERS }), 'error')
       return
     }
     setEditingIndex(null)
@@ -60,16 +62,16 @@ export default function FamilyInformationScreen() {
     try {
       await updateFamily({ family_members: members }).unwrap()
       await refetch()
-      showToast('Family information updated', 'success')
+      showToast(t('family_update_success'), 'success')
       router.back()
     } catch (err: any) {
-      showToast(err?.data?.message || 'Failed to update family info', 'error')
+      showToast(err?.data?.message || t('family_update_failed'), 'error')
     }
   }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <SectionTitle title="Family Information" />
+      <SectionTitle title={t('family_information')} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -95,7 +97,7 @@ export default function FamilyInformationScreen() {
           </View>
         ) : (
           <TouchableOpacity style={styles.saveBtn} activeOpacity={0.85} onPress={handleSave}>
-            <H6 color="#FFFFFF">Save</H6>
+            <H6 color="#FFFFFF">{t('save')}</H6>
           </TouchableOpacity>
         )}
       </ScrollView>
@@ -112,9 +114,19 @@ export default function FamilyInformationScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.APP_BACKGROUND, paddingHorizontal: wp(20) },
-  scrollContent: { paddingBottom: hp(40), paddingTop: hp(10) },
-  addBtnRow: { alignItems: 'flex-end', marginTop: hp(8) },
+  container: {
+    flex: 1,
+    backgroundColor: Colors.APP_BACKGROUND,
+    paddingHorizontal: wp(20)
+  },
+  scrollContent: {
+    paddingBottom: hp(40),
+    paddingTop: hp(10)
+  },
+  addBtnRow: {
+    alignItems: 'flex-end',
+    marginTop: hp(8)
+  },
   addBtn: {
     width: 50,
     height: 50,

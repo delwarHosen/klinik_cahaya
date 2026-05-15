@@ -1,4 +1,3 @@
-// app/patient/(tabs)/search.tsx
 import SectionTitle from '@/components/shared/SectionTitle';
 import { Caption1, Caption2 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
@@ -7,6 +6,7 @@ import { useGetServicesQuery } from '@/redux/services/servicesApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     FlatList,
     StyleSheet,
@@ -21,6 +21,7 @@ type ResultItem =
     | { kind: 'service'; id: number; name: string; subtitle: string };
 
 export default function SearchScreen() {
+    const { t } = useTranslation(); 
     const router = useRouter();
     const [query, setQuery] = useState('');
 
@@ -75,13 +76,13 @@ export default function SearchScreen() {
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            <SectionTitle title="Search" />
+            <SectionTitle title={t('search')} />
 
             {/* Search Input */}
             <View style={styles.inputWrapper}>
                 <TextInput
                     style={styles.input}
-                    placeholder="Search doctors or services"
+                    placeholder={t('search_doctors_or_services')}
                     placeholderTextColor={Colors.TEXT_COLOR}
                     value={query}
                     onChangeText={setQuery}
@@ -114,7 +115,7 @@ export default function SearchScreen() {
                                 styles.badgeText,
                                 item.kind === 'doctor' ? styles.doctorBadgeText : styles.serviceBadgeText,
                             ]}>
-                                {item.kind === 'doctor' ? 'Doctor' : 'Service'}
+                                {item.kind === 'doctor' ? t('doctor') : t('service')}
                             </Caption2>
                         </View>
 
@@ -172,8 +173,6 @@ const styles = StyleSheet.create({
         color: '#888888',
         marginTop: 2,
     },
-
-    // ── Badge ──
     badge: {
         alignSelf: 'flex-start',
         paddingHorizontal: wp(10),

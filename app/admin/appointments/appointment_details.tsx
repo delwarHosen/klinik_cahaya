@@ -18,6 +18,7 @@ import { useGetDoctorAvailabilityQuery } from '@/redux/services/bookingApi'
 import { hp, wp } from '@/utils/responsiveDevice'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Image,
   RefreshControl,
@@ -56,10 +57,8 @@ const formatTime = (timeStr: string) => {
   } catch { return timeStr }
 }
 
-const capitalize = (str: string) =>
-  str ? str.charAt(0).toUpperCase() + str.slice(1) : 'N/A'
-
 export default function AppointmentDetailsScreen() {
+  const { t } = useTranslation()
   const router = useRouter()
   const { bookingId, id } = useLocalSearchParams<{ bookingId?: string; id?: string }>()
   const resolvedId = bookingId ?? id ?? ''
@@ -68,11 +67,9 @@ export default function AppointmentDetailsScreen() {
     skip: !resolvedId,
   })
 
-  console.log("dataaaaaaa",data)
   const [changeStatus] = useGetStatusChangesMutation()
   const [isAccepting, setIsAccepting] = useState(false)
   const [isRejecting, setIsRejecting] = useState(false)
-  // const [changeStatus, { isLoading: isChanging }] = useGetStatusChangesMutation()
   const [reschedule, { isLoading: isRescheduling }] = useRescheduleBookingMutation()
 
   const [showRejectConfirm, setShowRejectConfirm] = useState(false)
@@ -90,13 +87,11 @@ export default function AppointmentDetailsScreen() {
   const doctorId = data?.doctor?.id ?? ''
   const { data: availData } = useGetDoctorAvailabilityQuery(doctorId, { skip: !doctorId })
 
-  console.log("doctorssss", availData)
-
   if (isInitialLoading) {
     return (
       <SafeAreaView style={styles.container}>
-        <PageLoader visible={true} title="LOADING" subtitle="Fetching appointment details..." />
-        <SectionTitle title="Appointment Details" />
+        <PageLoader visible={true} title="LOADING" subtitle={t('loading_fetching')} />
+        <SectionTitle title={t('appointment_details')} />
       </SafeAreaView>
     )
   }
@@ -104,8 +99,8 @@ export default function AppointmentDetailsScreen() {
   if (error || !data || !data.booking) {
     return (
       <SafeAreaView style={styles.container}>
-        <SectionTitle title="Appointment Details" />
-        <View style={styles.loadingBox}><H3>Data not found or error occurred</H3></View>
+        <SectionTitle title={t('appointment_details')} />
+        <View style={styles.loadingBox}><H3>{t('data_not_found')}</H3></View>
       </SafeAreaView>
     )
   }
@@ -113,17 +108,14 @@ export default function AppointmentDetailsScreen() {
   const booking = data.booking
   const doctor = data.doctor
   const patientInfo = data.patient?.requested_patient
-  const patientFull = data.patient?.patient  // full patient object with dob, gender, address etc.
+  const patientFull = data.patient?.patient
 
   const cfg = STATUS_CONFIG[booking.status] ?? STATUS_CONFIG['confirmed']
   const isPending = booking.status === 'pending'
   const isCanceled = booking.status === 'rejected' || booking.status === 'canceled'
 
-  // ── Medical Info ──
   const medicalInfo = patientFull?.medical_info ?? {}
   const hasMedicalInfo = Object.keys(medicalInfo).length > 0
-
-  // ── Family / Relationships ──
   const relationships = patientFull?.relationships ?? []
   const hasRelationships = relationships.length > 0
 
@@ -146,7 +138,6 @@ export default function AppointmentDetailsScreen() {
     } catch (err) { console.log('Reject error:', err) }
     finally { setIsRejecting(false) }
   }
-
 
   const handleDateTimeConfirm = (date: string, time: string) => {
     setPickedDate(date)
@@ -174,7 +165,7 @@ export default function AppointmentDetailsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.headerWrapper}>
-        <SectionTitle title="Appointment Details" />
+        <SectionTitle title={t('appointment_details')} />
       </View>
 
       <ScrollView
@@ -190,7 +181,6 @@ export default function AppointmentDetailsScreen() {
           />
         }
       >
-        {/* ── Doctor Row ── */}
         <View style={styles.doctorRow}>
           {doctor?.avatar_url
             ? <Image source={{ uri: doctor.avatar_url }} style={styles.doctorImage} />
@@ -204,10 +194,9 @@ export default function AppointmentDetailsScreen() {
           </View>
         </View>
 
-        {/* ── Appointment Details ── */}
-        <SpecialText style={styles.sectionTitle}>Appointment Details</SpecialText>
+        <SpecialText style={styles.sectionTitle}>{t('appointment_details')}</SpecialText>
 
-        <Caption1 style={styles.label}>Status</Caption1>
+        <Caption1 style={styles.label}>{t('status')}</Caption1>
         <View style={styles.statusRow}>
           <View style={[styles.statusBadge, { backgroundColor: cfg.bg, borderColor: cfg.border }]}>
             <Caption1 style={[styles.statusText, { color: cfg.color }]}>{cfg.label}</Caption1>
@@ -218,12 +207,11 @@ export default function AppointmentDetailsScreen() {
           </View>
         </View>
 
-        {/* ── Canceled Info Box ── */}
         {isCanceled && (
           <View style={styles.rejectedBox}>
             <View style={styles.rejectedBoxRow}>
               <View style={{ flex: 1 }}>
-                <Caption4 style={styles.rejectedBoxLabel}>Rejected By</Caption4>
+                <Caption4 style={styles.rejectedBoxLabel}>{t('rejected_by')}</Caption4>
                 <Caption2 style={styles.rejectedBoxValue}>{booking.approved_by ?? 'Admin'}</Caption2>
                 <Caption4 style={styles.rejectedBoxMeta}>ID: {patientInfo?.ic || booking.patient_ic}</Caption4>
                 <Caption4 style={styles.rejectedBoxMeta}>
@@ -231,21 +219,19 @@ export default function AppointmentDetailsScreen() {
                 </Caption4>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
-                <Caption4 style={styles.rejectedBoxLabel}>Reason</Caption4>
+                <Caption4 style={styles.rejectedBoxLabel}>{t('reason')}</Caption4>
                 <Caption2 style={styles.rejectedReasonText}>—</Caption2>
               </View>
             </View>
           </View>
         )}
 
-        {/* ── Visit Reason ── */}
-        <Caption2 weight='regular' style={[styles.label, { marginTop: hp(20) }]}>Visit Reason</Caption2>
+        <Caption2 weight='regular' style={[styles.label, { marginTop: hp(20) }]}>{t('visit_reason')}</Caption2>
         <Caption2 weight='semiBold' style={styles.boldValue}>
-          {booking.reason || 'No reason provided'}
+          {booking.reason || t('no_reason')}
         </Caption2>
 
-        {/* ── Patient Info ── */}
-        <Caption2 style={[styles.label, { marginTop: hp(20) }]}>Patient</Caption2>
+        <Caption2 style={[styles.label, { marginTop: hp(20) }]}>{t('patient')}</Caption2>
         <View style={styles.personCard}>
           <View style={styles.personAvatar} />
           <View style={styles.personInfo}>
@@ -257,24 +243,21 @@ export default function AppointmentDetailsScreen() {
           </View>
         </View>
 
-        {/* ── Patient Personal Info ── */}
         {patientFull && (
-          <ExpandableSection title="Personal Info">
-            {patientFull.gender ? <InfoRow label="Gender" value={capitalize(patientFull.gender)} /> : null}
-            {patientFull.dob ? <InfoRow label="Date of Birth" value={formatDate(patientFull.dob)} /> : null}
-            {patientFull.address ? <InfoRow label="Address" value={patientFull.address} /> : null}
-            {patientFull.nationality ? <InfoRow label="Nationality" value={patientFull.nationality} /> : null}
-            {patientFull.email ? <InfoRow label="Email" value={patientFull.email} /> : null}
+          <ExpandableSection title={t('personal_info')}>
+            {patientFull.gender ? <InfoRow label={t('gender')} value={patientFull.gender.toLowerCase() === 'male' ? t('male') : t('female')} /> : null}
+            {patientFull.dob ? <InfoRow label={t('dob')} value={formatDate(patientFull.dob)} /> : null}
+            {patientFull.address ? <InfoRow label={t('address')} value={patientFull.address} /> : null}
+            {patientFull.nationality ? <InfoRow label={t('nationality')} value={patientFull.nationality} /> : null}
+            {patientFull.email ? <InfoRow label={t('email')} value={patientFull.email} /> : null}
           </ExpandableSection>
         )}
 
-        {/* ── Medical Information ── */}
         {hasMedicalInfo && (
-          <ExpandableSection title="Medical Information">
+          <ExpandableSection title={t('medical_information')}>
             {Object.entries(medicalInfo).map(([key, value]) => {
               let displayValue: string;
               if (Array.isArray(value)) {
-
                 displayValue = value
                   .map((v: any) => (typeof v === 'object' ? v?.name ?? v?.label ?? JSON.stringify(v) : String(v)))
                   .join(', ') || '—';
@@ -283,7 +266,6 @@ export default function AppointmentDetailsScreen() {
               } else {
                 displayValue = String(value ?? '—');
               }
-
               return (
                 <InfoRow
                   key={key}
@@ -295,34 +277,31 @@ export default function AppointmentDetailsScreen() {
           </ExpandableSection>
         )}
 
-        {/* ── Family Information ── */}
         {hasRelationships && (
-          <ExpandableSection title="Family Information">
+          <ExpandableSection title={t('family_information')}>
             {relationships.map((rel: any, idx: number) => (
               <InfoRow
                 key={idx}
-                label={capitalize(rel.relationship ?? rel.relation ?? `Member ${idx + 1}`)}
+                label={rel.relationship ?? rel.relation ?? `Member ${idx + 1}`}
                 value={rel.name ?? '—'}
               />
             ))}
           </ExpandableSection>
         )}
 
-        {/* ── Doctor Consultation Info ── */}
         {doctor?.consultation_days && (
-          <ExpandableSection title="Consultation Info">
-            <InfoRow label="Days" value={doctor.consultation_days} />
-            <InfoRow label="Hours" value={doctor.consultation_time} />
-            <InfoRow label="About" value={doctor.about} />
+          <ExpandableSection title={t('consultation_info')}>
+            <InfoRow label={t('days')} value={doctor.consultation_days} />
+            <InfoRow label={t('hours')} value={doctor.consultation_time} />
+            <InfoRow label={t('about')} value={doctor.about} />
           </ExpandableSection>
         )}
 
-        {/* ── Action Buttons ── */}
         {isPending && (
           <View style={styles.actionsSection}>
             <View style={styles.rejectAcceptRow}>
               <CustomButton
-                title='Reject'
+                title={t('reject')}
                 onPress={() => setShowRejectConfirm(true)}
                 backgroundColor={Colors.APP_BACKGROUND}
                 borderColor={"#FF383C1A"}
@@ -331,7 +310,7 @@ export default function AppointmentDetailsScreen() {
                 isLoading={isRejecting}
               />
               <CustomButton
-                title='Accept'
+                title={t('accept')}
                 onPress={handleAccept}
                 backgroundColor={Colors.BRAND_PRIMARY}
                 borderRadius={12} width={"48%"} height={50}
@@ -339,7 +318,7 @@ export default function AppointmentDetailsScreen() {
               />
             </View>
             <CustomButton
-              title='Reschedule'
+              title={t('reschedule')}
               onPress={() => setShowDatePicker(true)}
               backgroundColor={Colors.APP_BACKGROUND}
               borderColor={Colors.BORDER_COLOR}
@@ -350,7 +329,7 @@ export default function AppointmentDetailsScreen() {
         )}
       </ScrollView>
 
-      {/* ── Modals ── */}
+      {/* Modals */}
       <RejectConfirmModal
         visible={showRejectConfirm}
         onCancel={() => setShowRejectConfirm(false)}
@@ -382,33 +361,178 @@ export default function AppointmentDetailsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.APP_BACKGROUND, paddingHorizontal: wp(20), flexDirection: 'column' },
-  flex: { flex: 1 },
-  loadingBox: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  headerWrapper: { paddingTop: hp(4), marginBottom: hp(16) },
-  scrollContent: { paddingBottom: hp(40) },
-  doctorRow: { flexDirection: 'column', alignItems: 'center', gap: hp(10), marginTop: hp(10), marginBottom: hp(24) },
-  doctorImage: { width: wp(100), height: hp(100), borderRadius: 16, backgroundColor: '#dfefee' },
-  doctorInfo: { alignItems: 'center', gap: 4 },
-  doctorName: { color: Colors.BRAND_PRIMARY, fontWeight: '700' },
-  doctorSpecialty: { color: '#818181', lineHeight: 18, fontWeight: '700', textAlign: 'center' },
-  sectionTitle: { fontSize: 18, fontWeight: '500', color: Colors.TEXT_COLOR, marginBottom: hp(16) },
-  label: { color: Colors.TEXT_COLOR, marginBottom: hp(6) },
-  statusRow: { flexDirection: 'column', alignItems: 'flex-start', gap: hp(8), marginBottom: hp(16) },
-  statusBadge: { paddingHorizontal: wp(16), paddingVertical: hp(8), borderRadius: 10, borderWidth: 0.5 },
-  statusText: { fontWeight: '700', fontSize: 13 },
-  dateText: { color: Colors.TEXT_COLOR, fontWeight: '600', marginBottom: 2 },
-  rejectedBox: { backgroundColor: '#FFF0F0', borderRadius: 12, borderWidth: 1, borderColor: '#FFD0D0', padding: wp(14), marginBottom: hp(8) },
-  rejectedBoxRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  rejectedBoxLabel: { color: '#FF383C', marginBottom: 2, fontWeight: '600' },
-  rejectedBoxValue: { color: Colors.TEXT_COLOR, fontWeight: '600' },
-  rejectedBoxMeta: { color: '#888' },
-  rejectedReasonText: { color: '#FF383C', fontWeight: '600', textAlign: 'right' },
-  boldValue: { color: Colors.TEXT_COLOR, fontWeight: '700', fontSize: 14, marginBottom: hp(8) },
-  personCard: { flexDirection: 'row', alignItems: 'center', gap: wp(12), borderRadius: 24, borderWidth: 1, borderColor: Colors.BORDER_COLOR, backgroundColor: '#F8F8F8', padding: wp(14), marginTop: hp(8) },
-  personAvatar: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#dfefee' },
-  personInfo: { flex: 1, gap: 3 },
-  personIC: { color: Colors.BRAND_PRIMARY },
-  actionsSection: { marginTop: hp(24), gap: hp(12) },
-  rejectAcceptRow: { flexDirection: 'row', gap: hp(12) },
+  container: {
+    flex: 1,
+    backgroundColor: Colors.APP_BACKGROUND,
+    paddingHorizontal: wp(20),
+    flexDirection: 'column',
+  },
+
+  flex: {
+    flex: 1,
+  },
+
+  loadingBox: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  headerWrapper: {
+    paddingTop: hp(4),
+    marginBottom: hp(16),
+  },
+
+  scrollContent: {
+    paddingBottom: hp(40),
+  },
+
+  doctorRow: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: hp(10),
+    marginTop: hp(10),
+    marginBottom: hp(24),
+  },
+
+  doctorImage: {
+    width: wp(100),
+    height: hp(100),
+    borderRadius: 16,
+    backgroundColor: '#dfefee',
+  },
+
+  doctorInfo: {
+    alignItems: 'center',
+    gap: 4,
+  },
+
+  doctorName: {
+    color: Colors.BRAND_PRIMARY,
+    fontWeight: '700',
+  },
+
+  doctorSpecialty: {
+    color: '#818181',
+    lineHeight: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '500',
+    color: Colors.TEXT_COLOR,
+    marginBottom: hp(16),
+  },
+
+  label: {
+    color: Colors.TEXT_COLOR,
+    marginBottom: hp(6),
+  },
+
+  statusRow: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: hp(8),
+    marginBottom: hp(16),
+  },
+
+  statusBadge: {
+    paddingHorizontal: wp(16),
+    paddingVertical: hp(8),
+    borderRadius: 10,
+    borderWidth: 0.5,
+  },
+
+  statusText: {
+    fontWeight: '700',
+    fontSize: 13,
+  },
+
+  dateText: {
+    color: Colors.TEXT_COLOR,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+
+  rejectedBox: {
+    backgroundColor: '#FFF0F0',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FFD0D0',
+    padding: wp(14),
+    marginBottom: hp(8),
+  },
+
+  rejectedBoxRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+
+  rejectedBoxLabel: {
+    color: '#FF383C',
+    marginBottom: 2,
+    fontWeight: '600',
+  },
+
+  rejectedBoxValue: {
+    color: Colors.TEXT_COLOR,
+    fontWeight: '600',
+  },
+
+  rejectedBoxMeta: {
+    color: '#888',
+  },
+
+  rejectedReasonText: {
+    color: '#FF383C',
+    fontWeight: '600',
+    textAlign: 'right',
+  },
+
+  boldValue: {
+    color: Colors.TEXT_COLOR,
+    fontWeight: '700',
+    fontSize: 14,
+    marginBottom: hp(8),
+  },
+
+  personCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp(12),
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: Colors.BORDER_COLOR,
+    backgroundColor: '#F8F8F8',
+    padding: wp(14),
+    marginTop: hp(8),
+  },
+
+  personAvatar: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#dfefee',
+  },
+
+  personInfo: {
+    flex: 1,
+    gap: 3,
+  },
+
+  personIC: {
+    color: Colors.BRAND_PRIMARY,
+  },
+
+  actionsSection: {
+    marginTop: hp(24),
+    gap: hp(12),
+  },
+
+  rejectAcceptRow: {
+    flexDirection: 'row',
+    gap: hp(12),
+  },
 })

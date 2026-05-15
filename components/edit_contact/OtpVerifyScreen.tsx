@@ -2,8 +2,8 @@ import { CustomButton } from '@/components/shared/CustomButton'
 import { Caption1, Caption2, H3 } from '@/components/typo/Typography'
 import { Colors } from '@/constants/theme'
 import { hp, wp } from '@/utils/responsiveDevice'
-import { useRouter } from 'expo-router'
 import React, { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import SectionTitle from '../shared/SectionTitle'
@@ -13,7 +13,7 @@ interface Props {
 }
 
 export function OtpVerifyScreen({ onVerified }: Props) {
-  const router = useRouter()
+  const { t } = useTranslation() 
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const inputs = useRef<(TextInput | null)[]>([])
 
@@ -34,12 +34,12 @@ export function OtpVerifyScreen({ onVerified }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <SectionTitle/>
+      <SectionTitle />
 
       <View style={styles.content}>
-        <H3 style={styles.title}>Enter your 6 digit code</H3>
+        <H3 style={styles.title}>{t('enter_code_title')}</H3>
         <Caption1 color="#888888" style={styles.subtitle}>
-          Enter the code we have sent to your Email
+          {t('enter_code_subtitle')}
         </Caption1>
 
         <View style={styles.otpRow}>
@@ -59,7 +59,7 @@ export function OtpVerifyScreen({ onVerified }: Props) {
         </View>
 
         <CustomButton
-          title="Verify"
+          title={t('verify')}
           onPress={onVerified}
           height={64}
           width="100%"
@@ -68,9 +68,9 @@ export function OtpVerifyScreen({ onVerified }: Props) {
         />
 
         <View style={styles.resendRow}>
-          <Caption2 color="#555555">Haven't received the OTP? </Caption2>
+          <Caption2 color="#555555">{t('not_received_otp')}</Caption2>
           <TouchableOpacity>
-            <Caption2 color={Colors.BRAND_PRIMARY}>Resend OTP</Caption2>
+            <Caption2 color={Colors.BRAND_PRIMARY}>{t('resend_otp')}</Caption2>
           </TouchableOpacity>
         </View>
       </View>
@@ -80,15 +80,6 @@ export function OtpVerifyScreen({ onVerified }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.APP_BACKGROUND, paddingHorizontal: wp(20) },
-  backBtn: {
-    marginTop: hp(10),
-    width: 40, height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.CARD_BORDER,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   content: { paddingTop: hp(30) },
   title: { fontWeight: '700', color: Colors.TEXT_COLOR, marginBottom: hp(10), lineHeight: 34 },
   subtitle: { marginBottom: hp(28) },

@@ -5,6 +5,7 @@ import { Colors } from '@/constants/theme';
 import { useGetVaccineStockQuery } from '@/redux/services/vaccinesApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import React, { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   FlatList,
   RefreshControl,
@@ -24,8 +25,12 @@ function getStockStatus(status: string) {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function VaccineStockScreen() {
+  const { t } = useTranslation()
+
   const { data, isLoading, refetch, isFetching } = useGetVaccineStockQuery(undefined);
   const vaccines = data ?? [];
+
+  // console.log("Vaccine Data",vaccines)
 
   const onRefresh = useCallback(() => {
     refetch();
@@ -48,7 +53,8 @@ export default function VaccineStockScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <PageLoader visible={isLoading} title="LOADING" subtitle="Fetching vaccine status..." />
       <View style={styles.header}>
-        <SectionTitle title="Vaccine Stock" />
+        <SectionTitle title={t('vaccine_stock')} />
+
       </View>
 
       <FlatList
@@ -87,7 +93,7 @@ export default function VaccineStockScreen() {
                 </Caption2>
               )}
 
-              
+
               {!isStockout && (
                 <Caption2 style={styles.stockCountText}>
                   Available:{' '}

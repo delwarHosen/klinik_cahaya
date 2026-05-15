@@ -11,6 +11,7 @@ import { hp, wp } from '@/utils/responsiveDevice'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   ActivityIndicator,
   Keyboard,
@@ -47,14 +48,13 @@ interface BookingRequest {
   approved_at: string | null
 }
 
-
-
 type StatusOption = {
   label: string
   apiValue: string
   color: string
   bg: string
 }
+
 
 const STATUS_OPTIONS: StatusOption[] = [
   { label: 'Pending', apiValue: 'pending', color: '#1A1A1A', bg: '#D4F000' },
@@ -103,6 +103,7 @@ const parseToYMD = (dateStr: string): string => {
 export default function BookingRequestScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
+  const { t } = useTranslation() 
 
   const { data: doctorsData } = useGetDoctorsQuery();
   const DOCTORS = (doctorsData?.results ?? []).map(d => ({
@@ -117,7 +118,6 @@ export default function BookingRequestScreen() {
   const [datePickerFor, setDatePickerFor] = useState<'start' | 'end'>('start')
 
   // ── APPLIED states ──
-
   const [appliedProviderIds, setAppliedProviderIds] = useState<number[]>([]);
   const [tempProviderIds, setTempProviderIds] = useState<number[]>([]);
 
@@ -144,7 +144,6 @@ export default function BookingRequestScreen() {
   }
 
   const { data, isLoading, isFetching, refetch } = useGetFilteredBookingsQuery(filterParams)
-  // console.log("datas", data)
 
   // ── Pull-to-refresh 
   const { refreshing, onRefresh } = useRefresh([refetch])
@@ -234,10 +233,14 @@ export default function BookingRequestScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <PageLoader visible={isInitialLoading} title="LOADING" subtitle="Fetching booking requests..." />
+      <PageLoader 
+        visible={isInitialLoading} 
+        title={t('loading')} 
+        subtitle={t('fetching_bookings')} 
+      />
 
       <View style={{ marginTop: hp(10) }}>
-        <SectionTitle title="Booking Request" showBackButton={false} />
+        <SectionTitle title={t('booking_request_title')} showBackButton={false} />
       </View>
 
       {/* Search + Filter row */}
@@ -246,7 +249,7 @@ export default function BookingRequestScreen() {
           <Ionicons name="search-outline" size={18} color="#AAAAAA" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search doctor or patient"
+            placeholder={t('search_doctor_patient')} 
             placeholderTextColor="#AAAAAA"
             value={search}
             onChangeText={setSearch}
@@ -271,7 +274,7 @@ export default function BookingRequestScreen() {
         </View>
         {!isInitialLoading && (
           <Caption4 style={styles.countText}>
-            {filteredResults.length} result{filteredResults.length !== 1 ? 's' : ''}
+            {filteredResults.length} {filteredResults.length !== 1 ? t('results') : t('result')}
           </Caption4>
         )}
       </View>
@@ -290,7 +293,6 @@ export default function BookingRequestScreen() {
             />
           }
         >
-          {/* filter change হলে subtle spinner */}
           {isFetching && !refreshing && (
             <ActivityIndicator
               color={Colors.BRAND_PRIMARY}
@@ -302,7 +304,7 @@ export default function BookingRequestScreen() {
           {filteredResults.length === 0 ? (
             <View style={styles.empty}>
               <Caption1 style={{ color: '#aaa' }}>
-                No {appliedStatus.label.toLowerCase()} requests found.
+                {t('no_status_requests_found', { status: appliedStatus.label.toLowerCase() })}
               </Caption1>
             </View>
           ) : (
@@ -343,7 +345,7 @@ export default function BookingRequestScreen() {
                       </View>
                       {isPending && (
                         <CustomButton
-                          title="View"
+                          title={t('view')} 
                           borderRadius={10}
                           onPress={() => handleCardPress(item)}
                           width={wp(60)}
@@ -373,16 +375,16 @@ export default function BookingRequestScreen() {
                 <View style={styles.sheetHandle} />
 
                 <View style={styles.sheetHeader}>
-                  <Body2 style={styles.sheetTitle}>Filter</Body2>
+                  <Body2 style={styles.sheetTitle}>{t('filter')}</Body2>
                   <TouchableOpacity onPress={handleResetFilter} activeOpacity={0.7}>
-                    <Caption1 style={styles.resetText}>Reset</Caption1>
+                    <Caption1 style={styles.resetText}>{t('reset')}</Caption1>
                   </TouchableOpacity>
                 </View>
 
                 <ScrollView showsVerticalScrollIndicator={false}>
 
                   {/* Status */}
-                  <Body2 style={styles.filterSectionLabel}>Status</Body2>
+                  <Body2 style={styles.filterSectionLabel}>{t('status')}</Body2>
                   {STATUS_OPTIONS.map(opt => {
                     const selected = tempStatus.apiValue === opt.apiValue
                     return (
@@ -404,7 +406,7 @@ export default function BookingRequestScreen() {
                   })}
 
                   {/* Doctor */}
-                  <Body2 style={styles.filterSectionLabel}>Doctor</Body2>
+                  <Body2 style={styles.filterSectionLabel}>{t('doctor')}</Body2>
                   {DOCTORS.map(doc => {
                     const checked = tempProviderIds.includes(doc.provider_id)
                     return (
@@ -423,15 +425,15 @@ export default function BookingRequestScreen() {
                   })}
 
                   {/* Date Range */}
-                  <Body2 style={styles.filterSectionLabel}>Date Range</Body2>
+                  <Body2 style={styles.filterSectionLabel}>{t('date_range')}</Body2>
                   <TouchableOpacity
                     style={styles.filterRow}
                     activeOpacity={0.7}
                     onPress={() => { setDatePickerFor('start'); setDatePickerVisible(true) }}
                   >
-                    <Caption1 style={styles.filterRowText}>Start Date</Caption1>
+                    <Caption1 style={styles.filterRowText}>{t('start_date')}</Caption1>
                     <Caption1 style={tempStartDate ? styles.selectedDateText : styles.placeholderText}>
-                      {tempStartDate || 'Select'}
+                      {tempStartDate || t('select')}
                     </Caption1>
                   </TouchableOpacity>
 
@@ -440,9 +442,9 @@ export default function BookingRequestScreen() {
                     activeOpacity={0.7}
                     onPress={() => { setDatePickerFor('end'); setDatePickerVisible(true) }}
                   >
-                    <Caption1 style={styles.filterRowText}>End Date</Caption1>
+                    <Caption1 style={styles.filterRowText}>{t('end_date')}</Caption1>
                     <Caption1 style={tempEndDate ? styles.selectedDateText : styles.placeholderText}>
-                      {tempEndDate || 'Select'}
+                      {tempEndDate || t('select')}
                     </Caption1>
                   </TouchableOpacity>
 
@@ -451,7 +453,7 @@ export default function BookingRequestScreen() {
                     onPress={handleApplyFilter}
                     activeOpacity={0.85}
                   >
-                    <Caption1 style={styles.findBtnText}>Apply Filter</Caption1>
+                    <Caption1 style={styles.findBtnText}>{t('apply_filter')}</Caption1>
                   </TouchableOpacity>
 
                 </ScrollView>
@@ -463,7 +465,7 @@ export default function BookingRequestScreen() {
 
       <DatePickerModal
         visible={datePickerVisible}
-        title={datePickerFor === 'start' ? 'Select Start Date' : 'Select End Date'}
+        title={datePickerFor === 'start' ? t('select_start_date') : t('select_end_date')}
         onClose={() => setDatePickerVisible(false)}
         onConfirm={handleDateConfirm}
         allowPastDates={true}

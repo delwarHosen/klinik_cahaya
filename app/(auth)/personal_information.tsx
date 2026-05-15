@@ -7,22 +7,22 @@ import { FormInput } from '@/components/inputForm/inputForm';
 import { CustomButton } from '@/components/shared/CustomButton';
 import CustomLoader from '@/components/shared/CustomLoader';
 import { showToast } from '@/components/shared/Toast';
-import { Body2, Body3 } from '@/components/typo/Typography';
+import { Body2, Body3, Caption2 } from '@/components/typo/Typography';
 import { Colors } from '@/constants/theme';
 import { useUpdateProfileMutation } from '@/redux/services/authApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   KeyboardAvoidingView,
   Modal,
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -43,41 +43,41 @@ const calculateAge = (dobString: string): number => {
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function PersonalInformationScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [updateProfile, { isLoading }] = useUpdateProfileMutation();
 
-  const [gender, setGender] = useState('');
+  const [gender, setGender] = useState<typeof GENDER_OPTIONS[number] | ''>('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
   const [showGenderModal, setShowGenderModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  // Derived: is the selected person a child?
   const isChild = dateOfBirth !== '' && calculateAge(dateOfBirth) < 18;
 
   const handleDateChange = (_: any, selected?: Date) => {
     setShowDatePicker(false);
     if (selected) {
-      const formatted = selected.toISOString().split('T')[0]; // YYYY-MM-DD
+      const formatted = selected.toISOString().split('T')[0];
       setDateOfBirth(formatted);
     }
   };
 
   const handleContinue = async () => {
     if (!gender) {
-      showToast('Please select your gender.', 'error');
+      showToast(t('select_gender_error'), 'error');
       return;
     }
     if (!dateOfBirth) {
-      showToast('Please select your date of birth.', 'error');
+      showToast(t('select_dob_error'), 'error');
       return;
     }
     if (!address.trim()) {
-      showToast('Please enter your address.', 'error');
+      showToast(t('enter_address_error'), 'error');
       return;
     }
     if (!phone.trim()) {
-      showToast('Please enter your phone number.', 'error');
+      showToast(t('enter_phone_error'), 'error');
       return;
     }
 
@@ -90,11 +90,10 @@ export default function PersonalInformationScreen() {
         phone,
       }).unwrap();
 
-      showToast('Profile saved!', 'success');
+      showToast(t('profile_saved'), 'success');
       router.push('/(auth)/medical_information');
     } catch (err: any) {
-      console.log('Personal error:', JSON.stringify(err));
-      showToast(err?.data?.detail?.msg || err?.data?.message || 'Failed to save profile.', 'error');
+      showToast(err?.data?.detail?.msg || err?.data?.message || t('save_profile_failed'), 'error');
     }
   };
 
@@ -117,35 +116,37 @@ export default function PersonalInformationScreen() {
         >
           <View style={styles.container}>
             <View style={styles.titleBlock}>
-              <AuthHeading title="Set-up your Profile" description="Personal Information" />
+              <AuthHeading
+                title={t('setup_profile')}
+                description={t('personal_info')}
+              />
             </View>
 
-            {/* Gender */}
+            {/* Gender Selection */}
             <TouchableOpacity
               style={styles.inputWrapper}
               onPress={() => setShowGenderModal(true)}
               activeOpacity={0.7}
             >
               <Body3 color={gender ? Colors.TEXT_COLOR : '#8C88A3'} style={{ flex: 1 }}>
-                {gender ? gender.charAt(0).toUpperCase() + gender.slice(1) : 'Gender'}
+                {gender ? t(gender) : t('gender')}
               </Body3>
               <DownArrowIcon />
             </TouchableOpacity>
 
-            {/* ── Date of Birth ── */}
+            {/* Date of Birth */}
             <TouchableOpacity
               style={styles.inputWrapper}
               onPress={() => setShowDatePicker(true)}
               activeOpacity={0.7}
             >
               <Body3 color={dateOfBirth ? Colors.TEXT_COLOR : '#8C88A3'} style={{ flex: 1 }}>
-                {dateOfBirth || 'Date Of Birth'}
+                {dateOfBirth || t('dob')}
               </Body3>
 
-              {/* Children badge – shown when age < 18 */}
               {isChild && (
                 <View style={styles.childBadge}>
-                  <Text style={styles.childBadgeText}>Children</Text>
+                  <Caption2 style={styles.childBadgeText}>({t('children')})</Caption2>
                 </View>
               )}
 
@@ -162,8 +163,17 @@ export default function PersonalInformationScreen() {
               />
             )}
 
-            <FormInput value={address} onChangeText={setAddress} placeholder="Address" />
-            <FormInput value={phone} onChangeText={setPhone} placeholder="Phone" type="number" />
+            <FormInput
+              value={address}
+              onChangeText={setAddress}
+              placeholder={t('address')}
+            />
+            <FormInput
+              value={phone}
+              onChangeText={setPhone}
+              placeholder={t('phone')}
+              type="number"
+            />
 
             {isLoading ? (
               <View style={{ alignItems: 'center', marginTop: hp(8) }}>
@@ -171,7 +181,7 @@ export default function PersonalInformationScreen() {
               </View>
             ) : (
               <CustomButton
-                title="Continue"
+                title={t('continue')}
                 onPress={handleContinue}
                 width="100%"
                 height={hp(70)}
@@ -198,7 +208,7 @@ export default function PersonalInformationScreen() {
           />
           <View style={styles.genderModalContainer}>
             <View style={styles.genderModalHeader}>
-              <Body2 color={Colors.TEXT_COLOR}>Choose Gender</Body2>
+              <Body2 color={Colors.TEXT_COLOR}>{t('choose_gender')}</Body2>
               <TouchableOpacity onPress={() => setShowGenderModal(false)}>
                 <UpArrowIcon />
               </TouchableOpacity>
@@ -216,7 +226,7 @@ export default function PersonalInformationScreen() {
                 }}
               >
                 <Body3 color={Colors.TEXT_COLOR}>
-                  {option.charAt(0).toUpperCase() + option.slice(1)}
+                  {t(option)}
                 </Body3>
                 {gender === option ? (
                   <View style={styles.checkboxSelected}>
@@ -270,15 +280,15 @@ const styles = StyleSheet.create({
 
   // ── Children badge
   childBadge: {
-    backgroundColor: Colors.BRAND_PRIMARY,
+    // backgroundColor: Colors.BRAND_PRIMARY,
     borderRadius: 20,
     paddingHorizontal: wp(10),
     paddingVertical: 3,
     marginRight: wp(8),
   },
   childBadgeText: {
-    color: '#fff',
-    fontSize: 11,
+    // color: '#fff',
+    // fontSize: 11,
     fontWeight: '600',
     letterSpacing: 0.3,
   },

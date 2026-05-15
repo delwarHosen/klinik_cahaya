@@ -10,6 +10,7 @@ import { useChangePasswordMutation } from '@/redux/services/authApi'
 import { hp, wp } from '@/utils/responsiveDevice'
 import { useRouter } from 'expo-router'
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Modal,
   ScrollView,
@@ -19,34 +20,33 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function ChangePasswordScreen() {
+  const { t } = useTranslation();
   const router = useRouter()
   const [changePassword, { isLoading }] = useChangePasswordMutation()
 
   const [showModal, setShowModal] = useState(false)
-
   const [oldPassword, setOldPassword] = useState('')
   const [oldPasswordTouched, setOldPasswordTouched] = useState(false)
-
   const [newPassword, setNewPassword] = useState('')
   const [newPasswordTouched, setNewPasswordTouched] = useState(false)
-
   const [confirmPassword, setConfirmPassword] = useState('')
   const [confirmPasswordTouched, setConfirmPasswordTouched] = useState(false)
 
+  
   const getOldPasswordError = () => {
-    if (!oldPassword) return 'Previous password is required'
+    if (!oldPassword) return t('err_old_pw_req')
     return ''
   }
 
   const getNewPasswordError = () => {
-    if (!newPassword) return 'New password is required'
-    if (newPassword.length < 6) return 'Password must be at least 6 characters'
+    if (!newPassword) return t('err_new_pw_req')
+    if (newPassword.length < 6) return t('err_pw_min')
     return ''
   }
 
   const getConfirmPasswordError = () => {
-    if (!confirmPassword) return 'Please confirm your password'
-    if (confirmPassword !== newPassword) return 'Passwords do not match'
+    if (!confirmPassword) return t('err_confirm_pw_req')
+    if (confirmPassword !== newPassword) return t('err_pw_mismatch')
     return ''
   }
 
@@ -65,9 +65,8 @@ export default function ChangePasswordScreen() {
 
       setShowModal(true)
     } catch (err: any) {
-      console.log('Change password error:', JSON.stringify(err))
       showToast(
-        err?.data?.detail?.msg || err?.data?.message || 'Failed to change password.',
+        err?.data?.detail?.msg || err?.data?.message || t('err_failed_change_pw'),
         'error'
       )
     }
@@ -75,7 +74,7 @@ export default function ChangePasswordScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <SectionTitle title="Change Password" />
+      <SectionTitle title={t('change_password')} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -88,7 +87,7 @@ export default function ChangePasswordScreen() {
             setOldPassword(text)
             setOldPasswordTouched(true)
           }}
-          placeholder="Previous Password"
+          placeholder={t('previous_password')}
           type="password"
           error={getOldPasswordError()}
           touched={oldPasswordTouched}
@@ -100,7 +99,7 @@ export default function ChangePasswordScreen() {
             setNewPassword(text)
             setNewPasswordTouched(true)
           }}
-          placeholder="New Password"
+          placeholder={t('new_password')}
           type="password"
           error={getNewPasswordError()}
           touched={newPasswordTouched}
@@ -112,7 +111,7 @@ export default function ChangePasswordScreen() {
             setConfirmPassword(text)
             setConfirmPasswordTouched(true)
           }}
-          placeholder="Confirm Password"
+          placeholder={t('confirm_password')}
           type="password"
           error={getConfirmPasswordError()}
           touched={confirmPasswordTouched}
@@ -124,7 +123,7 @@ export default function ChangePasswordScreen() {
           </View>
         ) : (
           <CustomButton
-            title="Update Password"
+            title={t('update_password')}
             onPress={handleUpdate}
             height={64}
             width="100%"
@@ -140,13 +139,13 @@ export default function ChangePasswordScreen() {
           <View style={styles.modalContent}>
             <SuccessVerifyIcon />
             <H5 style={styles.successTitle}>
-              Your Password Has Been Changed Successfully
+              {t('pw_change_success')}
             </H5>
             <Caption2 color="#888888" align="center" style={{ marginBottom: hp(10) }}>
-              Continue To Login Again
+              {t('continue_to_login')}
             </Caption2>
             <CustomButton
-              title="Continue"
+              title={t('continue')}
               onPress={() => router.replace('/(auth)/login')}
               height={56}
               width="100%"
@@ -158,6 +157,7 @@ export default function ChangePasswordScreen() {
     </SafeAreaView>
   )
 }
+
 
 const styles = StyleSheet.create({
   container: {

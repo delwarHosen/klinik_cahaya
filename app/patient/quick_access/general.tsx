@@ -6,6 +6,7 @@ import { useGetDoctorsQuery } from '@/redux/services/doctorsApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useRouter } from 'expo-router';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   FlatList,
   Image,
@@ -17,6 +18,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function BookAppointmentScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { data: doctorsData, isLoading, refetch, isFetching } = useGetDoctorsQuery(undefined);
   const doctors = doctorsData?.data ?? [];
@@ -24,12 +26,12 @@ export default function BookAppointmentScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <SectionTitle title="General" />
+        <SectionTitle title={t('general')} />
       </View>
 
       {isLoading ? (
         <View style={styles.loaderContainer}>
-           <PageLoader visible={isLoading} title="LOADING" subtitle="" />
+          <PageLoader visible={isLoading} title="LOADING" subtitle="" />
         </View>
       ) : (
         <FlatList

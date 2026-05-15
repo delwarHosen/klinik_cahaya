@@ -4,7 +4,7 @@ import { CustomButton } from '@/components/shared/CustomButton';
 import CustomLoader from '@/components/shared/CustomLoader';
 import { showToast } from '@/components/shared/Toast';
 import { Caption2 } from '@/components/typo/Typography';
-import { FORM_FIELDS, FORM_PLACEHOLDERS } from '@/components/ui/form';
+import { FORM_FIELDS } from '@/components/ui/form';
 import { IMAGE_COMPONENTS } from '@/constants/image.index';
 import { Colors } from '@/constants/theme';
 import { useForm } from '@/hooks/useForm';
@@ -21,7 +21,7 @@ import { useDispatch } from 'react-redux';
 export default function LoginScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { t } = useTranslation(); 
+  const { t } = useTranslation();
 
   const [login, { isLoading }] = useLoginMutation();
 
@@ -40,18 +40,18 @@ export default function LoginScreen() {
           email: values[FORM_FIELDS.EMAIL].trim().toLocaleLowerCase(),
           password: values[FORM_FIELDS.PASSWORD],
         }).unwrap();
-      
+
         const role = res.user?.app_metadata?.role ?? 'patient';
-      
+
         dispatch(setCredentials({
           access_token: res.access_token,
           refresh_token: res.refresh_token,
           role,
           user: res.user,
         }));
-      
+
         showToast('Login successful!', 'success');
-      
+
         if (role === 'admin') {
           router.replace('/admin/home');
         } else {
@@ -76,10 +76,10 @@ export default function LoginScreen() {
       >
         <View style={styles.container}>
           <View style={{ width: '100%', maxWidth: 500 }}>
-            
+
             <AuthHeading
               imageSource={IMAGE_COMPONENTS.logo}
-              title={t('welcome')} 
+              title={t('welcome')}
               style={{ marginBottom: hp(30) }}
               description={t('welcome_back') || "Welcome back! Glad to See you again"}
             />
@@ -97,7 +97,8 @@ export default function LoginScreen() {
               <FormInput
                 value={values[FORM_FIELDS.PASSWORD]}
                 onChangeText={(text) => handleChange(FORM_FIELDS.PASSWORD, text)}
-                placeholder={FORM_PLACEHOLDERS[FORM_FIELDS.PASSWORD]}
+                // placeholder={FORM_PLACEHOLDERS[FORM_FIELDS.PASSWORD]}
+                placeholder={t('enter_new_password')}
                 type="password"
                 error={errors[FORM_FIELDS.PASSWORD]}
                 touched={touched[FORM_FIELDS.PASSWORD]}

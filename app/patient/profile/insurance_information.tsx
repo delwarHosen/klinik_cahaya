@@ -8,6 +8,7 @@ import { useGetProfileQuery, useUpdateInsuranceMutation } from '@/redux/services
 import { hp, wp } from '@/utils/responsiveDevice'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'; // ১. ইম্পোর্ট
 import {
   KeyboardAvoidingView,
   Platform,
@@ -19,6 +20,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function InsuranceInformationScreen() {
+  const { t } = useTranslation(); // ২. হুক ব্যবহার
   const router = useRouter()
   const { data } = useGetProfileQuery({})
   const [updateInsurance, { isLoading }] = useUpdateInsuranceMutation()
@@ -46,16 +48,16 @@ export default function InsuranceInformationScreen() {
         member_id: memberId,
         coverage_type: coverageType,
       }).unwrap()
-      showToast('Insurance updated successfully', 'success')
+      showToast(t('insurance_success'), 'success')
       router.back()
     } catch (err: any) {
-      showToast(err?.data?.message || 'Failed to update insurance', 'error')
+      showToast(err?.data?.message || t('insurance_failed'), 'error')
     }
   }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <SectionTitle title="Insurance Information" />
+      <SectionTitle title={t('insurance_information')} />
 
       <KeyboardAvoidingView
         style={styles.flex}
@@ -67,10 +69,10 @@ export default function InsuranceInformationScreen() {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          <Caption2 style={styles.label}>Provider Name</Caption2>
+          <Caption2 style={styles.label}>{t('provider_name')}</Caption2>
           <View style={styles.fieldBox}>
             <TextInput
-              placeholder="Provider Name"
+              placeholder={t('provider_name')}
               placeholderTextColor="#AAAAAA"
               value={providerName}
               onChangeText={setProviderName}
@@ -78,10 +80,10 @@ export default function InsuranceInformationScreen() {
             />
           </View>
 
-          <Caption2 style={styles.label}>Plan Type</Caption2>
+          <Caption2 style={styles.label}>{t('plan_type')}</Caption2>
           <View style={styles.fieldBox}>
             <TextInput
-              placeholder="Plan Type"
+              placeholder={t('plan_type')}
               placeholderTextColor="#AAAAAA"
               value={planType}
               onChangeText={setPlanType}
@@ -89,10 +91,10 @@ export default function InsuranceInformationScreen() {
             />
           </View>
 
-          <Caption2 style={styles.label}>Member ID</Caption2>
+          <Caption2 style={styles.label}>{t('member_id')}</Caption2>
           <View style={styles.fieldBox}>
             <TextInput
-              placeholder="Member ID"
+              placeholder={t('member_id')}
               placeholderTextColor="#AAAAAA"
               value={memberId}
               onChangeText={setMemberId}
@@ -100,10 +102,10 @@ export default function InsuranceInformationScreen() {
             />
           </View>
 
-          <Caption2 style={styles.label}>Coverage Type</Caption2>
+          <Caption2 style={styles.label}>{t('coverage_type')}</Caption2>
           <View style={styles.fieldBox}>
             <TextInput
-              placeholder="Coverage Type"
+              placeholder={t('coverage_type')}
               placeholderTextColor="#AAAAAA"
               value={coverageType}
               onChangeText={setCoverageType}
@@ -117,7 +119,7 @@ export default function InsuranceInformationScreen() {
             </View>
           ) : (
             <CustomButton
-              title="Save"
+              title={t('save')}
               onPress={handleSave}
               height={64}
               width={"100%"}
@@ -132,10 +134,23 @@ export default function InsuranceInformationScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.APP_BACKGROUND, paddingHorizontal: wp(20) },
-  flex: { flex: 1 },
-  scrollContent: { paddingBottom: hp(40), paddingTop: hp(20) },
-  label: { color: Colors.TEXT_COLOR, marginBottom: hp(6), marginTop: hp(14) },
+  container: {
+    flex: 1,
+    backgroundColor: Colors.APP_BACKGROUND,
+    paddingHorizontal: wp(20)
+  },
+  flex: {
+    flex: 1
+  },
+  scrollContent: {
+    paddingBottom: hp(40),
+    paddingTop: hp(20)
+  },
+  label: {
+    color: Colors.TEXT_COLOR,
+    marginBottom: hp(6),
+    marginTop: hp(14)
+  },
   fieldBox: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,

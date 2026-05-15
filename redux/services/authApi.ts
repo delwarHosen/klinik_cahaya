@@ -104,7 +104,7 @@ export const authApi = baseApi.injectEndpoints({
         method: 'PATCH',
         body: data,
       }),
-      invalidatesTags: ['Auth'],
+      invalidatesTags: ['Auth','AppointmentMembers'],
     }),
 
     // Forgot Password — send OTP

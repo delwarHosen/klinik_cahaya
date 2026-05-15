@@ -1,11 +1,11 @@
 import { EditIcon } from '@/assets/icons/patient_icon/EditIcon'
-import { Body3, Caption1 } from '@/components/typo/Typography'
+import { Caption2, H6 } from '@/components/typo/Typography'
 import { Colors } from '@/constants/theme'
 import { FamilyMember } from '@/types/familyTypes'
 import { hp, wp } from '@/utils/responsiveDevice'
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { StyleSheet, TouchableOpacity, View } from 'react-native'
-
 
 interface FamilyMemberCardProps {
   member: FamilyMember
@@ -13,21 +13,23 @@ interface FamilyMemberCardProps {
 }
 
 export default function FamilyMemberCard({ member, onEdit }: FamilyMemberCardProps) {
+  const { t } = useTranslation()
+
   return (
     <View style={styles.card}>
       <View style={styles.info}>
-        <Body3 color="#1A1A1A" weight="semiBold" style={{ marginBottom: 5 }}>
-          {member.member_name || '-'}
-        </Body3>
-        <Caption1 color="#00000080">IC: {member.ic_number || '-'}</Caption1>
-        <Caption1 color="#00000080">DOB: {member.date_of_birth || '-'}</Caption1>
-        <Caption1 color="#00000080">Relationship: {member.relationship || '-'}</Caption1>
-        {member.gender ? (
-          <Caption1 color="#00000080">Gender: {member.gender}</Caption1>
+        <H6 color="#1A1A1A">{member.member_name || '-'}</H6>
+        <Caption2 color="#666666" style={{ marginTop: hp(4) }}>
+          {member.relationship || '-'} · {member.gender || '-'}
+        </Caption2>
+        {member.date_of_birth ? (
+          <Caption2 color="#999999" style={{ marginTop: hp(2) }}>
+            {member.date_of_birth}
+          </Caption2>
         ) : null}
       </View>
-      <TouchableOpacity onPress={onEdit}>
-        <EditIcon size={18} />
+      <TouchableOpacity onPress={onEdit} activeOpacity={0.75} style={styles.editBtn}>
+        <EditIcon size={18} color={Colors.BRAND_PRIMARY} />
       </TouchableOpacity>
     </View>
   )
@@ -36,14 +38,21 @@ export default function FamilyMemberCard({ member, onEdit }: FamilyMemberCardPro
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    borderRadius: 16,
-    padding: wp(16),
-    marginBottom: hp(12),
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingHorizontal: wp(16),
+    paddingVertical: hp(14),
+    marginBottom: hp(10),
     borderWidth: 1,
     borderColor: Colors.CARD_BORDER,
-    backgroundColor: '#FFFFFF',
   },
-  info: { gap: 2, flex: 1 },
+  info: {
+    flex: 1,
+    marginRight: wp(12),
+  },
+  editBtn: {
+    padding: 6,
+  },
 })

@@ -8,12 +8,14 @@ import { useRefresh } from '@/hooks/useRefresh'
 import {
   AppointmentFilterParams,
   AppointmentItem,
+  useGetDoctorsQuery,
   useGetFilteredAppointmentsQuery,
 } from '@/redux/services/adminApi'
 import { hp, wp } from '@/utils/responsiveDevice'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   ActivityIndicator,
   Keyboard,
@@ -28,26 +30,9 @@ import {
 } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
-// ─── Doctors (provider_id) ────────────────────────────────────────────────────
-const DOCTORS = [
-  { id: 'dr_faiz', name: 'Dr. Faiz', provider_id: 3849 },
-  { id: 'dr_liyana_ramli', name: 'Dr. Noor Liyana Binti Ramli', provider_id: 3949 },
-  { id: 'dr_liyana_yusoff', name: 'Dr. Liyana Yusoff', provider_id: 3798 },
-  { id: 'dr_mimi', name: 'Dr. Mimi', provider_id: 6505 },
-  { id: 'dr_sourav', name: 'Dr. Sourav', provider_id: 8451 },
-  { id: 'dr_anis', name: 'Dr. Anis Effendi', provider_id: 3797 },
-]
-
-// ─── Category Tabs ────────────────────────────────────────────────────────────
 type Category = 'upcoming' | 'completed' | 'cancelled'
 
-const CATEGORIES: { label: string; value: Category }[] = [
-  { label: 'Upcoming', value: 'upcoming' },
-  { label: 'Completed', value: 'completed' },
-  { label: 'Cancelled', value: 'cancelled' },
-]
-
-// ─── Status display map ───────────────────────────────────────────────────────
+// ─── Status display map 
 const STATUS_COLOR: Record<string, { color: string; bg: string }> = {
   received: { color: Colors.BRAND_PRIMARY, bg: '#E8F7F6' },
   absent: { color: '#888888', bg: '#F0F0F0' },
@@ -80,7 +65,6 @@ const formatTime = (iso: string | null) => {
   } catch { return '' }
 }
 
-// DatePickerModal display string → YYYY-MM-DD
 const parseToYMD = (dateStr: string): string => {
   if (!dateStr) return ''
   try {
@@ -102,36 +86,54 @@ export default function AdminAppointmentScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const params = useLocalSearchParams<{ activeTab?: string }>()
+  const { t } = useTranslation()
 
-  // ── Active category (applied) ──────────────────────────────────────────────
+  // ── Fetch doctors from API ──────────────────────────────────────────────────
+  const { data: doctorsData } = useGetDoctorsQuery()
+
+  const DOCTORS = useMemo(() => {
+    return (doctorsData?.results ?? []).map(d => ({
+      id: d.id,
+      name: d.name,
+      provider_id: d.yezza_provider_id,
+    }))
+  }, [doctorsData])
+
+  const allProviderIds = useMemo(() => DOCTORS.map(d => d.provider_id), [DOCTORS])
+
+  // ── Categories ─────────────────────────────────────────────────────────────
+  const CATEGORIES: { label: string; value: Category }[] = [
+    { label: t('upcoming'), value: 'upcoming' },
+    { label: t('completed'), value: 'completed' },
+    { label: t('cancelled'), value: 'cancelled' },
+  ]
+
   const [activeCategory, setActiveCategory] = useState<Category>(
     (params.activeTab?.toLowerCase() as Category) ?? 'upcoming'
   )
-
-  // ── Search 
   const [search, setSearch] = useState('')
-
-  // ── Filter modal visibility 
   const [filterVisible, setFilterVisible] = useState(false)
 
-  // ── Applied filter state (drives API call)
-  const [appliedProviderIds, setAppliedProviderIds] = useState<number[]>(
-    DOCTORS.map(d => d.provider_id)
-  )
+  const [appliedProviderIds, setAppliedProviderIds] = useState<number[]>([])
   const [appliedStartDate, setAppliedStartDate] = useState('')
   const [appliedEndDate, setAppliedEndDate] = useState('')
 
-  // ── Temp filter state (inside modal) 
   const [tempCategory, setTempCategory] = useState<Category>(activeCategory)
-  const [tempProviderIds, setTempProviderIds] = useState<number[]>(DOCTORS.map(d => d.provider_id))
+  const [tempProviderIds, setTempProviderIds] = useState<number[]>([])
   const [tempStartDate, setTempStartDate] = useState('')
   const [tempEndDate, setTempEndDate] = useState('')
 
-  // ── Date picker 
   const [datePickerVisible, setDatePickerVisible] = useState(false)
   const [datePickerFor, setDatePickerFor] = useState<'start' | 'end'>('start')
 
-  // ── Sync tab from route params 
+  
+  useEffect(() => {
+    if (allProviderIds.length > 0) {
+      setAppliedProviderIds(allProviderIds)
+      setTempProviderIds(allProviderIds)
+    }
+  }, [allProviderIds])
+
   useEffect(() => {
     if (params.activeTab) {
       const cat = params.activeTab.toLowerCase() as Category
@@ -140,9 +142,7 @@ export default function AdminAppointmentScreen() {
     }
   }, [params.activeTab])
 
-  // ── Build API params 
   const allSelected = appliedProviderIds.length === DOCTORS.length
-
   const filterParams: AppointmentFilterParams = {
     category: activeCategory,
     ...(!allSelected && { doctor_ids: appliedProviderIds.join(',') }),
@@ -151,17 +151,11 @@ export default function AdminAppointmentScreen() {
   }
 
   const { data, isLoading, isFetching, refetch } = useGetFilteredAppointmentsQuery(filterParams)
-
-  // ── Pull-to-refresh 
   const { refreshing, onRefresh } = useRefresh([refetch])
-
-  // ── Cache-aware loader:
   const hasCache = !!data
   const isInitialLoading = isLoading && !hasCache
-
   const allResults: AppointmentItem[] = (data?.results ?? []) as AppointmentItem[]
 
-  // ── Client-side search filter 
   const filtered = allResults.filter(item => {
     if (!search.trim()) return true
     const q = search.toLowerCase()
@@ -171,7 +165,6 @@ export default function AdminAppointmentScreen() {
     )
   })
 
-  // ── Modal handlers ─────────────────────────────────────────────────────────
   const handleOpenFilter = () => {
     setTempCategory(activeCategory)
     setTempProviderIds([...appliedProviderIds])
@@ -190,7 +183,7 @@ export default function AdminAppointmentScreen() {
 
   const handleResetFilter = () => {
     setTempCategory('upcoming')
-    setTempProviderIds(DOCTORS.map(d => d.provider_id))
+    setTempProviderIds(allProviderIds)
     setTempStartDate('')
     setTempEndDate('')
   }
@@ -209,7 +202,6 @@ export default function AdminAppointmentScreen() {
     setDatePickerVisible(false)
   }
 
-  // ── Navigation ─────────────────────────────────────────────────────────────
   const handleCardPress = (item: AppointmentItem) => {
     router.push({
       pathname: '/admin/appointments/appintment_status_details' as any,
@@ -217,23 +209,20 @@ export default function AdminAppointmentScreen() {
     })
   }
 
-  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <PageLoader visible={isInitialLoading} title={t('loading')} subtitle={t('fetching_appointments')} />
 
-      <PageLoader visible={isInitialLoading} title="LOADING" subtitle="Fetching appointments..." />
-
-      <View style={{ marginTop: hp(10) }}>
-        <SectionTitle title="Appointments" showBackButton={false} />
+      <View >
+        <SectionTitle title={t('appointments_title')} showBackButton={false} />
       </View>
 
-      {/* Search + Filter */}
       <View style={styles.searchRow}>
         <View style={styles.searchBox}>
           <Ionicons name="search-outline" size={18} color="#AAAAAA" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search doctor or patient"
+            placeholder={t('search_placeholder')}
             placeholderTextColor="#AAAAAA"
             value={search}
             onChangeText={setSearch}
@@ -249,14 +238,12 @@ export default function AdminAppointmentScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Count */}
       {!isInitialLoading && (
         <Caption4 style={styles.countText}>
-          {filtered.length} result{filtered.length !== 1 ? 's' : ''}
+          {t('results_count', { count: filtered.length })}
         </Caption4>
       )}
 
-      {/* List */}
       {isInitialLoading ? null : (
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -270,18 +257,13 @@ export default function AdminAppointmentScreen() {
             />
           }
         >
-          {/* isFetching কিন্তু cache আছে — subtle indicator */}
           {isFetching && !refreshing && (
-            <ActivityIndicator
-              color={Colors.BRAND_PRIMARY}
-              size="small"
-              style={{ marginBottom: hp(8) }}
-            />
+            <ActivityIndicator color={Colors.BRAND_PRIMARY} size="small" style={{ marginBottom: hp(8) }} />
           )}
 
           {filtered.length === 0 ? (
             <View style={styles.empty}>
-              <Caption1 style={{ color: '#aaa' }}>No appointments found.</Caption1>
+              <Caption1 style={{ color: '#aaa' }}>{t('no_appointments')}</Caption1>
             </View>
           ) : (
             filtered.map(item => {
@@ -295,7 +277,6 @@ export default function AdminAppointmentScreen() {
                   activeOpacity={0.8}
                   onPress={() => handleCardPress(item)}
                 >
-                  {/* Left */}
                   <View style={styles.cardLeft}>
                     <Caption1 weight="semiBold" style={styles.doctorName} numberOfLines={1}>
                       {item.provider.name}
@@ -312,12 +293,10 @@ export default function AdminAppointmentScreen() {
                     ) : null}
                   </View>
 
-                  {/* Divider */}
                   <View style={styles.verticalDivider} />
 
-                  {/* Right */}
                   <View style={styles.cardRight}>
-                    <Caption4 style={styles.patientLabel}>Patient</Caption4>
+                    <Caption4 style={styles.patientLabel}>{t('patient_label')}</Caption4>
                     <Caption2 style={styles.patientName} numberOfLines={2}>
                       {item.lead.name}
                     </Caption2>
@@ -334,7 +313,7 @@ export default function AdminAppointmentScreen() {
         </ScrollView>
       )}
 
-      {/* ── Filter Modal ──────────────────────────────────────────────────── */}
+      {/* ── Filter Modal ─────────────────────────────────────────────────────── */}
       <Modal
         visible={filterVisible}
         transparent
@@ -347,18 +326,16 @@ export default function AdminAppointmentScreen() {
               <View style={[styles.bottomSheet, { paddingBottom: Math.max(insets.bottom, hp(24)) }]}>
                 <View style={styles.sheetHandle} />
 
-                {/* Header */}
                 <View style={styles.sheetHeader}>
-                  <Body2 style={styles.sheetTitle}>Filter</Body2>
+                  <Body2 style={styles.sheetTitle}>{t('filter_title')}</Body2>
                   <TouchableOpacity onPress={handleResetFilter} activeOpacity={0.7}>
-                    <Caption1 style={styles.resetText}>Reset</Caption1>
+                    <Caption1 style={styles.resetText}>{t('reset')}</Caption1>
                   </TouchableOpacity>
                 </View>
 
                 <ScrollView showsVerticalScrollIndicator={false}>
-
                   {/* Category */}
-                  <Body2 style={styles.filterSectionLabel}>Category</Body2>
+                  <Body2 style={styles.filterSectionLabel}>{t('category')}</Body2>
                   {CATEGORIES.map(cat => {
                     const selected = tempCategory === cat.value
                     return (
@@ -376,35 +353,39 @@ export default function AdminAppointmentScreen() {
                     )
                   })}
 
-                  {/* Doctor */}
-                  <Body2 style={styles.filterSectionLabel}>Doctor</Body2>
-                  {DOCTORS.map(doc => {
-                    const checked = tempProviderIds.includes(doc.provider_id)
-                    return (
-                      <TouchableOpacity
-                        key={doc.id}
-                        style={styles.filterRow}
-                        onPress={() => toggleTempDoctor(doc.provider_id)}
-                        activeOpacity={0.7}
-                      >
-                        <Caption1 style={styles.filterRowText}>{doc.name}</Caption1>
-                        <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
-                          {checked && <Ionicons name="checkmark" size={14} color="#fff" />}
-                        </View>
-                      </TouchableOpacity>
-                    )
-                  })}
+                  {/* Doctors — API থেকে আসা */}
+                  <Body2 style={styles.filterSectionLabel}>{t('doctor')}</Body2>
+                  {DOCTORS.length === 0 ? (
+                    <ActivityIndicator color={Colors.BRAND_PRIMARY} size="small" style={{ marginVertical: hp(10) }} />
+                  ) : (
+                    DOCTORS.map(doc => {
+                      const checked = tempProviderIds.includes(doc.provider_id)
+                      return (
+                        <TouchableOpacity
+                          key={doc.id}
+                          style={styles.filterRow}
+                          onPress={() => toggleTempDoctor(doc.provider_id)}
+                          activeOpacity={0.7}
+                        >
+                          <Caption1 style={styles.filterRowText}>{doc.name}</Caption1>
+                          <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+                            {checked && <Ionicons name="checkmark" size={14} color="#fff" />}
+                          </View>
+                        </TouchableOpacity>
+                      )
+                    })
+                  )}
 
                   {/* Date Range */}
-                  <Body2 style={styles.filterSectionLabel}>Date Range</Body2>
+                  <Body2 style={styles.filterSectionLabel}>{t('date_range')}</Body2>
                   <TouchableOpacity
                     style={styles.filterRow}
                     activeOpacity={0.7}
                     onPress={() => { setDatePickerFor('start'); setDatePickerVisible(true) }}
                   >
-                    <Caption1 style={styles.filterRowText}>Start Date</Caption1>
+                    <Caption1 style={styles.filterRowText}>{t('start_date')}</Caption1>
                     <Caption1 style={tempStartDate ? styles.selectedDateText : styles.placeholderText}>
-                      {tempStartDate || 'Select'}
+                      {tempStartDate || t('select')}
                     </Caption1>
                   </TouchableOpacity>
 
@@ -413,21 +394,19 @@ export default function AdminAppointmentScreen() {
                     activeOpacity={0.7}
                     onPress={() => { setDatePickerFor('end'); setDatePickerVisible(true) }}
                   >
-                    <Caption1 style={styles.filterRowText}>End Date</Caption1>
+                    <Caption1 style={styles.filterRowText}>{t('end_date')}</Caption1>
                     <Caption1 style={tempEndDate ? styles.selectedDateText : styles.placeholderText}>
-                      {tempEndDate || 'Select'}
+                      {tempEndDate || t('select')}
                     </Caption1>
                   </TouchableOpacity>
 
-                  {/* Apply */}
                   <TouchableOpacity
                     style={styles.findBtn}
                     onPress={handleApplyFilter}
                     activeOpacity={0.85}
                   >
-                    <Caption1 style={styles.findBtnText}>Apply Filter</Caption1>
+                    <Caption1 style={styles.findBtnText}>{t('apply_filter')}</Caption1>
                   </TouchableOpacity>
-
                 </ScrollView>
               </View>
             </TouchableWithoutFeedback>
@@ -435,10 +414,9 @@ export default function AdminAppointmentScreen() {
         </TouchableWithoutFeedback>
       </Modal>
 
-      {/* Date Picker */}
       <DatePickerModal
         visible={datePickerVisible}
-        title={datePickerFor === 'start' ? 'Select Start Date' : 'Select End Date'}
+        title={datePickerFor === 'start' ? t('select_start_date') : t('select_end_date')}
         onClose={() => setDatePickerVisible(false)}
         onConfirm={handleDateConfirm}
         allowPastDates={true}
@@ -447,22 +425,21 @@ export default function AdminAppointmentScreen() {
   )
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.APP_BACKGROUND,
     paddingHorizontal: wp(20),
-    marginBottom:hp(50)
+    marginBottom: hp(50),
   },
 
-  // Search
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: wp(10),
-    paddingVertical: hp(16),
+    paddingVertical: hp(8),
   },
+
   searchBox: {
     flex: 1,
     flexDirection: 'row',
@@ -473,12 +450,14 @@ const styles = StyleSheet.create({
     paddingVertical: hp(5),
     gap: wp(8),
   },
+
   searchInput: {
     flex: 1,
     fontSize: 14,
     color: Colors.TEXT_COLOR,
     fontFamily: 'Poppins_400Regular',
   },
+
   filterBtn: {
     width: 50,
     height: 50,
@@ -493,7 +472,6 @@ const styles = StyleSheet.create({
     marginBottom: hp(10),
   },
 
-  // Cards
   card: {
     flexDirection: 'row',
     alignItems: 'stretch',
@@ -504,16 +482,19 @@ const styles = StyleSheet.create({
     marginBottom: hp(10),
     overflow: 'hidden',
   },
+
   cardLeft: {
     flex: 1,
     paddingHorizontal: wp(14),
     paddingVertical: hp(14),
     justifyContent: 'center',
   },
+
   verticalDivider: {
     width: 1,
     backgroundColor: Colors.BORDER_COLOR,
   },
+
   cardRight: {
     width: wp(130),
     paddingHorizontal: wp(12),
@@ -522,49 +503,57 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: hp(6),
   },
+
   doctorName: {
     color: Colors.BRAND_PRIMARY,
     marginBottom: hp(4),
   },
+
   metaText: {
     color: '#666666',
     marginBottom: hp(2),
   },
+
   remarkText: {
     color: '#999999',
     fontStyle: 'italic',
     marginTop: hp(2),
   },
+
   patientLabel: {
     color: '#888888',
   },
+
   patientName: {
     color: Colors.TEXT_COLOR,
     fontWeight: '600',
     textAlign: 'right',
   },
+
   statusBadge: {
     paddingHorizontal: wp(8),
     paddingVertical: hp(3),
     borderRadius: 8,
     marginTop: hp(2),
   },
+
   statusText: {
     fontSize: 11,
     fontWeight: '600',
     textTransform: 'capitalize',
   },
+
   empty: {
     marginTop: hp(60),
     alignItems: 'center',
   },
 
-  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'flex-end',
   },
+
   bottomSheet: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
@@ -573,6 +562,7 @@ const styles = StyleSheet.create({
     paddingTop: hp(16),
     maxHeight: '85%',
   },
+
   sheetHandle: {
     width: 40,
     height: 4,
@@ -581,28 +571,33 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: hp(12),
   },
+
   sheetHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: hp(8),
   },
+
   sheetTitle: {
     color: Colors.TEXT_COLOR,
     fontWeight: '700',
     fontSize: 16,
   },
+
   resetText: {
     color: '#FF383C',
     fontWeight: '600',
     fontSize: 13,
   },
+
   filterSectionLabel: {
     color: Colors.TEXT_COLOR,
     fontWeight: '600',
     marginBottom: hp(10),
     marginTop: hp(12),
   },
+
   filterRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -613,19 +608,23 @@ const styles = StyleSheet.create({
     paddingVertical: hp(14),
     marginBottom: hp(8),
   },
+
   filterRowText: {
     color: Colors.TEXT_COLOR,
     fontSize: 14,
   },
+
   selectedDateText: {
     color: Colors.BRAND_PRIMARY,
     fontSize: 12,
     fontWeight: '500',
   },
+
   placeholderText: {
     color: '#AAAAAA',
     fontSize: 12,
   },
+
   radio: {
     width: 22,
     height: 22,
@@ -636,15 +635,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   radioSelected: {
     borderColor: Colors.BRAND_PRIMARY,
   },
+
   radioInner: {
     width: 12,
     height: 12,
     borderRadius: 6,
     backgroundColor: Colors.BRAND_PRIMARY,
   },
+
   checkbox: {
     width: 22,
     height: 22,
@@ -655,10 +657,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   checkboxChecked: {
     backgroundColor: Colors.BRAND_PRIMARY,
     borderColor: Colors.BRAND_PRIMARY,
   },
+
   findBtn: {
     backgroundColor: Colors.BRAND_PRIMARY,
     borderRadius: 14,
@@ -667,6 +671,7 @@ const styles = StyleSheet.create({
     marginTop: hp(16),
     marginBottom: hp(8),
   },
+
   findBtnText: {
     color: '#FFFFFF',
     fontWeight: '600',

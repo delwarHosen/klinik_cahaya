@@ -1,4 +1,4 @@
-// app/admin/notification.tsx
+import CustomLoader from '@/components/shared/CustomLoader'
 import SectionTitle from '@/components/shared/SectionTitle'
 import { Caption1, H6 } from '@/components/typo/Typography'
 import { Colors } from '@/constants/theme'
@@ -10,42 +10,47 @@ import {
 import { hp, wp } from '@/utils/responsiveDevice'
 import { Ionicons } from '@expo/vector-icons'
 import React from 'react'
+import { useTranslation } from 'react-i18next'; // ১. ইম্পোর্ট
 import {
-    ActivityIndicator,
     FlatList,
     StyleSheet,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-function timeAgo(isoString: string): string {
-    const diff = Date.now() - new Date(isoString).getTime()
-    const mins = Math.floor(diff / 60000)
-    if (mins < 1) return 'Just now'
-    if (mins < 60) return `${mins}m ago`
-    const hrs = Math.floor(mins / 60)
-    if (hrs < 24) return `${hrs}h ago`
-    const days = Math.floor(hrs / 24)
-    return `${days}d ago`
-}
-
 export default function AdminNotificationScreen() {
+    const { t } = useTranslation() // ২. হুক ইনিশিয়ালাইজ
     const { data, isLoading } = useGetAdminNotificationsQuery()
     const [markRead] = useMarkNotificationReadMutation()
     const [deleteNotif] = useDeleteNotificationMutation()
 
     const notifications = data?.results ?? []
 
+    // টাইম লোকালাইজ করার জন্য ইন্টারনাল ফাংশন
+    function timeAgo(isoString: string): string {
+        const diff = Date.now() - new Date(isoString).getTime()
+        const mins = Math.floor(diff / 60000)
+        
+        if (mins < 1) return t('just_now')
+        if (mins < 60) return t('m_ago', { count: mins })
+        
+        const hrs = Math.floor(mins / 60)
+        if (hrs < 24) return t('h_ago', { count: hrs })
+        
+        const days = Math.floor(hrs / 24)
+        return t('d_ago', { count: days })
+    }
+
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             <View style={styles.header}>
-                <SectionTitle title="Notification" />
+                <SectionTitle title={t('notifications_title')} />
             </View>
 
             {isLoading ? (
                 <View style={styles.centered}>
-                    <ActivityIndicator color={Colors.BRAND_PRIMARY} size="large" />
+                    <CustomLoader size={50} />
                 </View>
             ) : (
                 <FlatList
@@ -55,12 +60,9 @@ export default function AdminNotificationScreen() {
                     showsVerticalScrollIndicator={false}
                     ListEmptyComponent={
                         <View style={styles.centered}>
-                            <Caption1 style={{ color: '#999' }}>No notifications</Caption1>
+                            <Caption1 style={{ color: '#999' }}>{t('no_notifications')}</Caption1>
                         </View>
                     }
-
-
-
                     renderItem={({ item }) => (
                         <TouchableOpacity
                             style={[styles.card, !item.is_read && styles.cardUnread]}

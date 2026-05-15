@@ -12,27 +12,30 @@ import { useUpdateMedicalMutation } from '@/redux/services/authApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+// অ্যালার্জি অপশন: label অনুবাদের জন্য এবং value ব্যাকএন্ডে পাঠানোর জন্য
 const ALLERGY_OPTIONS = [
-  'Food Allergies',
-  'Seasonal Allergies',
-  'Animal Allergies',
-  'Dust Allergies',
+  { label: 'food_allergies', value: 'Food Allergies' },
+  { label: 'seasonal_allergies', value: 'Seasonal Allergies' },
+  { label: 'animal_allergies', value: 'Animal Allergies' },
+  { label: 'dust_allergies', value: 'Dust Allergies' },
 ];
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 export default function MedicalInformationScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [updateMedical, { isLoading }] = useUpdateMedicalMutation();
 
   // States
@@ -45,55 +48,50 @@ export default function MedicalInformationScreen() {
   const [medicalCondition, setMedicalCondition] = useState('');
   const [medication, setMedication] = useState('');
 
-  // const handleContinue = () => {
-  //   router.push('/(auth)/insurance_information');
-  // };
-
+  // হ্যান্ডলার
   const handleSkip = () => {
     router.push('/(auth)/insurance_information');
   };
 
-  const toggleAllergy = (allergy: string) => {
+  const toggleAllergy = (allergyValue: string) => {
     setSelectedAllergies((prev) =>
-      prev.includes(allergy) ? prev.filter((a) => a !== allergy) : [...prev, allergy]
+      prev.includes(allergyValue)
+        ? prev.filter((a) => a !== allergyValue)
+        : [...prev, allergyValue]
     );
   };
 
-
-
-
   const handleContinue = async () => {
     try {
-      const res = await updateMedical({
+      await updateMedical({
         blood_group: bloodGroup,
-        allergies: selectedAllergies.map((name) => ({ name, type: null, severity: null })),
+        allergies: selectedAllergies.map((name) => ({
+          name,
+          type: null,
+          severity: null,
+        })),
         medical_condition: medicalCondition ? [medicalCondition] : [],
         medication: medication ? [medication] : [],
       }).unwrap();
 
-      console.log(' Medical saved:', JSON.stringify(res));
-      showToast('Medical info saved!', 'success');
+      showToast(t('medical_saved'), 'success');
       router.push('/(auth)/insurance_information');
-
     } catch (err: any) {
       console.log('Medical error:', JSON.stringify(err));
-      showToast(err?.data?.detail?.msg || err?.data?.message || 'Failed to save medical info.', 'error');
+      showToast(
+        err?.data?.detail?.msg || err?.data?.message || t('medical_save_failed'),
+        'error'
+      );
     }
   };
 
-  // Button replace:
-  {
-    isLoading ? (
-      <View style={{ alignItems: 'center', marginTop: hp(12) }}>
-        <CustomLoader size={50} strokeWidth={3} />
-      </View>
-    ) : (
-      <CustomButton title="Continue" onPress={handleContinue} width="100%" height={hp(70)} borderRadius={16} style={{ marginTop: hp(12) }} />
-    )
-  }
-
-  const allergyDisplayText =
-    selectedAllergies.length > 0 ? selectedAllergies.join(', ') : '';
+  // UI তে দেখানোর জন্য নির্বাচিত অ্যালার্জিগুলোর অনুবাদিত টেক্সট তৈরি
+  const allergyDisplayText = selectedAllergies
+    .map((val) => {
+      const option = ALLERGY_OPTIONS.find((opt) => opt.value === val);
+      return option ? t(option.label) : val;
+    })
+    .join(', ');
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -103,11 +101,14 @@ export default function MedicalInformationScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
             <LeftAngleIcon />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleSkip}>
-            <Body3 color={Colors.PLACEHOLLDER_TEXT}>Skip</Body3>
+            <Body3 color={Colors.PLACEHOLLDER_TEXT}>{t('skip')}</Body3>
           </TouchableOpacity>
         </View>
 
@@ -120,12 +121,12 @@ export default function MedicalInformationScreen() {
             {/* Title */}
             <View style={styles.titleBlock}>
               <AuthHeading
-                title='Set-up your Profile'
-                description="Medical Information"
+                title={t('setup_profile')}
+                description={t('medical_info')}
               />
             </View>
 
-            {/* ── Blood Group Field ── */}
+            {/* Blood Group Field */}
             {!showBloodModal ? (
               <TouchableOpacity
                 style={styles.dropdownInput}
@@ -136,14 +137,14 @@ export default function MedicalInformationScreen() {
                   color={bloodGroup ? Colors.TEXT_COLOR : '#8C88A3'}
                   style={{ flex: 1 }}
                 >
-                  {bloodGroup || 'Blood Group'}
+                  {bloodGroup || t('blood_group')}
                 </Body3>
                 <DownArrowIcon />
               </TouchableOpacity>
             ) : (
               <View style={styles.expandedContainer}>
                 <View style={styles.expandedHeader}>
-                  <Body2 color={Colors.TEXT_COLOR}>Select Blood Group</Body2>
+                  <Body2 color={Colors.TEXT_COLOR}>{t('select_blood_group')}</Body2>
                   <TouchableOpacity onPress={() => setShowBloodModal(false)}>
                     <UpArrowIcon />
                   </TouchableOpacity>
@@ -154,14 +155,20 @@ export default function MedicalInformationScreen() {
                       key={group}
                       style={[
                         styles.bloodOption,
-                        bloodGroup === group && styles.optionSelected
+                        bloodGroup === group && styles.optionSelected,
                       ]}
                       onPress={() => {
                         setBloodGroup(group);
                         setShowBloodModal(false);
                       }}
                     >
-                      <Body3 color={bloodGroup === group ? Colors.BRAND_PRIMARY : Colors.TEXT_COLOR}>
+                      <Body3
+                        color={
+                          bloodGroup === group
+                            ? Colors.BRAND_PRIMARY
+                            : Colors.TEXT_COLOR
+                        }
+                      >
                         {group}
                       </Body3>
                     </TouchableOpacity>
@@ -170,7 +177,7 @@ export default function MedicalInformationScreen() {
               </View>
             )}
 
-            {/* ── Allergies Field ── */}
+            {/* Allergies Field */}
             {!showAllergyModal ? (
               <TouchableOpacity
                 style={styles.dropdownInput}
@@ -182,27 +189,27 @@ export default function MedicalInformationScreen() {
                   style={{ flex: 1 }}
                   numberOfLines={1}
                 >
-                  {allergyDisplayText || 'Allergies'}
+                  {allergyDisplayText || t('allergies')}
                 </Body3>
                 <DownArrowIcon />
               </TouchableOpacity>
             ) : (
               <View style={styles.expandedContainer}>
                 <View style={styles.expandedHeader}>
-                  <Body2 color={Colors.TEXT_COLOR}>Choose Allergies</Body2>
+                  <Body2 color={Colors.TEXT_COLOR}>{t('choose_allergies')}</Body2>
                   <TouchableOpacity onPress={() => setShowAllergyModal(false)}>
                     <UpArrowIcon />
                   </TouchableOpacity>
                 </View>
                 {ALLERGY_OPTIONS.map((allergy) => {
-                  const selected = selectedAllergies.includes(allergy);
+                  const selected = selectedAllergies.includes(allergy.value);
                   return (
                     <TouchableOpacity
-                      key={allergy}
+                      key={allergy.value}
                       style={styles.listOption}
-                      onPress={() => toggleAllergy(allergy)}
+                      onPress={() => toggleAllergy(allergy.value)}
                     >
-                      <Body3 color={Colors.TEXT_COLOR}>{allergy}</Body3>
+                      <Body3 color={Colors.TEXT_COLOR}>{t(allergy.label)}</Body3>
                       <View
                         style={[
                           styles.checkbox,
@@ -210,7 +217,12 @@ export default function MedicalInformationScreen() {
                         ]}
                       >
                         {selected && (
-                          <Body3 color={Colors.BRAND_PRIMARY} style={{ fontSize: 12 }}>✓</Body3>
+                          <Body3
+                            color={Colors.BRAND_PRIMARY}
+                            style={{ fontSize: 12 }}
+                          >
+                            ✓
+                          </Body3>
                         )}
                       </View>
                     </TouchableOpacity>
@@ -223,23 +235,24 @@ export default function MedicalInformationScreen() {
             <FormInput
               value={medicalCondition}
               onChangeText={setMedicalCondition}
-              placeholder="Medical Condition"
+              placeholder={t('medical_condition')}
             />
 
             {/* Medication */}
             <FormInput
               value={medication}
               onChangeText={setMedication}
-              placeholder="Medication"
+              placeholder={t('medication')}
             />
 
+            {/* Button Section */}
             {isLoading ? (
               <View style={{ alignItems: 'center', marginTop: hp(12) }}>
                 <CustomLoader size={50} strokeWidth={3} />
               </View>
             ) : (
               <CustomButton
-                title="Continue"
+                title={t('continue')}
                 onPress={handleContinue}
                 width="100%"
                 height={hp(70)}

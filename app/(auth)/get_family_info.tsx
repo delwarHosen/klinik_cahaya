@@ -10,6 +10,7 @@ import { useUpdateFamilyMutation } from '@/redux/services/authApi'
 import { hp, wp } from '@/utils/responsiveDevice'
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useCallback, useState } from 'react'
+import { useTranslation } from 'react-i18next'; // ১. ইম্পোর্ট
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -31,10 +32,10 @@ interface FamilyMember {
 export default function GetFamilyInfo() {
     const router = useRouter()
     const params = useLocalSearchParams()
+    const { t } = useTranslation() // ২. হুক কল
     const [updateFamily, { isLoading }] = useUpdateFamilyMutation()
 
     const [members, setMembers] = useState<FamilyMember[]>([])
-
 
     useFocusEffect(
         useCallback(() => {
@@ -47,15 +48,14 @@ export default function GetFamilyInfo() {
         }, [params.members])
     )
 
-
     const handleSave = async () => {
         try {
             await updateFamily({ family_members: members }).unwrap()
-            showToast('Family info saved!', 'success')
+            showToast(t('save_success'), 'success')
             router.replace('/(auth)/upload_photo')
         } catch (err: any) {
             console.log('Save error:', JSON.stringify(err))
-            showToast(err?.data?.detail?.msg || err?.data?.message || 'Failed to save.', 'error')
+            showToast(err?.data?.detail?.msg || err?.data?.message || t('save_failed'), 'error')
         }
     }
 
@@ -63,15 +63,15 @@ export default function GetFamilyInfo() {
         <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
             <SectionTitle />
             <AuthHeading
-                title="Set-up your Profile"
+                title={t('setup_profile')}
                 style={{ marginBottom: hp(30) }}
-                description="Get Family Information"
+                description={t('get_family_info')}
             />
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 {members.length === 0 ? (
                     <View style={styles.emptyBox}>
-                        <Caption1 color="#AAAAAA">No family members added yet.</Caption1>
+                        <Caption1 color="#AAAAAA">{t('no_family_added')}</Caption1>
                     </View>
                 ) : (
                     members.map((member, index) => (
@@ -83,10 +83,14 @@ export default function GetFamilyInfo() {
                                 <Caption1 color="#00000080">{member.ic_number}</Caption1>
                                 <Caption1 color="#00000080">{member.date_of_birth}</Caption1>
                                 <Caption1 color="#00000080">{member.relationship}</Caption1>
-                                {member.gender ? <Caption1 color="#00000080">{member.gender}</Caption1> : null}
+                                {member.gender ? <Caption1 color="#00000080">{t(member.gender.toLowerCase())}</Caption1> : null}
                                 {member.allergies?.length > 0 && (
                                     <Caption1 color="#00000080">
-                                        {member.allergies.map((a) => a.name).join(', ')}
+                                        {/* আলার্জিগুলোর নাম অনুবাদ করার চেষ্টা */}
+                                        {member.allergies.map((a) => {
+                                            const translationKey = a.name.toLowerCase().replace(/\s+/g, '_');
+                                            return t(translationKey, { defaultValue: a.name });
+                                        }).join(', ')}
                                     </Caption1>
                                 )}
                             </View>
@@ -123,7 +127,7 @@ export default function GetFamilyInfo() {
 
                 <View style={{ marginTop: hp(20) }}>
                     <CustomButton
-                        title="Save"
+                        title={t('save')}
                         onPress={handleSave}
                         isLoading={isLoading}
                         height={64}
@@ -142,12 +146,10 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.APP_BACKGROUND,
         paddingHorizontal: wp(20),
     },
-
     scrollContent: {
         paddingTop: hp(10),
         paddingBottom: hp(40),
     },
-
     memberCard: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -159,17 +161,14 @@ const styles = StyleSheet.create({
         borderColor: Colors.CARD_BORDER,
         backgroundColor: '#FFFFFF',
     },
-
     memberInfo: {
         flex: 1,
         gap: 2,
     },
-
     addBtnRow: {
         alignItems: 'flex-end',
         marginTop: hp(8),
     },
-
     addBtn: {
         width: 60,
         height: 60,
@@ -180,7 +179,6 @@ const styles = StyleSheet.create({
         borderWidth: 1.5,
         borderColor: Colors.BORDER_COLOR,
     },
-
     emptyBox: {
         alignItems: 'center',
         paddingVertical: hp(40),

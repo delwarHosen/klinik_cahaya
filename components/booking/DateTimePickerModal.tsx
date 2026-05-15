@@ -23,7 +23,7 @@ const OUTER_PADDING = wp(24) * 2;              // backdrop paddingHorizontal (le
 const CALENDAR_WIDTH = SCREEN_WIDTH - OUTER_PADDING - CARD_HORIZONTAL_PADDING;
 const CELL_SIZE = Math.floor(CALENDAR_WIDTH / 7);
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Helpers
 
 function parseConsultationTime(timeStr: string): { startHour: number; endHour: number } {
   const DEFAULT = { startHour: 8, endHour: 23 };
@@ -70,7 +70,7 @@ function toDateStr(year: number, month: number, day: number): string {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types 
 
 interface Props {
   visible: boolean;
@@ -81,7 +81,7 @@ interface Props {
   consultationTime?: string;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Component
 
 export function DateTimePickerModal({
   visible,
@@ -109,6 +109,8 @@ export function DateTimePickerModal({
     return buildSlotsForRange(startHour, endHour);
   }, [consultationTime]);
 
+  // console.log("avilityyyyyyyyyy",availability)
+
   const availabilityMap = useMemo<Record<string, Set<string>>>(() => {
     const map: Record<string, Set<string>> = {};
     availability.forEach(({ date, slots }) => {
@@ -128,7 +130,7 @@ export function DateTimePickerModal({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
-  // ── Calendar helpers ──────────────────────────────────────────────────────
+  // ── Calendar helpers
 
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const firstDay = new Date(currentYear, currentMonth, 1).getDay();
@@ -177,7 +179,7 @@ export function DateTimePickerModal({
     setSelectedDate(null);
   };
 
-  // ── Time helpers ──────────────────────────────────────────────────────────
+  // ── Time helpers 
 
   const availableSlotsForDate: Set<string> = selectedDate
     ? (availabilityMap[selectedDate] ?? new Set())
@@ -185,7 +187,7 @@ export function DateTimePickerModal({
 
   const isSlotEnabled = (slot: string) => availableSlotsForDate.has(slot);
 
-  // ── Actions ───────────────────────────────────────────────────────────────
+  // ── Actions
 
   const handleSelectDay = (day: number) => {
     if (isDisabledDay(day)) return;
@@ -210,7 +212,7 @@ export function DateTimePickerModal({
     resetState();
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Render 
 
   return (
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
@@ -377,7 +379,7 @@ export function DateTimePickerModal({
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// ─── Styles
 
 const styles = StyleSheet.create({
   backdrop: {

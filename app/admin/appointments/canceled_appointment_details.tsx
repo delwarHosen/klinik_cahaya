@@ -6,6 +6,7 @@ import { useGetBookingLookupMutation } from '@/redux/services/adminApi'
 import { hp, wp } from '@/utils/responsiveDevice'
 import { useLocalSearchParams } from 'expo-router'
 import React, { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   ActivityIndicator,
   Image,
@@ -33,6 +34,7 @@ const formatTime = (timeStr: string) => {
 }
 
 export default function CanceledAppointmentDetailsScreen() {
+  const { t } = useTranslation()
   const { bookingId, id } = useLocalSearchParams<{ bookingId?: string; id?: string }>()
   const resolvedId = bookingId ?? id ?? ''
 
@@ -48,7 +50,7 @@ export default function CanceledAppointmentDetailsScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.headerWrapper}>
-          <SectionTitle title="Reject Details" />
+          <SectionTitle title={t('reject_details')} />
         </View>
         <View style={styles.loadingBox}>
           <ActivityIndicator color={Colors.BRAND_PRIMARY} size="large" />
@@ -63,7 +65,7 @@ export default function CanceledAppointmentDetailsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.headerWrapper}>
-        <SectionTitle title="Details" />
+        <SectionTitle title={t('details')} />
       </View>
 
       <ScrollView
@@ -86,9 +88,9 @@ export default function CanceledAppointmentDetailsScreen() {
         </View>
 
         {/* ── Appointment Details ── */}
-        <SpecialText style={styles.sectionTitle}>Appointment Details</SpecialText>
+        <SpecialText style={styles.sectionTitle}>{t('appointment_details')}</SpecialText>
 
-        <Caption1 style={styles.label}>Status</Caption1>
+        <Caption1 style={styles.label}>{t('status')}</Caption1>
 
         {/* Status row */}
         <View style={styles.statusRow}>
@@ -106,7 +108,7 @@ export default function CanceledAppointmentDetailsScreen() {
           <View style={styles.rejectedBoxRow}>
             {/* Left — Rejected By */}
             <View style={{ flex: 1 }}>
-              <Caption4 style={styles.rejectedBoxLabel}>Rejected By</Caption4>
+              <Caption4 style={styles.rejectedBoxLabel}>{t('rejected_by')}</Caption4>
               <Caption2 style={styles.rejectedBoxValue}>
                 {booking.approved_by ?? 'Admin'}
               </Caption2>
@@ -121,28 +123,28 @@ export default function CanceledAppointmentDetailsScreen() {
             </View>
             {/* Right — Reason */}
             <View style={{ alignItems: 'flex-end' }}>
-              <Caption4 style={styles.rejectedBoxLabelRed}>Reason</Caption4>
+              <Caption4 style={styles.rejectedBoxLabelRed}>{t('reason')}</Caption4>
               <Caption2 style={styles.rejectedReasonText}>—</Caption2>
             </View>
           </View>
 
           {/* Note */}
           <View style={styles.rejectedNoteBox}>
-            <Caption4 style={styles.rejectedBoxLabel}>Note</Caption4>
+            <Caption4 style={styles.rejectedBoxLabel}>{t('note')}</Caption4>
             <Caption2 style={styles.rejectedNoteText}>
-              Appointment request has been declined.
+              {t('declined_note')}
             </Caption2>
           </View>
         </View>
 
         {/* ── Visit Reason ── */}
         <Caption2 weight='regular' style={[styles.label, { marginTop: hp(20) }]}>
-          Visit Reason
+          {t('visit_reason')}
         </Caption2>
         <Caption2 weight='semiBold' style={styles.boldValue}>{booking.reason}</Caption2>
 
         {/* ── Patient ── */}
-        <Caption2 style={[styles.label, { marginTop: hp(20) }]}>Patient</Caption2>
+        <Caption2 style={[styles.label, { marginTop: hp(20) }]}>{t('patient')}</Caption2>
 
         <View style={styles.personCard}>
           <View style={styles.personAvatar} />
@@ -161,10 +163,10 @@ export default function CanceledAppointmentDetailsScreen() {
 
         {/* ── Consultation Info ── */}
         {doctor.consultation_days && (
-          <ExpandableSection title="Consultation Info">
-            <InfoRow label="Days"  value={doctor.consultation_days} />
-            <InfoRow label="Hours" value={doctor.consultation_time} />
-            <InfoRow label="About" value={doctor.about} />
+          <ExpandableSection title={t('consultation_info')}>
+            <InfoRow label={t('days')}  value={doctor.consultation_days} />
+            <InfoRow label={t('hours')} value={doctor.consultation_time} />
+            <InfoRow label={t('about')} value={doctor.about} />
           </ExpandableSection>
         )}
 
@@ -191,8 +193,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: hp(40),
   },
-
-  // ── Doctor Row ──
   doctorRow: {
     flexDirection: 'column',
     alignItems: 'center',
@@ -220,8 +220,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
   },
-
-  // ── Section Title ──
   sectionTitle: {
     fontSize: 18,
     fontWeight: '500',
@@ -232,8 +230,6 @@ const styles = StyleSheet.create({
     color: Colors.TEXT_COLOR,
     marginBottom: hp(6),
   },
-
-  // ── Status Row ──
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -256,8 +252,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 2,
   },
-
-  // ── Rejected Box ──
   rejectedBox: {
     backgroundColor: '#FFF0F0',
     borderRadius: 12,
@@ -305,16 +299,12 @@ const styles = StyleSheet.create({
     color: Colors.TEXT_COLOR,
     lineHeight: 20,
   },
-
-  // ── Content ──
   boldValue: {
     color: Colors.TEXT_COLOR,
     fontWeight: '700',
     fontSize: 14,
     marginBottom: hp(8),
   },
-
-  // ── Person Card ──
   personCard: {
     flexDirection: 'row',
     alignItems: 'center',

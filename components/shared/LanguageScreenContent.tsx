@@ -23,12 +23,10 @@ export default function LanguageScreenContent() {
   const [selected, setSelected] = useState<string>('en');
   const [loading, setLoading] = useState<boolean>(false);
 
-  // ── Key fix: শুধু প্রথমবার mount-এ loader দেখাবে ──────────────────────────
-  // useRef দিয়ে track করি যে data already load হয়েছে কিনা
   const hasLoaded = useRef(false);
 
   useEffect(() => {
-    if (hasLoaded.current) return; // back করে ফিরলে skip
+    if (hasLoaded.current) return; 
     hasLoaded.current = true;
 
     const loadCurrentLang = async () => {
@@ -49,7 +47,7 @@ export default function LanguageScreenContent() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
 
-      {/* প্রথমবার ঢুকলে loader — back করে ফিরলে দেখাবে না */}
+    
       <PageLoader visible={loading} title="LOADING" subtitle="Fetching language settings..." />
 
       <SectionTitle title={t('language')} />

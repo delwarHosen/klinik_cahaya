@@ -1,5 +1,5 @@
 import { H6 } from '@/components/typo/Typography';
-import { QUICK_ACTIONS } from '@/constants/fakeData';
+// import { QUICK_ACTIONS } from '@/constants/fakeData';
 import { Colors } from '@/constants/theme';
 import { hp, wp } from '@/utils/responsiveDevice';
 import React from 'react';
@@ -11,6 +11,19 @@ const QUICK_ACTION_ROUTES: Record<string, string> = {
   '3': '/patient/quick_access/vaccine_stock',
   '4': '/patient/quick_access/ic_verification',
 };
+
+
+interface QuickAction {
+  id: string;
+  title: string;
+}
+
+const QUICK_ACTIONS: QuickAction[] = [
+  { id: '1', title: 'Book Appointment' },
+  { id: '2', title: 'Queue Status' },
+  { id: '3', title: 'Vaccine Stock' },
+  { id: '4', title: 'Medical Record' },
+];
 
 interface QuickActionsGridProps {
   onItemPress?: (route: string) => void;

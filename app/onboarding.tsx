@@ -46,7 +46,7 @@ export default function OnboardingScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
-    const navigateToLogin = () => router.replace('/(auth)/login');
+    const navigateToLogin = () => router.replace('/language_select');
 
     const handleNext = () => {
         if (currentIndex < SLIDES.length - 1) {

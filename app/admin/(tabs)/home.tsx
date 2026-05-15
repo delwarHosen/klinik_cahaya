@@ -14,6 +14,7 @@ import { useGetAdminNotificationsQuery } from '@/redux/services/notificationApi'
 import { hp, wp } from '@/utils/responsiveDevice'
 import { useRouter } from 'expo-router'
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Image,
   RefreshControl,
@@ -25,21 +26,24 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Helpers
 
 function toMidnight(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
-function smartDateLabel(isoStart: string): string {
+
+
+function smartDateLabel(isoStart: string, t: any): string {
   const apptDay  = toMidnight(new Date(isoStart));
   const today    = toMidnight(new Date());
   const tomorrow = toMidnight(new Date(today.getTime() + 86_400_000));
-  if (apptDay.getTime() === today.getTime())    return 'Today';
-  if (apptDay.getTime() === tomorrow.getTime()) return 'Tomorrow';
+  if (apptDay.getTime() === today.getTime())    return t('today');
+  if (apptDay.getTime() === tomorrow.getTime()) return t('tomorrow');
   return new Date(isoStart).toLocaleDateString('en-MY', {
     day: '2-digit', month: 'short', year: 'numeric',
   });
 }
+
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-MY', {
     hour: '2-digit', minute: '2-digit', hour12: true,
@@ -59,10 +63,11 @@ function formatApptTime(timeStr: string): string {
   return `${String(h12).padStart(2, '0')}:${mStr} ${ampm}`;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Component 
 
 export default function AdminHomeScreen() {
   const router = useRouter()
+  const { t } = useTranslation(); 
 
   const {
     data: upcomingData,
@@ -95,8 +100,6 @@ export default function AdminHomeScreen() {
     refetchNotif,
   ]);
 
-  // 
-  // const hasCache = !!(upcomingData || requestData || countData);
   const hasCache = !!(upcomingData && requestData && countData);
   const isLoading = (upcomingLoading || requestLoading || countLoading) && !hasCache;
 
@@ -112,7 +115,7 @@ export default function AdminHomeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
 
-      <PageLoader visible={isLoading} title="LOADING" subtitle="Fetching dashboard data..." />
+      <PageLoader visible={isLoading} title={t('loading')} subtitle={t('fetching_data')} />
 
       {/* ── Header ── */}
       <View style={styles.header}>
@@ -147,9 +150,9 @@ export default function AdminHomeScreen() {
         {/* ── Upcoming Appointment Card ── */}
         <View style={styles.upcomingCard}>
           <View style={styles.upcomingCardHeader}>
-            <Body1>Upcoming Appointment</Body1>
+            <Body1>{t('upcoming_appointment')}</Body1>
             <TouchableOpacity onPress={() => router.push('/admin/(tabs)/apointment' as any)}>
-              <Caption4 color='#666666'>View All</Caption4>
+              <Caption4 color='#666666'>{t('view_all')}</Caption4>
             </TouchableOpacity>
           </View>
 
@@ -171,12 +174,12 @@ export default function AdminHomeScreen() {
                     {item.provider?.name ?? '-'}
                   </Caption1>
                   <Caption4 style={styles.apptMeta}>
-                    {`${formatTime(item.start)} | ${smartDateLabel(item.start)}`}
+                    {`${formatTime(item.start)} | ${smartDateLabel(item.start, t)}`}
                   </Caption4>
                 </View>
                 <View style={styles.apptVerticalDivider} />
                 <View style={styles.apptRight}>
-                  <Caption4 style={styles.patientLabel}>Patient</Caption4>
+                  <Caption4 style={styles.patientLabel}>{t('patient_label')}</Caption4>
                   <Caption2 style={styles.apptPatient} numberOfLines={1}>
                     {item.lead?.name ?? '-'}
                   </Caption2>
@@ -185,7 +188,7 @@ export default function AdminHomeScreen() {
             ))}
             {upcomingList.length === 0 && !isLoading && (
               <View style={styles.emptyInner}>
-                <Caption4 color="#999">No upcoming appointments</Caption4>
+                <Caption4 color="#999">{t('no_upcoming')}</Caption4>
               </View>
             )}
           </View>
@@ -194,12 +197,12 @@ export default function AdminHomeScreen() {
         {/* ── Stats Row ── */}
         <View style={styles.statsCard}>
           <View style={styles.statItem}>
-            <Caption4 style={styles.statLabel}>Total Booking</Caption4>
+            <Caption4 style={styles.statLabel}>{t('total_booking')}</Caption4>
             <H3 style={styles.statNumber}>{totalBooking}</H3>
           </View>
           <View style={styles.statDivider} />
           <View style={[styles.statItem, { alignItems: 'flex-end' }]}>
-            <Caption4 style={styles.statLabel}>Confirmed</Caption4>
+            <Caption4 style={styles.statLabel}>{t('confirmed')}</Caption4>
             <H3 style={styles.statNumber}>{confirmedCount}</H3>
           </View>
         </View>
@@ -207,9 +210,9 @@ export default function AdminHomeScreen() {
         {/* ── Recent Request ── */}
         <View style={styles.recentSection}>
           <View style={styles.sectionHeader}>
-            <H6 style={styles.sectionTitle}>Recent Request</H6>
+            <H6 style={styles.sectionTitle}>{t('recent_request')}</H6>
             <TouchableOpacity onPress={() => router.push('/admin/(tabs)/details' as any)}>
-              <Caption4 color='#666666'>View All</Caption4>
+              <Caption4 color='#666666'>{t('view_all')}</Caption4>
             </TouchableOpacity>
           </View>
 
@@ -229,7 +232,7 @@ export default function AdminHomeScreen() {
                 <Caption4 style={styles.apptMeta}>{formatApptDate(item.appt_date)}</Caption4>
               </View>
               <CustomButton
-                title='View'
+                title={t('view_btn')}
                 borderRadius={14}
                 onPress={() =>
                   router.push({
@@ -244,7 +247,7 @@ export default function AdminHomeScreen() {
 
           {pendingList.length === 0 && !isLoading && (
             <View style={styles.emptyInner}>
-              <Caption4 color="#999">No pending requests</Caption4>
+              <Caption4 color="#999">{t('no_pending')}</Caption4>
             </View>
           )}
         </View>
@@ -253,10 +256,14 @@ export default function AdminHomeScreen() {
   )
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// ─── Styles 
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -264,16 +271,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: wp(20),
     paddingVertical: hp(16),
   },
-  logo: { height: hp(54), width: wp(138), resizeMode: 'contain' },
-  notifBtn: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: '#F8F8F8',
-    justifyContent: 'center', alignItems: 'center',
+
+  logo: {
+    height: hp(54),
+    width: wp(138),
+    resizeMode: 'contain',
   },
+
+  notifBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F8F8F8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
   badge: {
     position: 'absolute',
-    top: 2, right: 2,
-    minWidth: 18, height: 18,
+    top: 2,
+    right: 2,
+    minWidth: 18,
+    height: 18,
     borderRadius: 9,
     backgroundColor: '#FF3B30',
     justifyContent: 'center',
@@ -282,59 +301,158 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#FFFFFF',
   },
+
   badgeText: {
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '700',
     lineHeight: 12,
   },
+
   scrollContent: {
     paddingHorizontal: wp(20),
     paddingTop: hp(8),
     paddingBottom: hp(150),
     gap: hp(20),
   },
+
   upcomingCard: {
-    borderRadius: 16, borderWidth: 1,
+    borderRadius: 16,
+    borderWidth: 1,
     borderColor: Colors.BORDER_COLOR,
-    backgroundColor: '#F8F8F8', overflow: 'hidden',
+    backgroundColor: '#F8F8F8',
+    overflow: 'hidden',
   },
+
   upcomingCardHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: wp(16), paddingVertical: hp(14),
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: wp(16),
+    paddingVertical: hp(14),
   },
-  apptListInner: { paddingHorizontal: wp(12), paddingBottom: hp(12), gap: hp(8) },
+
+  apptListInner: {
+    paddingHorizontal: wp(12),
+    paddingBottom: hp(12),
+    gap: hp(8),
+  },
+
   apptInnerCard: {
-    flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1, borderColor: Colors.BORDER_COLOR, borderRadius: 16,
-    overflow: 'hidden', backgroundColor: Colors.APP_BACKGROUND, paddingVertical: hp(15),
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.BORDER_COLOR,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: Colors.APP_BACKGROUND,
+    paddingVertical: hp(15),
   },
-  apptLeft: { flex: 1, paddingHorizontal: wp(14), paddingVertical: hp(12) },
-  apptVerticalDivider: { width: 1, alignSelf: 'stretch', backgroundColor: Colors.BORDER_COLOR },
-  apptRight: { width: wp(130), paddingHorizontal: wp(14), paddingVertical: hp(12), alignItems: 'flex-end' },
-  apptDoctor: { color: Colors.BRAND_PRIMARY, fontWeight: '600', marginBottom: hp(5) },
-  apptMeta: { color: '#666666', marginBottom: 3 },
-  patientLabel: { color: '#666666', marginBottom: hp(8) },
-  apptPatient: { color: Colors.TEXT_COLOR, fontWeight: '600', textAlign: 'right' },
+
+  apptLeft: {
+    flex: 1,
+    paddingHorizontal: wp(14),
+    paddingVertical: hp(12),
+  },
+
+  apptVerticalDivider: {
+    width: 1,
+    alignSelf: 'stretch',
+    backgroundColor: Colors.BORDER_COLOR,
+  },
+
+  apptRight: {
+    width: wp(130),
+    paddingHorizontal: wp(14),
+    paddingVertical: hp(12),
+    alignItems: 'flex-end',
+  },
+
+  apptDoctor: {
+    color: Colors.BRAND_PRIMARY,
+    fontWeight: '600',
+    marginBottom: hp(5),
+  },
+
+  apptMeta: {
+    color: '#666666',
+    marginBottom: 3,
+  },
+
+  patientLabel: {
+    color: '#666666',
+    marginBottom: hp(8),
+  },
+
+  apptPatient: {
+    color: Colors.TEXT_COLOR,
+    fontWeight: '600',
+    textAlign: 'right',
+  },
+
   statsCard: {
-    flexDirection: 'row', borderRadius: 16, borderWidth: 1,
-    borderColor: Colors.BORDER_COLOR, overflow: 'hidden', backgroundColor: Colors.APP_BACKGROUND,
+    flexDirection: 'row',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.BORDER_COLOR,
+    overflow: 'hidden',
+    backgroundColor: Colors.APP_BACKGROUND,
   },
-  statItem: { flex: 1, paddingHorizontal: wp(20), paddingVertical: hp(16) },
-  statDivider: { width: 1, backgroundColor: '#EEEEEE', marginVertical: hp(12) },
-  statLabel: { color: '#666666' },
-  statNumber: { color: Colors.TEXT_COLOR, fontWeight: '700', marginTop: hp(4) },
+
+  statItem: {
+    flex: 1,
+    paddingHorizontal: wp(20),
+    paddingVertical: hp(16),
+  },
+
+  statDivider: {
+    width: 1,
+    backgroundColor: '#EEEEEE',
+    marginVertical: hp(12),
+  },
+
+  statLabel: {
+    color: '#666666',
+  },
+
+  statNumber: {
+    color: Colors.TEXT_COLOR,
+    fontWeight: '700',
+    marginTop: hp(4),
+  },
+
   recentSection: {},
+
   sectionHeader: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: hp(12),
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: hp(12),
   },
-  sectionTitle: { fontWeight: '700', color: '#1A1A1A' },
+
+  sectionTitle: {
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+
   recentCard: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: wp(16), paddingVertical: hp(16), borderRadius: 16,
-    borderWidth: 1, borderColor: Colors.BORDER_COLOR, backgroundColor: Colors.APP_BACKGROUND,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: wp(16),
+    paddingVertical: hp(16),
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.BORDER_COLOR,
+    backgroundColor: Colors.APP_BACKGROUND,
   },
-  recentLeft: { flex: 1 },
-  emptyInner: { alignItems: 'center', paddingVertical: hp(16) },
+
+  recentLeft: {
+    flex: 1,
+  },
+
+  emptyInner: {
+    alignItems: 'center',
+    paddingVertical: hp(16),
+  },
 })

@@ -14,7 +14,7 @@ import { hp, wp } from '@/utils/responsiveDevice'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useState } from 'react'
-import { useTranslation } from 'react-i18next'; // ১. ইম্পোর্ট
+import { useTranslation } from 'react-i18next'
 import {
   KeyboardAvoidingView,
   Modal,
@@ -26,7 +26,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-// অনুবাদ কী (Key) সহ অপশন
+
 const GENDER_OPTIONS = [
   { label: 'male', value: 'Male' },
   { label: 'female', value: 'Female' },
@@ -49,7 +49,7 @@ interface Allergy {
 export default function EditFamilyInfoScreen() {
   const router = useRouter()
   const params = useLocalSearchParams()
-  const { t } = useTranslation() // ২. হুক কল
+  const { t } = useTranslation() 
   const [updateFamilyPatch, { isLoading }] = useUpdateFamilyPatchMutation()
 
   const [memberName, setMemberName] = useState((params.member_name as string) ?? '')

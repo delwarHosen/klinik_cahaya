@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
 
   doctorImage: {
     width: '100%',
-    height: hp(180),
+    height: hp(250),
     backgroundColor: '#1D9E7533',
   },
 

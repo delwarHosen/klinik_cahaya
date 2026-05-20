@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// ─── Status Helper ────────────────────────────────────────────────────────────
+// ─── Status Helper 
 
 function getStockStatus(status: string) {
   if (status === 'out_of_stock') return 'stockout';
@@ -22,7 +22,7 @@ function getStockStatus(status: string) {
   return 'available';
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
+// ─── Component
 
 export default function VaccineStockScreen() {
   const { t } = useTranslation()
@@ -30,7 +30,7 @@ export default function VaccineStockScreen() {
   const { data, isLoading, refetch, isFetching } = useGetVaccineStockQuery(undefined);
   const vaccines = data ?? [];
 
-  // console.log("Vaccine Data",vaccines)
+  console.log("Vaccine Data",vaccines)
 
   const onRefresh = useCallback(() => {
     refetch();

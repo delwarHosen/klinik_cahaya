@@ -1,5 +1,5 @@
 import Toast from '@/components/shared/Toast';
-import { store } from '@/redux/store';
+import { persistor, store } from '@/redux/store';
 import i18n from '@/src/i18n';
 import {
   Poppins_400Regular,
@@ -22,13 +22,13 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, useColorScheme, View } from 'react-native';
 import 'react-native-reanimated';
 import { Provider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
 
 SplashScreen.preventAutoHideAsync();
 
 
 const handleDeepLink = async ({ url }: { url: string }) => {
-  console.log(' Deep link URL:', url);
-
+  console.log('Deep link URL:', url);
 
   const fragmentPart = url.includes('#') ? url.split('#')[1] : url.split('?')[1];
   if (!fragmentPart) return;
@@ -37,11 +37,11 @@ const handleDeepLink = async ({ url }: { url: string }) => {
   const accessToken = params.get('access_token');
   const refreshToken = params.get('refresh_token');
 
-  console.log(' Access Token:', accessToken);
+  console.log('Access Token:', accessToken);
 
   if (accessToken) {
     await AsyncStorage.setItem('access_token', accessToken);
-    console.log(' Token saved!');
+    console.log('Token saved!');
     router.push('/(auth)/personal_information');
   }
   if (refreshToken) {
@@ -65,13 +65,11 @@ export default function RootLayout() {
     Poppins_800ExtraBold,
   });
 
-  //  Deep link listener
+  // Deep link listener
   useEffect(() => {
-
     Linking.getInitialURL().then((url) => {
       if (url) handleDeepLink({ url });
     });
-
 
     const subscription = Linking.addEventListener('url', handleDeepLink);
     return () => subscription.remove();
@@ -95,6 +93,7 @@ export default function RootLayout() {
     prepare();
   }, [loaded]);
 
+  // ✅ Font বা i18n লোড না হলে loader দেখাও
   if (!loaded || !isI18nReady) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -105,17 +104,27 @@ export default function RootLayout() {
 
   return (
     <Provider store={store}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="index" options={{ headerShown: false, animation: 'none' }} />
-          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="admin" options={{ headerShown: false }} />
-          <Stack.Screen name="patient" options={{ headerShown: false }} />
-        </Stack>
-        <Toast />
-        <StatusBar style="auto" />
-      </ThemeProvider>
+      {/* ✅ PersistGate যোগ করা হয়েছে — AsyncStorage থেকে auth rehydrate হওয়া পর্যন্ত loader */}
+      <PersistGate
+        loading={
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" />
+          </View>
+        }
+        persistor={persistor}
+      >
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <Stack>
+            <Stack.Screen name="index" options={{ headerShown: false, animation: 'none' }} />
+            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen name="admin" options={{ headerShown: false }} />
+            <Stack.Screen name="patient" options={{ headerShown: false }} />
+          </Stack>
+          <Toast />
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </PersistGate>
     </Provider>
   );
 }

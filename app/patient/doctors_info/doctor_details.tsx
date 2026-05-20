@@ -146,8 +146,8 @@ const styles = StyleSheet.create({
     marginBottom: hp(24),
   },
   doctorImage: {
-    width: wp(100),
-    height: hp(100),
+    width: wp(120),
+    height: hp(150),
     backgroundColor: '#dfefee',
     borderWidth: 1,
     borderColor: '#dbf0ef',

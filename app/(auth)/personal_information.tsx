@@ -49,7 +49,7 @@ export default function PersonalInformationScreen() {
   const [gender, setGender] = useState<typeof GENDER_OPTIONS[number] | ''>('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [address, setAddress] = useState('');
-  const [phone, setPhone] = useState('');
+  // const [phone, setPhone] = useState('');
   const [showGenderModal, setShowGenderModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -76,10 +76,10 @@ export default function PersonalInformationScreen() {
       showToast(t('enter_address_error'), 'error');
       return;
     }
-    if (!phone.trim()) {
-      showToast(t('enter_phone_error'), 'error');
-      return;
-    }
+    // if (!phone.trim()) {
+    //   showToast(t('enter_phone_error'), 'error');
+    //   return;
+    // }
 
     try {
       await updateProfile({
@@ -87,7 +87,7 @@ export default function PersonalInformationScreen() {
         date_of_birth: dateOfBirth,
         is_child: isChild,
         address,
-        phone,
+        // phone,
       }).unwrap();
 
       showToast(t('profile_saved'), 'success');
@@ -168,12 +168,15 @@ export default function PersonalInformationScreen() {
               onChangeText={setAddress}
               placeholder={t('address')}
             />
-            <FormInput
+
+            
+           {/* <FormInput
               value={phone}
               onChangeText={setPhone}
               placeholder={t('phone')}
               type="number"
             />
+             */}
 
             {isLoading ? (
               <View style={{ alignItems: 'center', marginTop: hp(8) }}>

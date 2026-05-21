@@ -12,7 +12,7 @@ import { useSignupMutation } from '@/redux/services/authApi';
 import { hp, wp } from '@/utils/responsiveDevice';
 import { validateEmail, validateICNumber, validateName, validatePassword } from '@/utils/validation';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   KeyboardAvoidingView,
@@ -25,8 +25,9 @@ import {
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { t } = useTranslation(); 
+  const { t } = useTranslation();
   const [signup, { isLoading }] = useSignupMutation();
+  const [phone, setPhone] = useState('');
 
   const { values, errors, touched, handleChange, handleSubmit } = useForm({
     initialValues: {
@@ -55,6 +56,7 @@ export default function RegisterScreen() {
           ic_number: values[FORM_FIELDS.CONTACT_NO],
           password: values[FORM_FIELDS.PASSWORD],
           confirm_password: values[FORM_FIELDS.CONFIRM_PASSWORD],
+          phone,
         }).unwrap();
 
         showToast(t('check_email_otp', 'Check your email for the OTP code.'), 'success');
@@ -72,6 +74,11 @@ export default function RegisterScreen() {
     },
   });
 
+  // if (!phone.trim()) {
+  //   showToast(t('enter_phone_error'), 'error');
+  //   return;
+  // }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -87,9 +94,9 @@ export default function RegisterScreen() {
           <View style={{ width: '100%', maxWidth: 500 }}>
             <AuthHeading
               imageSource={IMAGE_COMPONENTS.logo}
-              title={t('sign_up')} // ৩. JSON থেকে 'Sign up'
+              title={t('sign_up')}
               style={{ marginBottom: hp(30) }}
-              description={t('register_desc', 'Hello! Register to get started')} 
+              description={t('register_desc', 'Hello! Register to get started')}
             />
 
             <View style={styles.form}>
@@ -116,6 +123,14 @@ export default function RegisterScreen() {
                 error={errors[FORM_FIELDS.CONTACT_NO]}
                 touched={touched[FORM_FIELDS.CONTACT_NO]}
               />
+
+              <FormInput
+                value={phone}
+                onChangeText={setPhone}
+                placeholder={t('phone')}
+                type="number"
+              />
+
               <FormInput
                 value={values[FORM_FIELDS.PASSWORD]}
                 onChangeText={(text) => handleChange(FORM_FIELDS.PASSWORD, text)}
